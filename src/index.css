@@ -1,0 +1,280 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ChildBook Design System
+   Warm, celebratory, trustworthy. All colors HSL.
+*/
+
+@layer base {
+  :root {
+    /* Brand palette */
+    --background: 41 60% 97%;            /* Warm Cream #FEFBF3 */
+    --foreground: 240 4% 25%;            /* Dark Charcoal #3E3E42 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 4% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 4% 25%;
+
+    --primary: 153 19% 72%;              /* Primary Teal #A8C5BA */
+    --primary-foreground: 240 6% 20%;
+    --primary-deep: 153 22% 58%;
+
+    --secondary: 17 65% 72%;             /* Soft Coral #E8A087 */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 36 23% 95%;                 /* Light Gray/Cream #F5F3F0 */
+    --muted-foreground: 240 4% 45%;
+
+    --accent: 32 41% 71%;                /* Warm Gold #D4B896 */
+    --accent-foreground: 240 6% 20%;
+
+    --success: 150 19% 57%;              /* #7BA892 */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 47% 64%;               /* #D4A574 */
+    --warning-foreground: 240 6% 20%;
+
+    --destructive: 0 39% 73%;            /* Error Rose #D89B9B */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 33 22% 86%;                /* Soft warm border */
+    --input: 33 22% 86%;
+    --ring: 153 22% 58%;
+
+    --radius: 0.875rem;
+
+    /* Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(41 60% 97%) 0%, hsl(36 35% 92%) 100%);
+    --gradient-hero: linear-gradient(140deg, hsl(153 30% 86%) 0%, hsl(32 50% 86%) 100%);
+    --gradient-celebrate: linear-gradient(135deg, hsl(32 41% 71%) 0%, hsl(17 65% 78%) 100%);
+
+    /* Shadows — soft, lifted */
+    --shadow-soft: 0 1px 2px hsl(33 22% 50% / 0.04), 0 4px 16px hsl(33 22% 40% / 0.06);
+    --shadow-lift: 0 4px 8px hsl(33 22% 50% / 0.06), 0 12px 28px hsl(33 22% 40% / 0.10);
+    --shadow-glow: 0 8px 32px hsl(153 25% 60% / 0.18);
+
+    /* Motion */
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: all 200ms var(--ease-soft);
+
+    --sidebar-background: 41 60% 97%;
+    --sidebar-foreground: 240 4% 25%;
+    --sidebar-primary: 153 22% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 36 23% 95%;
+    --sidebar-accent-foreground: 240 4% 25%;
+    --sidebar-border: 33 22% 86%;
+    --sidebar-ring: 153 22% 58%;
+  }
+
+  /* Theme: Soft Pastel Dream — opt-in via .theme-dream on <html>
+     Source of truth: design-3.md (Soft Pastel Dream) — exact hex → HSL */
+  .theme-dream {
+    --background: 280 25% 97%;          /* #F8F5FA deeper cream */
+    --foreground: 260 30% 28%;          /* #463766 darker plum */
+
+    --card: 280 25% 97%;
+    --card-foreground: 260 30% 28%;
+
+    --popover: 280 25% 97%;
+    --popover-foreground: 260 30% 28%;
+
+    --primary: 261 60% 78%;             /* #B8A8E0 deeper lilac */
+    --primary-foreground: 260 30% 28%;
+    --primary-deep: 254 45% 58%;        /* #8F80C4 richer mauve */
+
+    --secondary: 261 55% 84%;           /* #C8BDE8 misty lilac */
+    --secondary-foreground: 260 30% 28%;
+
+    --muted: 270 30% 94%;               /* #ECE6F2 morning haze */
+    --muted-foreground: 257 25% 55%;    /* #8275A0 dusty plum */
+
+    --accent: 338 75% 88%;              /* #F0C8D8 whisper pink */
+    --accent-foreground: 260 30% 28%;
+
+    --success: 138 40% 76%;             /* #A8D0B8 mint cloud */
+    --success-foreground: 260 30% 28%;
+
+    --warning: 36 85% 82%;              /* #F0D0A8 peach cloud */
+    --warning-foreground: 260 30% 28%;
+
+    --destructive: 346 60% 80%;         /* #E0A8B8 rose cloud */
+    --destructive-foreground: 260 30% 28%;
+
+    --border: 270 35% 90%;              /* #E0D5E8 petal border */
+    --input: 270 35% 90%;
+    --ring: 254 45% 58%;
+
+    --radius: 1.125rem;
+
+    --gradient-warm: linear-gradient(135deg, hsl(270 30% 96%) 0%, hsl(330 40% 97%) 40%, hsl(39 60% 96%) 100%);
+    --gradient-hero: linear-gradient(140deg, hsl(261 55% 90%) 0%, hsl(338 70% 90%) 60%, hsl(38 80% 90%) 100%);
+    --gradient-celebrate: linear-gradient(135deg, hsl(261 60% 82%) 0%, hsl(338 75% 88%) 55%, hsl(36 90% 82%) 100%);
+
+    --shadow-soft: 0 2px 8px hsl(260 30% 28% / 0.05), 0 4px 20px hsl(260 30% 28% / 0.07);
+    --shadow-lift: 0 4px 20px hsl(260 30% 28% / 0.07), 0 12px 40px hsl(260 30% 28% / 0.09);
+    --shadow-glow: 0 12px 40px hsl(254 45% 58% / 0.28);
+
+    --sidebar-background: 280 25% 97%;
+    --sidebar-foreground: 260 30% 28%;
+    --sidebar-primary: 254 45% 58%;
+    --sidebar-primary-foreground: 260 30% 28%;
+    --sidebar-accent: 270 30% 94%;
+    --sidebar-accent-foreground: 260 30% 28%;
+    --sidebar-border: 270 35% 90%;
+    --sidebar-ring: 254 45% 58%;
+  }
+
+  .theme-dream body {
+    font-family: 'Nunito', 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  .theme-dream h1, .theme-dream h2, .theme-dream h3, .theme-dream h4 {
+    font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  .dark {
+    --background: 240 8% 10%;
+    --foreground: 41 30% 94%;
+    --card: 240 8% 13%;
+    --card-foreground: 41 30% 94%;
+    --popover: 240 8% 13%;
+    --popover-foreground: 41 30% 94%;
+    --primary: 153 22% 58%;
+    --primary-foreground: 240 8% 10%;
+    --secondary: 17 50% 65%;
+    --secondary-foreground: 240 8% 10%;
+    --muted: 240 6% 18%;
+    --muted-foreground: 41 15% 70%;
+    --accent: 32 35% 60%;
+    --accent-foreground: 240 8% 10%;
+    --destructive: 0 39% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 22%;
+    --input: 240 6% 22%;
+    --ring: 153 22% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    transition: background-color 160ms var(--ease-soft), color 160ms var(--ease-soft);
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-warm { background-image: var(--gradient-warm); }
+  .bg-gradient-hero { background-image: var(--gradient-hero); }
+  .bg-gradient-celebrate { background-image: var(--gradient-celebrate); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-lift { box-shadow: var(--shadow-lift); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Scrapbook fonts */
+  .font-handwritten { font-family: 'Caveat', cursive; }
+  .font-marker { font-family: 'Kalam', cursive; }
+  .font-printed { font-family: 'Patrick Hand', cursive; }
+  .font-sketch { font-family: 'Shadows Into Light', cursive; }
+
+  /* ── Scrapbook paper textures ───────────────────────────── */
+  .paper-grain {
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(0,0,0,0.022) 1px, transparent 1.5px),
+      radial-gradient(circle at 70% 60%, rgba(0,0,0,0.018) 1px, transparent 1.5px);
+    background-size: 24px 24px, 32px 32px;
+  }
+  /* Gingham picnic check */
+  .paper-gingham {
+    background-image:
+      linear-gradient(0deg, rgba(255,255,255,0.55) 50%, transparent 50%),
+      linear-gradient(90deg, rgba(255,255,255,0.55) 50%, transparent 50%);
+    background-size: 22px 22px, 22px 22px;
+  }
+  /* Notebook ruled paper */
+  .paper-ruled {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 27px,
+      rgba(80, 120, 180, 0.18) 27px,
+      rgba(80, 120, 180, 0.18) 28px
+    );
+  }
+  /* Open dot grid */
+  .paper-dots {
+    background-image: radial-gradient(circle, rgba(0,0,0,0.12) 1px, transparent 1.4px);
+    background-size: 16px 16px;
+  }
+  /* Crosshatch graph */
+  .paper-grid {
+    background-image:
+      linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+  /* Cardstock cutout shadow on stickers/photos */
+  .cutout-shadow {
+    filter: drop-shadow(0 2px 1px rgba(0,0,0,0.18)) drop-shadow(0 6px 8px rgba(0,0,0,0.12));
+  }
+  /* Bubble outlined marker title — uses two text-shadows for chunky outline */
+  .bubble-title {
+    -webkit-text-stroke: 2px hsl(var(--card));
+    paint-order: stroke fill;
+    text-shadow:
+      3px 3px 0 rgba(0,0,0,0.18),
+      0 0 0 hsl(var(--card));
+  }
+  /* Torn-paper edge using clip-path — playful, deckle-style */
+  .torn-edge {
+    clip-path: polygon(
+      0 4%, 5% 0, 12% 3%, 22% 0, 33% 4%, 45% 1%, 58% 4%, 70% 0, 82% 4%, 92% 1%, 100% 5%,
+      96% 18%, 100% 32%, 97% 48%, 100% 62%, 96% 78%, 100% 92%,
+      92% 100%, 78% 96%, 64% 100%, 50% 97%, 36% 100%, 22% 97%, 8% 100%, 0 95%,
+      3% 80%, 0 64%, 4% 48%, 0 32%, 3% 16%
+    );
+  }
+  /* Subtle paper crinkle ridge */
+  .paper-crinkle {
+    background-image:
+      repeating-linear-gradient(115deg, rgba(0,0,0,0.018) 0 2px, transparent 2px 9px),
+      repeating-linear-gradient(25deg, rgba(0,0,0,0.012) 0 2px, transparent 2px 13px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
