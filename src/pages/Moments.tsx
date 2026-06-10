@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useChildren } from "@/hooks/useChildren";
 import { useMemories, type Memory } from "@/hooks/useMemories";
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
@@ -41,6 +42,12 @@ const Moments = () => {
   const navigate = useNavigate();
   const { data: child } = useActiveChild();
   const { data: memories = [], isLoading } = useMemories(child?.id);
+  const { data: allKids = [] } = useChildren();
+  const nameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of allKids) map[c.id] = c.name;
+    return map;
+  }, [allKids]);
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -275,6 +282,16 @@ const Moments = () => {
                     </div>
                   )}
                   <div className="space-y-1.5 p-3">
+                    {m.is_linked && (
+                      <div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/30 px-2 py-0.5 text-[10px] font-medium text-secondary">
+                          ↳ {m.primary_child_id && nameById[m.primary_child_id]
+                            ? `From ${nameById[m.primary_child_id]}`
+                            : "Sibling's memory"}
+                          {m.relation_label ? ` · ${m.relation_label}` : ""}
+                        </span>
+                      </div>
+                    )}
                     <span
                       className={cn(
                         "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",

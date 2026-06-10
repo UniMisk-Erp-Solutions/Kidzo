@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useChildren } from "@/hooks/useChildren";
 import { useCalendarMemory } from "@/hooks/useCalendarMemory";
 import { useMemories } from "@/hooks/useMemories";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,7 +33,20 @@ const NewMemory = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: child } = useActiveChild();
+  const { data: allChildren = [] } = useChildren();
   const qc = useQueryClient();
+
+  // Other children you own — candidates to also tag this memory onto (siblings).
+  const siblings = useMemo(
+    () => allChildren.filter((c) => c.id !== child?.id && c.user_id === user?.id),
+    [allChildren, child?.id, user?.id],
+  );
+  // { [childId]: { checked, label } } — which siblings to link + an optional relation note.
+  const [linkSel, setLinkSel] = useState<Record<string, { checked: boolean; label: string }>>({});
+  const toggleSibling = (id: string) =>
+    setLinkSel((p) => ({ ...p, [id]: { checked: !p[id]?.checked, label: p[id]?.label ?? "" } }));
+  const setSiblingLabel = (id: string, label: string) =>
+    setLinkSel((p) => ({ ...p, [id]: { checked: p[id]?.checked ?? true, label } }));
 
   const [title, setTitle] = useState("");
   const [story, setStory] = useState("");
@@ -213,27 +227,52 @@ const NewMemory = () => {
 
     const photo_url: string | null = uploadedUrls[0] ?? null;
 
-    const { error } = await supabase.from("memories").insert({
-      user_id: user.id,
-      child_id: child.id,
-      title: title.trim(),
-      story: story.trim() || null,
-      happened_at: happenedAt.toISOString(),
-      category,
-      who_was_there: who,
-      tags,
-      photo_url,
-      photo_urls: uploadedUrls,
-      reaction: reaction.trim() || null,
-    });
-    setSaving(false);
+    const { data: inserted, error } = await supabase
+      .from("memories")
+      .insert({
+        user_id: user.id,
+        child_id: child.id,
+        title: title.trim(),
+        story: story.trim() || null,
+        happened_at: happenedAt.toISOString(),
+        category,
+        who_was_there: who,
+        tags,
+        photo_url,
+        photo_urls: uploadedUrls,
+        reaction: reaction.trim() || null,
+      })
+      .select("id")
+      .single();
 
-    if (error) {
-      toast.error(error.message);
+    if (error || !inserted) {
+      setSaving(false);
+      toast.error(error?.message ?? "Couldn't save this memory. Please try again.");
       return;
     }
+
+    // Also place this memory on selected siblings' timelines (additive links).
+    const links = siblings
+      .filter((s) => linkSel[s.id]?.checked)
+      .map((s) => ({
+        memory_id: inserted.id,
+        child_id: s.id,
+        relation_label: (linkSel[s.id]?.label || "").trim() || null,
+      }));
+    if (links.length > 0) {
+      const { error: linkErr } = await supabase.from("memory_child_links").insert(links);
+      if (linkErr) {
+        toast.error(`Memory saved, but linking to siblings failed: ${linkErr.message}`);
+      }
+    }
+
+    setSaving(false);
     qc.invalidateQueries({ queryKey: ["memories"] });
-    toast.success("Memory saved! You're doing an amazing job. ✓");
+    toast.success(
+      links.length > 0
+        ? `Memory saved & shared with ${links.length} sibling${links.length > 1 ? "s" : ""}! ✓`
+        : "Memory saved! You're doing an amazing job. ✓",
+    );
 
     if (saveAndAddAnother) {
       setTitle("");
@@ -241,6 +280,7 @@ const NewMemory = () => {
       setReaction("");
       setWho([]);
       setTags([]);
+      setLinkSel({});
       clearPhotos();
     } else {
       navigate("/moments");
@@ -451,6 +491,49 @@ const NewMemory = () => {
               </Select>
             </div>
           </div>
+
+          {/* Also a memory for siblings */}
+          {siblings.length > 0 && (
+            <div className="space-y-2 rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <Label>Also a memory for…</Label>
+                <span className="text-[11px] text-muted-foreground">
+                  add to a sibling's timeline too
+                </span>
+              </div>
+              <p className="text-[12px] text-muted-foreground">
+                Same moment, shared across siblings. Add an optional note for how it relates to
+                them — e.g. <span className="font-medium">“Brother's 1st birthday”</span>.
+              </p>
+              <ul className="space-y-2 pt-1">
+                {siblings.map((s) => {
+                  const sel = linkSel[s.id];
+                  const checked = !!sel?.checked;
+                  return (
+                    <li key={s.id} className="rounded-xl border border-border bg-card p-3">
+                      <label className="flex cursor-pointer items-center gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleSibling(s.id)}
+                          className="h-4 w-4 accent-[hsl(var(--primary))]"
+                        />
+                        <span className="text-[14px] font-medium text-foreground">{s.name}</span>
+                      </label>
+                      {checked && (
+                        <Input
+                          value={sel?.label ?? ""}
+                          onChange={(e) => setSiblingLabel(s.id, e.target.value)}
+                          placeholder={`How does this relate to ${s.name}? (optional)`}
+                          className="mt-2 h-10 rounded-lg"
+                        />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           {/* Who was there */}
           <div className="space-y-1.5">

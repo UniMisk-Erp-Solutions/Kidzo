@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      memory_child_links: {
+        Row: {
+          id: string
+          memory_id: string
+          child_id: string
+          relation_label: string | null
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          memory_id: string
+          child_id: string
+          relation_label?: string | null
+          created_by?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          memory_id?: string
+          child_id?: string
+          relation_label?: string | null
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_child_links_memory_id_fkey"
+            columns: ["memory_id"]
+            isOneToOne: false
+            referencedRelation: "memories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memory_child_links_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       achievements: {
         Row: {
           achievement_date: string
