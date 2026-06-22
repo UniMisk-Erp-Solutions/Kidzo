@@ -2,3 +2,13 @@ project_id = "ixolgnnlmswenjmwvxez"
 
 [functions.delete-account]
 verify_jwt = true
+
+[functions.razorpay-create-order]
+verify_jwt = true
+
+[functions.razorpay-verify-payment]
+verify_jwt = true
+
+# Razorpay calls this server-to-server (no user JWT) — auth is the webhook signature.
+[functions.razorpay-webhook]
+verify_jwt = false
