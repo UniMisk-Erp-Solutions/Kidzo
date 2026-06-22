@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, CalendarIcon, Loader2, LogOut, Plus, ShieldAlert, Users } from "lucide-react";
+import { ArrowLeft, CalendarIcon, CreditCard, Loader2, LogOut, Plus, ShieldAlert, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import {
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useActiveChildId, useLeaveSharedChild, useUpdateChild } from "@/hooks/useChildren";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,7 @@ import { Slider } from "@/components/ui/slider";
 const Settings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { planName, planSlug, loading: planLoading } = useEntitlements();
   const { data: child, isLoading } = useActiveChild();
   const { activeId, children } = useActiveChildId();
   const activeChild = children.find((c) => c.id === activeId) ?? child;
@@ -174,6 +176,36 @@ const Settings = () => {
         </button>
 
         <h1 className="mb-6 text-2xl font-bold text-foreground">Settings</h1>
+
+        {/* Plan & billing */}
+        <section className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-soft">
+          <div className="mb-4 flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/25 text-primary-deep">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-foreground">Plan &amp; billing</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                You're on the{" "}
+                <span className="font-semibold text-foreground">
+                  {planLoading ? "…" : planName ?? "Free"}
+                </span>{" "}
+                plan.
+                {planSlug !== "premium" && " Upgrade to unlock more children, PDF export, sharing and more."}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="warm" className="flex-1" onClick={() => navigate("/pricing-plans")}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {planSlug === "premium" ? "View plans" : "Upgrade plan"}
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => navigate("/billing")}>
+              <CreditCard className="mr-2 h-4 w-4" />
+              Billing &amp; invoices
+            </Button>
+          </div>
+        </section>
 
         {/* Appearance / Theme */}
         <section className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-soft">
