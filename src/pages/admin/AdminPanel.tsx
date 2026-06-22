@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ScrollText } from "lucide-react";
-import { ArrowLeft, Shield, Users as UsersIcon, Package, Receipt, Settings as SettingsIcon, LayoutDashboard, LogOut } from "lucide-react";
+import { ArrowLeft, Shield, Users as UsersIcon, Package, Receipt, Settings as SettingsIcon, LayoutDashboard, LogOut, Ticket, Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -603,6 +603,246 @@ const AuditLogTab = () => {
   );
 };
 
+/* ─────────── COUPONS ─────────── */
+const Chip = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+      active ? "border-primary bg-primary/20 text-primary-deep" : "border-border bg-card text-muted-foreground hover:bg-muted"
+    }`}
+  >
+    {children}
+  </button>
+);
+
+const CouponsTab = () => {
+  const { user } = useAuth();
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const blank = {
+    code: "", description: "", discount_type: "percent", discount_value: 10, scope: "general",
+    allowed_emails: "", allowed_user_ids: [] as string[], plan_slugs: [] as string[], cycles: [] as string[],
+    min_amount: 0, max_redemptions: "", per_user_limit: 1, first_time_only: false, expires_at: "", is_active: true,
+  };
+  const [form, setForm] = useState<any>({ ...blank });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const { data: c } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
+    setCoupons(c ?? []);
+    const { data: p } = await supabase.from("plans").select("slug, name").neq("slug", "free").order("sort_order");
+    setPlans(p ?? []);
+    const { data: u } = await supabase.from("profiles").select("id, display_name").order("display_name");
+    setUsers(u ?? []);
+  };
+  useEffect(() => { load(); }, []);
+
+  const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
+  const toggle = (k: string, v: string) =>
+    setForm((f: any) => ({ ...f, [k]: f[k].includes(v) ? f[k].filter((x: string) => x !== v) : [...f[k], v] }));
+
+  const create = async () => {
+    if (!form.code.trim()) return toast.error("Code is required");
+    if (!(Number(form.discount_value) > 0)) return toast.error("Discount value must be greater than 0");
+    setSaving(true);
+    const emails = form.scope === "emails"
+      ? form.allowed_emails.split(/[\s,]+/).map((s: string) => s.trim()).filter(Boolean) : null;
+    const payload = {
+      code: form.code.trim().toUpperCase(),
+      description: form.description,
+      discount_type: form.discount_type,
+      discount_value: Number(form.discount_value),
+      scope: form.scope,
+      allowed_emails: emails && emails.length ? emails : null,
+      allowed_user_ids: form.scope === "users" && form.allowed_user_ids.length ? form.allowed_user_ids : null,
+      applicable_plan_slugs: form.plan_slugs.length ? form.plan_slugs : null,
+      applicable_cycles: form.cycles.length ? form.cycles : null,
+      min_amount: Number(form.min_amount) || 0,
+      max_redemptions: form.max_redemptions === "" ? null : Number(form.max_redemptions),
+      per_user_limit: Number(form.per_user_limit) || 1,
+      first_time_only: form.first_time_only,
+      expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+      is_active: form.is_active,
+      created_by: user?.id ?? null,
+    };
+    const { error } = await supabase.from("coupons").insert(payload);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Coupon created");
+    setForm({ ...blank });
+    load();
+  };
+
+  const toggleActive = async (c: any) => {
+    const { error } = await supabase.from("coupons").update({ is_active: !c.is_active }).eq("id", c.id);
+    if (error) return toast.error(error.message);
+    load();
+  };
+  const remove = async (c: any) => {
+    if (!confirm(`Delete coupon ${c.code}?`)) return;
+    const { error } = await supabase.from("coupons").delete().eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success("Coupon deleted");
+    load();
+  };
+
+  const filteredUsers = users.filter((u) =>
+    (u.display_name ?? "").toLowerCase().includes(userSearch.toLowerCase()));
+
+  return (
+    <div className="space-y-6">
+      {/* Create */}
+      <Card className="p-5">
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+          <Ticket className="h-5 w-5 text-primary-deep" /> Create coupon
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-1.5">
+            <Label>Code</Label>
+            <Input value={form.code} onChange={(e) => set("code", e.target.value.toUpperCase())} placeholder="WELCOME50" className="uppercase" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Discount type</Label>
+            <Select value={form.discount_type} onValueChange={(v) => set("discount_type", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="percent">Percentage (%)</SelectItem>
+                <SelectItem value="fixed">Fixed amount</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{form.discount_type === "percent" ? "Percent off" : "Amount off"}</Label>
+            <Input type="number" min={0} value={form.discount_value} onChange={(e) => set("discount_value", e.target.value)} />
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+            <Label>Description (internal)</Label>
+            <Input value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="Launch promo" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Who can use it</Label>
+            <Select value={form.scope} onValueChange={(v) => set("scope", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">Everyone (general)</SelectItem>
+                <SelectItem value="emails">Specific emails</SelectItem>
+                <SelectItem value="users">Specific existing users</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {form.scope === "emails" && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Allowed emails (comma or space separated)</Label>
+              <Input value={form.allowed_emails} onChange={(e) => set("allowed_emails", e.target.value)} placeholder="a@x.com, b@y.com" />
+            </div>
+          )}
+          {form.scope === "users" && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Pick users ({form.allowed_user_ids.length} selected)</Label>
+              <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="Search by name…" />
+              <div className="mt-2 flex max-h-32 flex-wrap gap-1.5 overflow-y-auto rounded-lg border border-border p-2">
+                {filteredUsers.slice(0, 60).map((u) => (
+                  <Chip key={u.id} active={form.allowed_user_ids.includes(u.id)} onClick={() => toggle("allowed_user_ids", u.id)}>
+                    {u.display_name ?? u.id.slice(0, 8)}
+                  </Chip>
+                ))}
+                {filteredUsers.length === 0 && <span className="text-xs text-muted-foreground">No users match.</span>}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label>Applies to plans (none = all paid)</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {plans.map((p) => (
+                <Chip key={p.slug} active={form.plan_slugs.includes(p.slug)} onClick={() => toggle("plan_slugs", p.slug)}>{p.name}</Chip>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Billing cycles (none = both)</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {["monthly", "yearly"].map((c) => (
+                <Chip key={c} active={form.cycles.includes(c)} onClick={() => toggle("cycles", c)}>{c}</Chip>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Min order amount</Label>
+            <Input type="number" min={0} value={form.min_amount} onChange={(e) => set("min_amount", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Max total redemptions (blank = ∞)</Label>
+            <Input type="number" min={0} value={form.max_redemptions} onChange={(e) => set("max_redemptions", e.target.value)} placeholder="∞" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Per-user limit</Label>
+            <Input type="number" min={1} value={form.per_user_limit} onChange={(e) => set("per_user_limit", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Expires at (optional)</Label>
+            <Input type="date" value={form.expires_at} onChange={(e) => set("expires_at", e.target.value)} />
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch checked={form.first_time_only} onCheckedChange={(v) => set("first_time_only", v)} />
+            <Label className="!mt-0">First purchase only</Label>
+          </div>
+          <div className="flex items-center gap-3">
+            <Switch checked={form.is_active} onCheckedChange={(v) => set("is_active", v)} />
+            <Label className="!mt-0">Active</Label>
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end">
+          <Button onClick={create} disabled={saving}>{saving ? "Creating…" : "Create coupon"}</Button>
+        </div>
+      </Card>
+
+      {/* List */}
+      <Card className="p-5">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead><TableHead>Discount</TableHead><TableHead>Scope</TableHead>
+                <TableHead>Used</TableHead><TableHead>Expires</TableHead><TableHead>Status</TableHead><TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {coupons.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-mono font-medium">{c.code}</TableCell>
+                  <TableCell>{c.discount_type === "percent" ? `${c.discount_value}%` : `₹${c.discount_value}`}</TableCell>
+                  <TableCell><Badge variant="secondary">{c.scope}</Badge></TableCell>
+                  <TableCell className="text-muted-foreground">{c.redeemed_count}{c.max_redemptions ? `/${c.max_redemptions}` : ""}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "—"}</TableCell>
+                  <TableCell>
+                    <button onClick={() => toggleActive(c)}>
+                      <Badge variant={c.is_active ? "default" : "secondary"}>{c.is_active ? "active" : "off"}</Badge>
+                    </button>
+                  </TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="ghost" onClick={() => remove(c)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {coupons.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground">No coupons yet.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 /* ─────────── ROOT ─────────── */
 const AdminPanel = () => {
   const { user, signOut } = useAuth();
@@ -633,6 +873,7 @@ const AdminPanel = () => {
             <TabsTrigger value="dashboard"><LayoutDashboard className="mr-1 h-4 w-4" />Dashboard</TabsTrigger>
             <TabsTrigger value="users"><UsersIcon className="mr-1 h-4 w-4" />Users</TabsTrigger>
             <TabsTrigger value="plans"><Package className="mr-1 h-4 w-4" />Plans</TabsTrigger>
+            <TabsTrigger value="coupons"><Ticket className="mr-1 h-4 w-4" />Coupons</TabsTrigger>
             <TabsTrigger value="invoices"><Receipt className="mr-1 h-4 w-4" />Invoices</TabsTrigger>
             <TabsTrigger value="audit"><ScrollText className="mr-1 h-4 w-4" />Audit log</TabsTrigger>
             <TabsTrigger value="settings"><SettingsIcon className="mr-1 h-4 w-4" />Settings</TabsTrigger>
@@ -640,6 +881,7 @@ const AdminPanel = () => {
           <TabsContent value="dashboard" className="mt-5"><Dashboard /></TabsContent>
           <TabsContent value="users" className="mt-5"><UsersTab /></TabsContent>
           <TabsContent value="plans" className="mt-5"><PlansTab /></TabsContent>
+          <TabsContent value="coupons" className="mt-5"><CouponsTab /></TabsContent>
           <TabsContent value="invoices" className="mt-5"><InvoicesTab /></TabsContent>
           <TabsContent value="audit" className="mt-5"><AuditLogTab /></TabsContent>
           <TabsContent value="settings" className="mt-5"><SettingsTab /></TabsContent>

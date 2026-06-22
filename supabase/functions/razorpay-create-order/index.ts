@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     if (userErr || !userData.user) return json({ error: "Not authenticated" }, 401);
     const user = userData.user;
 
-    const { plan_slug, cycle } = await req.json().catch(() => ({}));
+    const { plan_slug, cycle, coupon_code } = await req.json().catch(() => ({}));
     const billingCycle = cycle === "yearly" ? "yearly" : "monthly";
     if (!plan_slug) return json({ error: "plan_slug required" }, 400);
 
@@ -52,9 +52,24 @@ Deno.serve(async (req) => {
     if (planErr || !plan) return json({ error: "Plan not found" }, 404);
     if (!plan.is_active) return json({ error: "Plan not available" }, 400);
 
-    const amount = Number(billingCycle === "yearly" ? plan.price_yearly : plan.price_monthly);
-    if (!amount || amount <= 0) return json({ error: "This plan is free — no payment needed" }, 400);
+    const baseAmount = Number(billingCycle === "yearly" ? plan.price_yearly : plan.price_monthly);
+    if (!baseAmount || baseAmount <= 0) return json({ error: "This plan is free — no payment needed" }, 400);
     const currency = plan.currency || "INR";
+
+    // Optional coupon: re-validate server-side (never trust the client's discounted price).
+    let amount = baseAmount;
+    let couponId: string | null = null;
+    let discountAmount = 0;
+    if (coupon_code) {
+      const { data: quote, error: qErr } = await admin.rpc("coupon_quote", {
+        p_code: coupon_code, p_user: user.id, p_plan_slug: plan.slug, p_cycle: billingCycle,
+      });
+      if (qErr) throw qErr;
+      if (!quote?.valid) return json({ error: quote?.reason || "Invalid coupon" }, 400);
+      amount = Number(quote.final_amount);
+      discountAmount = Number(quote.discount_amount);
+      couponId = quote.coupon_id;
+    }
     const amountMinor = Math.round(amount * 100); // paise
 
     // 1) create a pending invoice (so we have a receipt id)
@@ -68,7 +83,11 @@ Deno.serve(async (req) => {
         status: "pending",
         provider: "razorpay",
         billing_cycle: billingCycle,
-        notes: `Razorpay checkout — ${plan.name} (${billingCycle})`,
+        coupon_id: couponId,
+        discount_amount: discountAmount,
+        notes: couponId
+          ? `Razorpay checkout — ${plan.name} (${billingCycle}) · coupon ${coupon_code}`
+          : `Razorpay checkout — ${plan.name} (${billingCycle})`,
       })
       .select("id")
       .single();

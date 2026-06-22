@@ -12,6 +12,9 @@ verify_jwt = true
 [functions.admin-sync-razorpay-plans]
 verify_jwt = true
 
+[functions.validate-coupon]
+verify_jwt = true
+
 [functions.razorpay-verify-payment]
 verify_jwt = true
 

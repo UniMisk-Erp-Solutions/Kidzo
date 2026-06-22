@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
 
     const { data: invoice, error: invErr } = await admin
       .from("invoices")
-      .select("id, user_id, plan_id, billing_cycle, provider_order_id, status")
+      .select("id, user_id, plan_id, billing_cycle, provider_order_id, status, coupon_id, discount_amount")
       .eq("id", invoice_id).maybeSingle();
     if (invErr || !invoice) return json({ error: "Invoice not found" }, 404);
     if (invoice.user_id !== user.id) return json({ error: "Invoice does not belong to you" }, 403);
@@ -73,6 +73,13 @@ Deno.serve(async (req) => {
         p_invoice: invoice.id, p_payment_id: razorpay_payment_id,
       });
       if (error) throw error;
+      // record coupon redemption (idempotent) if one was applied
+      if (invoice.coupon_id) {
+        await admin.rpc("redeem_coupon", {
+          p_coupon: invoice.coupon_id, p_user: invoice.user_id,
+          p_invoice: invoice.id, p_amount: invoice.discount_amount ?? 0,
+        });
+      }
     }
 
     const { data: plan } = await admin.from("plans").select("slug, name").eq("id", invoice.plan_id).maybeSingle();

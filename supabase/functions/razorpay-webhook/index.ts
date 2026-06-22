@@ -71,12 +71,19 @@ Deno.serve(async (req) => {
     // ---- one-time order backstop (legacy / non-recurring) ----
     else if ((eventType === "payment.captured" || eventType === "order.paid") && orderId) {
       const { data: invoice } = await admin.from("invoices")
-        .select("id, user_id, plan_id, billing_cycle, status").eq("provider_order_id", orderId).maybeSingle();
+        .select("id, user_id, plan_id, billing_cycle, status, coupon_id, discount_amount")
+        .eq("provider_order_id", orderId).maybeSingle();
       if (invoice && invoice.status !== "paid") {
         await admin.rpc("activate_paid_subscription", {
           p_user: invoice.user_id, p_plan: invoice.plan_id, p_cycle: invoice.billing_cycle ?? "monthly",
           p_invoice: invoice.id, p_payment_id: paymentId ?? null,
         });
+        if (invoice.coupon_id) {
+          await admin.rpc("redeem_coupon", {
+            p_coupon: invoice.coupon_id, p_user: invoice.user_id,
+            p_invoice: invoice.id, p_amount: invoice.discount_amount ?? 0,
+          });
+        }
       }
     }
 
