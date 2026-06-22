@@ -1,0 +1,31 @@
+{
+  "name": "Kidzopedia",
+  "short_name": "Kidzopedia",
+  "description": "The Little Encyclopedia of Your Child's Life — capture memories, track milestones, and safely store every important document.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FEFBF3",
+  "theme_color": "#FEFBF3",
+  "icons": [
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

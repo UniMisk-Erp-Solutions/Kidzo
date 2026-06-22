@@ -41,6 +41,7 @@ import BookPreview from "./pages/books/BookPreview.tsx";
 import BookCheckout from "./pages/books/BookCheckout.tsx";
 import OrderConfirmation from "./pages/books/OrderConfirmation.tsx";
 import ExportShare from "./pages/ExportShare.tsx";
+import GetApp from "./pages/GetApp.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
           <ScrollToTop />
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/get-app" element={<GetApp />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route
