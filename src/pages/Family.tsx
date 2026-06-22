@@ -18,6 +18,7 @@ import { useActiveChild } from "@/hooks/useActiveChild";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeaveSharedChild } from "@/hooks/useChildren";
 import { useInvites, useShares } from "@/hooks/useShares";
+import { useFeatureGuard, isPlanLockedError } from "@/hooks/useFeatureGuard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ const Family = () => {
   const { data: shares = [] } = useShares(child?.id);
   const { data: invites = [] } = useInvites(child?.id);
   const leaveShare = useLeaveSharedChild();
+  const guard = useFeatureGuard();
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"viewer" | "editor">("viewer");
@@ -47,6 +49,7 @@ const Family = () => {
 
   const createInvite = async () => {
     if (!child || !user) return;
+    if (!guard("family_invites", "Family invites")) return;
     setCreating(true);
     const token = generateToken();
     const { error } = await supabase.from("child_invites").insert({
@@ -58,7 +61,7 @@ const Family = () => {
     });
     setCreating(false);
     if (error) {
-      toast.error("Couldn't create invite");
+      toast.error(isPlanLockedError(error.message) ? "Family invites are a paid feature — upgrade to invite family." : "Couldn't create invite");
       return;
     }
     setEmail("");

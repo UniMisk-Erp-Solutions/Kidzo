@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { exportKeepsakePdf } from "@/lib/exportPdf";
+import { useFeatureGuard } from "@/hooks/useFeatureGuard";
 import type { Memory } from "@/hooks/useMemories";
 import type { Achievement } from "@/hooks/useAchievements";
 
@@ -20,6 +21,7 @@ interface Props {
 export const ExportKeepsakeButton = ({ childName, childDob, memories, achievements }: Props) => {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const guard = useFeatureGuard();
 
   const allDates = [
     ...memories.map((m) => new Date(m.happened_at).getFullYear()),
@@ -44,6 +46,7 @@ export const ExportKeepsakeButton = ({ childName, childDob, memories, achievemen
 
   const handle = async () => {
     if (busy) return;
+    if (!guard("pdf_export", "PDF export")) { setOpen(false); return; }
     if (memories.length === 0 && achievements.length === 0) {
       toast.error("Nothing to export yet — add a memory first.");
       return;
