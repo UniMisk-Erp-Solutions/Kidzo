@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ScrollText } from "lucide-react";
-import { ArrowLeft, Shield, Users as UsersIcon, Package, Receipt, Settings as SettingsIcon, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Shield, Users as UsersIcon, Package, Receipt, Settings as SettingsIcon, LayoutDashboard, LogOut } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -183,6 +183,21 @@ const PlansTab = () => {
       currency: plan.currency, is_active: plan.is_active, sort_order: plan.sort_order,
     }).eq("id", plan.id);
     if (error) return toast.error(error.message);
+
+    // For paid plans, re-sync the price to Razorpay so NEW subscriptions bill the new amount.
+    // (Razorpay plan amounts are immutable → this creates fresh plans and repoints them.
+    //  Existing subscribers keep their current price until they re-subscribe.)
+    if (plan.slug !== "free" && (Number(plan.price_monthly) > 0 || Number(plan.price_yearly) > 0)) {
+      const { data: sync, error: syncErr } = await supabase.functions.invoke("admin-sync-razorpay-plans", {
+        body: { plan_slug: plan.slug },
+      });
+      if (syncErr || sync?.error) {
+        toast.warning(`Plan saved, but Razorpay price sync failed: ${sync?.error || syncErr?.message}. Display/one-time prices are updated; recurring price not yet.`);
+        return;
+      }
+      toast.success("Plan saved & synced to Razorpay — new price applies to new subscriptions.");
+      return;
+    }
     toast.success("Plan saved");
   };
 
@@ -590,11 +605,15 @@ const AuditLogTab = () => {
 
 /* ─────────── ROOT ─────────── */
 const AdminPanel = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    try { await signOut(); } finally { navigate("/auth", { replace: true }); }
+  };
   return (
     <div className="min-h-screen bg-background px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
             <Link to="/home" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" /> Back to app
@@ -604,6 +623,9 @@ const AdminPanel = () => {
             </h1>
             <p className="text-sm text-muted-foreground">Signed in as {user?.email}</p>
           </div>
+          <Button variant="outline" onClick={handleSignOut} className="gap-2">
+            <LogOut className="h-4 w-4" /> Sign out
+          </Button>
         </div>
 
         <Tabs defaultValue="dashboard">
