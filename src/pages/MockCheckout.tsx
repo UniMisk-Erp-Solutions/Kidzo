@@ -62,8 +62,8 @@ const Checkout = () => {
       return;
     }
 
-    // 1) ask our backend to create a Razorpay order (amount is computed server-side)
-    const { data: order, error } = await supabase.functions.invoke("razorpay-create-order", {
+    // 1) ask our backend to create a recurring Razorpay subscription (amount/plan resolved server-side)
+    const { data: order, error } = await supabase.functions.invoke("razorpay-create-subscription", {
       body: { plan_slug: planSlug, cycle },
     });
     if (error || !order || order.error) {
@@ -72,22 +72,20 @@ const Checkout = () => {
       return;
     }
 
-    // 2) open the Razorpay checkout
+    // 2) open the Razorpay checkout (subscription mode — sets up auto-renewal)
     const rzp = new window.Razorpay({
       key: order.key_id,
-      amount: order.amount,
-      currency: order.currency,
       name: "Kidzopedia",
-      description: `${order.plan_name} plan · billed ${cycle}`,
-      order_id: order.order_id,
+      description: `${order.plan_name} plan · auto-renews ${cycle}`,
+      subscription_id: order.subscription_id,
       prefill: order.prefill,
       theme: { color: "#E29578" },
       handler: async (resp: any) => {
         // 3) verify the payment on our backend → activates the plan instantly
         const { data: verify, error: vErr } = await supabase.functions.invoke("razorpay-verify-payment", {
           body: {
-            razorpay_order_id: resp.razorpay_order_id,
             razorpay_payment_id: resp.razorpay_payment_id,
+            razorpay_subscription_id: resp.razorpay_subscription_id,
             razorpay_signature: resp.razorpay_signature,
             invoice_id: order.invoice_id,
           },
@@ -164,8 +162,9 @@ const Checkout = () => {
               <div className="mt-6 flex items-start gap-2 rounded-xl bg-primary/10 p-4 text-sm text-foreground">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary-deep" />
                 <span>
-                  You'll pay securely via Razorpay (UPI, cards, net-banking & wallets). Your plan
-                  activates the moment your payment succeeds.
+                  Secure auto-renewing subscription via Razorpay (UPI Autopay, cards & more). Your plan
+                  activates instantly and renews automatically every {cycle === "monthly" ? "month" : "year"} —
+                  cancel anytime from Billing.
                 </span>
               </div>
 
@@ -176,7 +175,9 @@ const Checkout = () => {
                 disabled={submitting}
                 onClick={handlePay}
               >
-                {submitting ? "Opening secure checkout…" : `Pay ${symbol}${Number(amount).toFixed(2)}`}
+                {submitting
+                  ? "Opening secure checkout…"
+                  : `Subscribe · ${symbol}${Number(amount).toFixed(2)}/${cycle === "monthly" ? "mo" : "yr"}`}
               </Button>
             </>
           ) : (
