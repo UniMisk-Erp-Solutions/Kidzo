@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ScrollText } from "lucide-react";
-import { ArrowLeft, Shield, Users as UsersIcon, Package, Receipt, Settings as SettingsIcon, LayoutDashboard, LogOut, Ticket, Trash2 } from "lucide-react";
+import { ArrowLeft, Shield, Users as UsersIcon, Package, Receipt, Settings as SettingsIcon, LayoutDashboard, LogOut, Ticket, Trash2, Download } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { downloadInvoicePdf } from "@/lib/invoicePdf";
 import { toast } from "sonner";
 
 /* ─────────── DASHBOARD ─────────── */
@@ -480,6 +481,15 @@ const InvoicesTab = () => {
                     {inv.status !== "refunded" && (
                       <Button size="sm" variant="outline" onClick={() => setStatus(inv.id, "refunded")}>Refund</Button>
                     )}
+                    <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => downloadInvoicePdf({
+                      id: inv.id, created_at: inv.created_at, paid_at: inv.paid_at, status: inv.status,
+                      plan_name: inv.plans?.name, billing_cycle: inv.billing_cycle, amount: inv.amount,
+                      discount_amount: inv.discount_amount, currency: inv.currency,
+                      provider_payment_id: inv.provider_payment_id, provider_order_id: inv.provider_order_id,
+                      bill_to_name: inv.profiles?.display_name ?? inv._user_name ?? null,
+                    })}>
+                      <Download className="h-4 w-4" /> Invoice
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
