@@ -46,7 +46,7 @@ const About = () => {
             publisher: {
               "@type": "Organization",
               name: "Kidzopedia",
-              logo: { "@type": "ImageObject", url: "https://kidzopedia.com/og-kidzopedia.jpg" },
+              logo: { "@type": "ImageObject", url: "https://kidzopedia.byteosaurus.com/app-icon-512.png" },
             },
             keywords: "childhood keepsake, memory book, family app, milestones, baby book, parents",
           },

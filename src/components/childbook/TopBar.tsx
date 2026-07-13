@@ -1,4 +1,5 @@
-import { BookHeart, LogOut, Settings } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -19,9 +20,7 @@ export const TopBar = ({ childName }: { childName: string }) => {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-3 md:max-w-4xl">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/30 text-primary-deep">
-            <BookHeart className="h-[18px] w-[18px]" strokeWidth={2.2} />
-          </span>
+          <BrandLogo className="h-9 w-9 rounded-xl" />
           <div className="leading-tight">
             <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Kidzopedia</div>
             <div className="flex items-center gap-0.5">

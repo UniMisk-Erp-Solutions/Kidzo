@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ReactNode, useEffect, useState } from "react";
-import { ArrowRight, BookHeart, Github, Instagram, Mail, Menu, Twitter, X } from "lucide-react";
+import { ArrowRight, Github, Instagram, Mail, Menu, Twitter, X } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -35,9 +36,7 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Link to="/" className="flex min-w-0 items-center gap-2">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary/30 text-primary-deep shadow-soft">
-              <BookHeart className="h-5 w-5" strokeWidth={2.2} />
-            </span>
+            <BrandLogo className="h-9 w-9 shadow-soft" />
             <span className="truncate text-[17px] font-bold tracking-tight">Kidzopedia</span>
           </Link>
 
@@ -115,9 +114,7 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
           <div className="grid gap-10 md:grid-cols-4">
             <div className="md:col-span-1">
               <Link to="/" className="flex items-center gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/30 text-primary-deep shadow-soft">
-                  <BookHeart className="h-5 w-5" strokeWidth={2.2} />
-                </span>
+                <BrandLogo className="h-9 w-9 shadow-soft" />
                 <span className="text-[17px] font-bold tracking-tight">Kidzopedia</span>
               </Link>
               <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">

@@ -45,7 +45,7 @@ export const buildBlogPostingJsonLd = (post: BlogPostingInput) => ({
   publisher: {
     "@type": "Organization",
     name: "Kidzopedia",
-    logo: { "@type": "ImageObject", url: "https://kidzopedia.com/og-kidzopedia.jpg" },
+    logo: { "@type": "ImageObject", url: "https://kidzopedia.byteosaurus.com/app-icon-512.png" },
   },
   keywords: post.keywords?.join(", "),
 });

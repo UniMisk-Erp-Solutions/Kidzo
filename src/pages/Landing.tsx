@@ -102,7 +102,7 @@ const Landing = () => {
             "@type": "Organization",
             name: "Kidzopedia",
             url: "https://kidzopedia.com",
-            logo: "https://kidzopedia.com/og-kidzopedia.jpg",
+            logo: "https://kidzopedia.byteosaurus.com/app-icon-512.png",
           },
           buildFaqJsonLd(HOME_FAQS),
         ]}

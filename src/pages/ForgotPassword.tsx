@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, BookHeart, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,9 +32,7 @@ const ForgotPassword = () => {
     <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/30 text-primary-deep shadow-soft">
-            <BookHeart className="h-7 w-7" strokeWidth={2.2} />
-          </span>
+          <BrandLogo className="mb-3 h-16 w-16 shadow-soft" />
           <h1 className="text-3xl font-bold text-foreground">Reset your password</h1>
           <p className="mt-2 text-[15px] text-muted-foreground">We'll send a secure link to your email.</p>
         </div>
