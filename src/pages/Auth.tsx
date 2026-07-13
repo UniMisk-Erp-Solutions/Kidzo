@@ -263,7 +263,11 @@ const Auth = () => {
                       onLocalChange={setPhoneLocal}
                     />
                     <p className="text-[12px] text-muted-foreground">
-                      We'll send a 6-digit code to this number on WhatsApp.
+                      {phoneLocal.length >= 6 ? (
+                        <>We'll send a 6-digit code to <span className="font-medium text-foreground">{fullPhone}</span> on WhatsApp.</>
+                      ) : (
+                        <>Pick your country, then type just your number. We'll send a 6-digit code on WhatsApp.</>
+                      )}
                     </p>
                   </div>
                   <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading}>
