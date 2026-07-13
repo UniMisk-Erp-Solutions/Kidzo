@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, CalendarIcon, CreditCard, Loader2, Lock, LogOut, Plus, ShieldAlert, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, CalendarIcon, CreditCard, Loader2, Lock, LogOut, Plus, ShieldAlert, Smartphone, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import {
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { PronounsSelect } from "@/components/childbook/PronounsSelect";
+import { PhoneField, toE164 } from "@/components/childbook/PhoneField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useActiveChild } from "@/hooks/useActiveChild";
@@ -59,6 +60,13 @@ const Settings = () => {
 
   // Reset link always goes to user.email (locked) — no editable email state.
   const [sendingReset, setSendingReset] = useState(false);
+
+  // Mobile number change (WhatsApp OTP)
+  const [newDial, setNewDial] = useState("91");
+  const [newPhoneLocal, setNewPhoneLocal] = useState("");
+  const [phoneOtp, setPhoneOtp] = useState("");
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneSaving, setPhoneSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const leaveShared = useLeaveSharedChild();
@@ -146,6 +154,44 @@ const Settings = () => {
     setNewPassword("");
     setConfirmPassword("");
     toast.success("Password updated ✨");
+  };
+
+  // ---- Mobile number change (verified over WhatsApp) ----------------------
+  // Supabase sends a 6-digit code to the NEW number (delivered by our WhatsApp hook).
+  // Verifying it with type "phone_change" updates auth.users.phone on the SAME user id,
+  // so every child, memory and document stays mapped to the account exactly as before.
+  const startPhoneChange = async () => {
+    const next = toE164(newDial, newPhoneLocal);
+    if (newPhoneLocal.replace(/[^0-9]/g, "").length < 6) {
+      toast.error("Enter a valid WhatsApp number");
+      return;
+    }
+    if (next === user?.phone) {
+      toast.error("That's already your current number");
+      return;
+    }
+    setPhoneSaving(true);
+    const { error } = await supabase.auth.updateUser({ phone: next });
+    setPhoneSaving(false);
+    if (error) return toast.error(error.message);
+    setPhoneOtpSent(true);
+    toast.success("Code sent on WhatsApp 💬", { description: `Check WhatsApp on ${next}` });
+  };
+
+  const confirmPhoneChange = async () => {
+    const next = toE164(newDial, newPhoneLocal);
+    setPhoneSaving(true);
+    const { error } = await supabase.auth.verifyOtp({
+      phone: next,
+      token: phoneOtp,
+      type: "phone_change",
+    });
+    setPhoneSaving(false);
+    if (error) return toast.error(error.message);
+    setPhoneOtpSent(false);
+    setPhoneOtp("");
+    setNewPhoneLocal("");
+    toast.success("Mobile number updated ✨", { description: "All your data stays exactly where it was." });
   };
 
   // The reset link ALWAYS goes to the email this account signed up / logs in with.
@@ -641,6 +687,75 @@ const Settings = () => {
               Update password
             </Button>
           </form>
+        </section>
+
+        {/* Mobile number */}
+        <section className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-soft">
+          <div className="mb-4 flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/25 text-primary-deep">
+              <Smartphone className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-foreground">Mobile number</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {user?.phone
+                  ? <>Current: <span className="font-medium text-foreground">+{String(user.phone).replace(/^\+/, "")}</span></>
+                  : "No mobile number linked yet."}
+              </p>
+            </div>
+          </div>
+
+          {!phoneOtpSent ? (
+            <div className="space-y-3">
+              <Label htmlFor="newphone">{user?.phone ? "New WhatsApp number" : "Add a WhatsApp number"}</Label>
+              <PhoneField
+                id="newphone"
+                dial={newDial}
+                local={newPhoneLocal}
+                onDialChange={setNewDial}
+                onLocalChange={setNewPhoneLocal}
+                disabled={phoneSaving}
+              />
+              <p className="text-xs text-muted-foreground">
+                We'll send a 6-digit code to the new number on WhatsApp. Your memories, children and documents stay
+                exactly as they are — only the number changes.
+              </p>
+              <Button variant="outline" onClick={startPhoneChange} disabled={phoneSaving || !newPhoneLocal}>
+                {phoneSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Send code on WhatsApp
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Label htmlFor="phoneotp">Enter the 6-digit code</Label>
+              <Input
+                id="phoneotp"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={phoneOtp}
+                onChange={(e) => setPhoneOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="••••••"
+                className="h-14 rounded-xl text-center font-mono text-2xl tracking-[0.5em]"
+              />
+              <p className="text-xs text-muted-foreground">
+                Sent on WhatsApp to{" "}
+                <span className="font-medium text-foreground">{toE164(newDial, newPhoneLocal)}</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="warm" onClick={confirmPhoneChange} disabled={phoneSaving || phoneOtp.length !== 6}>
+                  {phoneSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Confirm new number
+                </Button>
+                <Button variant="ghost" onClick={() => { setPhoneOtpSent(false); setPhoneOtp(""); }} disabled={phoneSaving}>
+                  Cancel
+                </Button>
+                <Button variant="ghost" onClick={startPhoneChange} disabled={phoneSaving}>
+                  Resend code
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Forgot password */}

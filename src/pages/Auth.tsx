@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { PhoneField, toE164 } from "@/components/childbook/PhoneField";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -26,8 +27,9 @@ const Auth = () => {
   const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
 
-  // Phone
-  const [phone, setPhone] = useState("");
+  // Phone (WhatsApp): country dial code + local number -> E.164
+  const [dial, setDial] = useState("91");
+  const [phoneLocal, setPhoneLocal] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
 
@@ -123,29 +125,27 @@ const Auth = () => {
     toast.success("Welcome back!");
   };
 
+  // Full number in E.164, e.g. +919876543210 — this is what Supabase stores on auth.users.phone
+  const fullPhone = toE164(dial, phoneLocal);
+
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const formatted = phone.startsWith("+") ? phone : `+${phone}`;
-    const { error } = await supabase.auth.signInWithOtp({ phone: formatted });
-    setLoading(false);
-    if (error) {
-      if (error.message.toLowerCase().includes("provider") || error.message.toLowerCase().includes("sms")) {
-        toast.error("Phone sign-in not configured", {
-          description: "Ask your admin to enable an SMS provider in Cloud → Auth.",
-        });
-      } else toast.error(error.message);
+    if (phoneLocal.replace(/[^0-9]/g, "").length < 6) {
+      toast.error("Enter a valid WhatsApp number");
       return;
     }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
+    setLoading(false);
+    if (error) return toast.error(error.message);
     setOtpSent(true);
-    toast.success("Code sent — check your messages.");
+    toast.success("Code sent on WhatsApp 💬", { description: `Check WhatsApp on ${fullPhone}` });
   };
 
   const verifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const formatted = phone.startsWith("+") ? phone : `+${phone}`;
-    const { error } = await supabase.auth.verifyOtp({ phone: formatted, token: otp, type: "sms" });
+    const { error } = await supabase.auth.verifyOtp({ phone: fullPhone, token: otp, type: "sms" });
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome!");
@@ -254,27 +254,61 @@ const Auth = () => {
               {!otpSent ? (
                 <form onSubmit={sendOtp} className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="phone">Phone number</Label>
-                    <Input id="phone" type="tel" required placeholder="+919876543210" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-11 rounded-xl" />
-                    <p className="text-[12px] text-muted-foreground">Include your country code (e.g. +91, +1).</p>
+                    <Label htmlFor="phone">WhatsApp number</Label>
+                    <PhoneField
+                      id="phone"
+                      dial={dial}
+                      local={phoneLocal}
+                      onDialChange={setDial}
+                      onLocalChange={setPhoneLocal}
+                    />
+                    <p className="text-[12px] text-muted-foreground">
+                      We'll send a 6-digit code to this number on WhatsApp.
+                    </p>
                   </div>
                   <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading}>
-                    {loading ? "Sending code…" : "Send code"}
+                    {loading ? "Sending code…" : "Send code on WhatsApp"}
                   </Button>
                 </form>
               ) : (
                 <form onSubmit={verifyOtp} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="otp">Verification code</Label>
-                    <Input id="otp" required value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="6-digit code" className="h-11 rounded-xl tracking-widest" />
-                    <p className="text-[12px] text-muted-foreground">Sent to {phone}</p>
+                  <div className="space-y-2">
+                    <Label htmlFor="otp">Enter the 6-digit code</Label>
+                    <Input
+                      id="otp"
+                      required
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                      placeholder="••••••"
+                      className="h-14 rounded-xl text-center font-mono text-2xl tracking-[0.5em]"
+                    />
+                    <p className="text-[12px] text-muted-foreground">
+                      Sent on WhatsApp to <span className="font-medium text-foreground">{fullPhone}</span>
+                    </p>
                   </div>
-                  <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading}>
+                  <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading || otp.length !== 6}>
                     {loading ? "Verifying…" : "Verify & continue"}
                   </Button>
-                  <button type="button" onClick={() => { setOtpSent(false); setOtp(""); }} className="block w-full text-center text-[13px] text-muted-foreground hover:text-foreground">
-                    Use a different number
-                  </button>
+                  <div className="flex items-center justify-between text-[13px]">
+                    <button
+                      type="button"
+                      onClick={() => { setOtpSent(false); setOtp(""); }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      Use a different number
+                    </button>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={(e) => sendOtp(e as unknown as React.FormEvent)}
+                      className="text-primary-deep hover:underline disabled:opacity-50"
+                    >
+                      Resend code
+                    </button>
+                  </div>
                 </form>
               )}
             </TabsContent>
