@@ -39,6 +39,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDocuments, useGuidanceProgress, type DocCategory, type ChildDocument } from "@/hooks/useDocuments";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,6 +126,7 @@ const GUIDES = [
 const Records = () => {
   const { user } = useAuth();
   const { data: child } = useActiveChild();
+  const { canEdit } = useCanEditChild(child?.id);
   const { data: documents = [], isLoading } = useDocuments(child?.id);
   const { data: completedGuides = [] } = useGuidanceProgress(child?.id);
   const qc = useQueryClient();
@@ -291,14 +293,16 @@ const Records = () => {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="soft"
-                        size="sm"
-                        onClick={() => openUpload(cat.id)}
-                        aria-label={`Upload ${cat.label}`}
-                      >
-                        <Upload className="h-3.5 w-3.5" />
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          variant="soft"
+                          size="sm"
+                          onClick={() => openUpload(cat.id)}
+                          aria-label={`Upload ${cat.label}`}
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
 
                     {items.length > 0 && (
@@ -331,13 +335,15 @@ const Records = () => {
                               >
                                 <Download className="h-3.5 w-3.5" />
                               </button>
-                              <button
-                                onClick={() => handleDelete(doc)}
-                                aria-label="Delete"
-                                className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              {canEdit && (
+                                <button
+                                  onClick={() => handleDelete(doc)}
+                                  aria-label="Delete"
+                                  className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </li>
                         ))}

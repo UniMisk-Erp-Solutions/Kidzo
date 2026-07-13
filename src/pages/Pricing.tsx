@@ -137,12 +137,10 @@ const Pricing = () => {
           })}
         </div>
 
-        <div className="mt-10 text-center text-sm text-muted-foreground">
-          <Sparkles className="mr-1 inline h-4 w-4" />
-          All paid plans are processed by our team (Razorpay coming soon). You'll see a confirmation page after checkout.
-        </div>
-        <div className="mt-4 text-center">
-          <Link to="/" className="text-sm text-primary-deep hover:underline">← Back to home</Link>
+        <div className="mt-10 text-center">
+          <Link to={user ? "/home" : "/"} className="text-sm text-primary-deep hover:underline">
+            ← Back to {user ? "dashboard" : "home"}
+          </Link>
         </div>
       </div>
     </div>

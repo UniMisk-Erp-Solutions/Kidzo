@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PronounsSelect } from "@/components/childbook/PronounsSelect";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -133,13 +134,7 @@ export const AddChildDialog = ({ open, onOpenChange, onCreated }: Props) => {
 
           <div className="space-y-1.5">
             <Label htmlFor="ac-pronouns">Pronouns (optional)</Label>
-            <Input
-              id="ac-pronouns"
-              value={pronouns}
-              onChange={(e) => setPronouns(e.target.value)}
-              placeholder="she/her, he/him, they/them"
-              className="h-11 rounded-xl"
-            />
+            <PronounsSelect id="ac-pronouns" value={pronouns} onChange={setPronouns} />
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">

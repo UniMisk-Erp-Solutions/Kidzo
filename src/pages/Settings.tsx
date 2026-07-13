@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, CalendarIcon, CreditCard, Loader2, LogOut, Plus, ShieldAlert, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, CalendarIcon, CreditCard, Loader2, Lock, LogOut, Plus, ShieldAlert, Sparkles, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
+import { PronounsSelect } from "@/components/childbook/PronounsSelect";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useActiveChild } from "@/hooks/useActiveChild";
@@ -51,11 +52,12 @@ const Settings = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPwd, setChangingPwd] = useState(false);
 
-  const [resetEmail, setResetEmail] = useState(user?.email ?? "");
+  // Reset link always goes to user.email (locked) — no editable email state.
   const [sendingReset, setSendingReset] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -69,9 +71,6 @@ const Settings = () => {
     }
   }, [activeChild]);
 
-  useEffect(() => {
-    if (user?.email && !resetEmail) setResetEmail(user.email);
-  }, [user, resetEmail]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +104,11 @@ const Settings = () => {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user?.email) return;
+    if (!currentPassword) {
+      toast.error("Please enter your current password");
+      return;
+    }
     if (newPassword.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -113,22 +117,43 @@ const Settings = () => {
       toast.error("Passwords don't match");
       return;
     }
+    if (newPassword === currentPassword) {
+      toast.error("New password must be different from your current password");
+      return;
+    }
     setChangingPwd(true);
+
+    // 1) Verify the CURRENT password against the backend (Supabase auth re-authenticates
+    //    the same user). Only if this succeeds are we allowed to set a new password.
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (verifyErr) {
+      setChangingPwd(false);
+      toast.error("Current password is incorrect");
+      return;
+    }
+
+    // 2) Current password confirmed -> set the new one.
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setChangingPwd(false);
     if (error) {
       toast.error(error.message);
       return;
     }
+    setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
     toast.success("Password updated ✨");
   };
 
+  // The reset link ALWAYS goes to the email this account signed up / logs in with.
+  // It is never taken from an editable field, so it can't be pointed elsewhere.
   const handleSendReset = async () => {
-    if (!resetEmail) return;
+    if (!user?.email) return;
     setSendingReset(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setSendingReset(false);
@@ -533,14 +558,9 @@ const Settings = () => {
 
             <div className="space-y-1.5">
               <Label htmlFor="c-pronouns">Pronouns</Label>
-              <Input
-                id="c-pronouns"
-                value={pronouns}
-                onChange={(e) => setPronouns(e.target.value)}
-                disabled={!isOwner}
-                placeholder="she/her, he/him, they/them"
-                className="h-11 rounded-xl"
-              />
+              <div className={!isOwner ? "pointer-events-none opacity-60" : undefined}>
+                <PronounsSelect id="c-pronouns" value={pronouns} onChange={setPronouns} />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -575,6 +595,21 @@ const Settings = () => {
           <p className="mb-4 text-sm text-muted-foreground">Use a strong password you don't reuse elsewhere.</p>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div className="space-y-1.5">
+              <Label htmlFor="curp">Current password</Label>
+              <Input
+                id="curp"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter your current password"
+                className="h-11 rounded-xl"
+              />
+              <p className="text-xs text-muted-foreground">
+                We verify this before allowing a new password.
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="np">New password</Label>
               <Input
                 id="np"
@@ -596,7 +631,12 @@ const Settings = () => {
                 className="h-11 rounded-xl"
               />
             </div>
-            <Button type="submit" variant="default" className="w-full" disabled={changingPwd}>
+            <Button
+              type="submit"
+              variant="default"
+              className="w-full"
+              disabled={changingPwd || !currentPassword || !newPassword || !confirmPassword}
+            >
               {changingPwd ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Update password
             </Button>
@@ -606,15 +646,23 @@ const Settings = () => {
         {/* Forgot password */}
         <section className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-soft">
           <h2 className="mb-1 text-lg font-semibold text-foreground">Forgot password</h2>
-          <p className="mb-4 text-sm text-muted-foreground">We'll email you a secure reset link.</p>
+          <p className="mb-4 text-sm text-muted-foreground">
+            We'll email a secure reset link to your account email. For your security this address is locked and
+            can't be changed.
+          </p>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Input
-              type="email"
-              value={resetEmail}
-              onChange={(e) => setResetEmail(e.target.value)}
-              className="h-11 flex-1 rounded-xl"
-            />
-            <Button variant="outline" onClick={handleSendReset} disabled={sendingReset || !resetEmail}>
+            <div className="relative flex-1">
+              <Input
+                type="email"
+                value={user?.email ?? ""}
+                readOnly
+                disabled
+                aria-label="Account email (locked)"
+                className="h-11 w-full cursor-not-allowed rounded-xl bg-muted pr-10 text-muted-foreground"
+              />
+              <Lock className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            </div>
+            <Button variant="outline" onClick={handleSendReset} disabled={sendingReset || !user?.email}>
               {sendingReset ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Send reset link
             </Button>

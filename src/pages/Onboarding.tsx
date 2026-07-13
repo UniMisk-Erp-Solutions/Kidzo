@@ -14,6 +14,7 @@ import { useActiveChild } from "@/hooks/useActiveChild";
 import { useCalendarMemory } from "@/hooks/useCalendarMemory";
 import { AgePreview } from "@/components/childbook/AgePreview";
 import { MilestoneTimelinePreview } from "@/components/childbook/MilestoneTimelinePreview";
+import { PronounsSelect } from "@/components/childbook/PronounsSelect";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -148,13 +149,7 @@ const Onboarding = () => {
 
           <div className="space-y-1.5">
             <Label htmlFor="pronouns">Pronouns (optional)</Label>
-            <Input
-              id="pronouns"
-              value={pronouns}
-              onChange={(e) => setPronouns(e.target.value)}
-              placeholder="she/her, he/him, they/them"
-              className="h-11 rounded-xl"
-            />
+            <PronounsSelect id="pronouns" value={pronouns} onChange={setPronouns} />
           </div>
 
           <Button type="submit" variant="warm" size="lg" className="w-full" disabled={saving || !name || !dob}>

@@ -29,6 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useAchievements, type AchievementType, type Achievement } from "@/hooks/useAchievements";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,7 @@ const TYPES: { id: AchievementType | "all"; label: string; icon: any; tone: stri
 const Grow = () => {
   const { user } = useAuth();
   const { data: child } = useActiveChild();
+  const { canEdit } = useCanEditChild(child?.id);
   const { data: achievements = [], isLoading } = useAchievements(child?.id);
   const qc = useQueryClient();
 
@@ -155,9 +157,11 @@ const Grow = () => {
                 : "Celebrate every milestone, big or small."}
             </p>
           </div>
-          <Button variant="warm" size="sm" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4" /> Add
-          </Button>
+          {canEdit && (
+            <Button variant="warm" size="sm" onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+          )}
         </header>
 
         {/* Type filter chips */}
@@ -195,7 +199,7 @@ const Grow = () => {
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {filtered.map((a) => (
-              <AchievementCard key={a.id} a={a} onDelete={() => handleDelete(a.id)} />
+              <AchievementCard key={a.id} a={a} onDelete={canEdit ? () => handleDelete(a.id) : undefined} />
             ))}
           </ul>
         )}
@@ -350,7 +354,7 @@ const Grow = () => {
   );
 };
 
-const AchievementCard = ({ a, onDelete }: { a: Achievement; onDelete: () => void }) => {
+const AchievementCard = ({ a, onDelete }: { a: Achievement; onDelete?: () => void }) => {
   const meta = TYPES.find((t) => t.id === a.type);
   const Icon = meta?.icon ?? Sparkles;
   return (
@@ -369,13 +373,15 @@ const AchievementCard = ({ a, onDelete }: { a: Achievement; onDelete: () => void
             <Icon className="h-3 w-3" />
             {meta?.label ?? a.type}
           </span>
-          <button
-            onClick={onDelete}
-            aria-label="Delete"
-            className="text-muted-foreground hover:text-destructive"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              aria-label="Delete"
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <h3 className="text-[15px] font-semibold leading-snug text-foreground">{a.subject}</h3>
         {a.grade && <p className="text-[13px] font-medium text-primary-deep">{a.grade}</p>}

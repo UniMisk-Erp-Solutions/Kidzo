@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useChildren } from "@/hooks/useChildren";
 import { useMemories, type Memory } from "@/hooks/useMemories";
 import { TopBar } from "@/components/childbook/TopBar";
@@ -41,6 +42,7 @@ const tagStyles: Record<string, string> = {
 const Moments = () => {
   const navigate = useNavigate();
   const { data: child } = useActiveChild();
+  const { canEdit } = useCanEditChild(child?.id);
   const { data: memories = [], isLoading } = useMemories(child?.id);
   const { data: allKids = [] } = useChildren();
   const nameById = useMemo(() => {
@@ -125,9 +127,11 @@ const Moments = () => {
                   <span className="hidden sm:inline">Timeline</span>
                 </button>
               </div>
-              <Button variant="warm" size="sm" onClick={() => navigate("/moments/new")}>
-                <Plus className="h-4 w-4" /> New
-              </Button>
+              {canEdit && (
+                <Button variant="warm" size="sm" onClick={() => navigate("/moments/new")}>
+                  <Plus className="h-4 w-4" /> New
+                </Button>
+              )}
             </div>
           </div>
           <div className="relative">
@@ -180,7 +184,10 @@ const Moments = () => {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <EmptyState hasAny={memories.length > 0} onCreate={() => navigate("/moments/new")} />
+          <EmptyState
+            hasAny={memories.length > 0}
+            onCreate={canEdit ? () => navigate("/moments/new") : undefined}
+          />
         ) : view === "timeline" ? (
           (() => {
             const sorted = [...filtered].sort(
@@ -320,7 +327,7 @@ const Moments = () => {
   );
 };
 
-const EmptyState = ({ hasAny, onCreate }: { hasAny: boolean; onCreate: () => void }) => (
+const EmptyState = ({ hasAny, onCreate }: { hasAny: boolean; onCreate?: () => void }) => (
   <div className="mx-auto max-w-md py-16 text-center animate-fade-in">
     <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/25 text-primary-deep">
       <Sparkles className="h-8 w-8" strokeWidth={2} />
@@ -331,9 +338,11 @@ const EmptyState = ({ hasAny, onCreate }: { hasAny: boolean; onCreate: () => voi
     <p className="mt-2 text-[15px] text-muted-foreground">
       {hasAny ? "Try clearing the filters above." : "Let's capture your first moment together."}
     </p>
-    <Button variant="warm" size="lg" className="mt-5" onClick={onCreate}>
-      <Plus className="h-4 w-4" /> Create a Memory
-    </Button>
+    {onCreate && (
+      <Button variant="warm" size="lg" className="mt-5" onClick={onCreate}>
+        <Plus className="h-4 w-4" /> Create a Memory
+      </Button>
+    )}
   </div>
 );
 

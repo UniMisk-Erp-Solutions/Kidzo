@@ -15,6 +15,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { type Memory, useMemories } from "@/hooks/useMemories";
+import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export const MemoryDetail = ({ memory, onClose }: Props) => {
+  const { canEdit } = useCanEditChild(memory?.child_id);
   const qc = useQueryClient();
   const { user } = useAuth();
   const [deleting, setDeleting] = useState(false);
@@ -367,21 +369,23 @@ export const MemoryDetail = ({ memory, onClose }: Props) => {
                     )}
                   </dl>
 
-                  <div className="mt-6 flex justify-between gap-2">
-                    <Button
-                      variant="ghost"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                    <Button variant="warm" onClick={() => setEditing(true)}>
-                      <Pencil className="h-4 w-4" />
-                      Edit memory
-                    </Button>
-                  </div>
+                  {canEdit && (
+                    <div className="mt-6 flex justify-between gap-2">
+                      <Button
+                        variant="ghost"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                      <Button variant="warm" onClick={() => setEditing(true)}>
+                        <Pencil className="h-4 w-4" />
+                        Edit memory
+                      </Button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="space-y-4">

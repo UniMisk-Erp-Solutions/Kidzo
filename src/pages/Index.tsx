@@ -11,6 +11,7 @@ import { FeatureTour } from "@/components/childbook/FeatureTour";
 import { Flashbacks } from "@/components/childbook/Flashbacks";
 import { DashboardSkeleton } from "@/components/childbook/DashboardSkeleton";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useMemories } from "@/hooks/useMemories";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -28,6 +29,8 @@ const Index = () => {
   const { data: documents = [] } = useDocuments(child?.id);
 
   const isOwner = !!child && !!user && child.user_id === user.id;
+  // owner OR accepted 'editor' share can edit; a 'viewer' share is read-only.
+  const { canEdit } = useCanEditChild(child?.id);
 
   useEffect(() => {
     if (!childLoading && !child && user) navigate("/onboarding", { replace: true });
@@ -48,7 +51,7 @@ const Index = () => {
             childName={child.name}
             dob={new Date(child.dob)}
             avatarUrl={child.avatar_url}
-            canEdit={isOwner}
+            canEdit={canEdit}
           />
 
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -92,7 +95,7 @@ const Index = () => {
             achievementsCount={achievements.length}
             documentsCount={documents.length}
           />
-          <CreateMomentCTA />
+          {canEdit && <CreateMomentCTA />}
           <Flashbacks memories={memories} variant="card" />
           <RecentTimeline memories={memories} achievements={achievements} />
           <UpcomingMilestones dob={new Date(child.dob)} childName={child.name} />

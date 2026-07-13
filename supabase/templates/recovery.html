@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="x-apple-disable-message-reformatting" />
-  <title>Your Kidzopedia verification code</title>
+  <title>Reset your Kidzopedia password</title>
 </head>
 <body style="margin:0;padding:0;background:#f7f1e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
   <!-- hidden preview text -->
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your Kidzopedia verification code is {{ .Token }} — it expires in 1 hour.</div>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Reset your Kidzopedia password — this secure link expires in 1 hour.</div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f7f1e8;padding:32px 12px;">
     <tr>
@@ -31,26 +31,48 @@
           <tr>
             <td style="padding:36px 40px 0;">
               <h1 style="margin:0;font-size:22px;line-height:1.35;font-weight:700;color:#2b2018;text-align:center;">
-                Confirm your email
+                Reset your password
               </h1>
               <p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:#6f6152;text-align:center;">
-                Welcome to Kidzopedia. Enter this verification code in the app to finish creating your account.
+                We received a request to reset the password for your Kidzopedia account.
+                Click the button below to choose a new one.
               </p>
             </td>
           </tr>
 
-          <!-- OTP code -->
+          <!-- CTA button (bulletproof-ish) -->
           <tr>
-            <td align="center" style="padding:28px 40px 4px;">
-              <div style="display:inline-block;padding:18px 30px;background:#fdf5ef;border:1px solid #f0dcc9;border-radius:14px;">
-                <div style="font-size:34px;line-height:1;font-weight:700;letter-spacing:9px;color:#b4532a;font-family:'SF Mono',Menlo,Consolas,monospace;">{{ .Token }}</div>
-              </div>
-              <p style="margin:14px 0 0;font-size:13px;color:#9a8b7b;">This code expires in <strong style="color:#6f6152;">1 hour</strong>.</p>
+            <td align="center" style="padding:28px 40px 0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#b4532a" style="border-radius:12px;">
+                    <a href="{{ .ConfirmationURL }}"
+                       style="display:inline-block;padding:15px 34px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:12px;background:#b4532a;">
+                      Reset my password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:16px 0 0;font-size:13px;color:#9a8b7b;">
+                This link expires in <strong style="color:#6f6152;">1 hour</strong> and can only be used once.
+              </p>
+            </td>
+          </tr>
+
+          <!-- fallback URL -->
+          <tr>
+            <td style="padding:24px 40px 0;">
+              <p style="margin:0 0 6px;font-size:12px;color:#9a8b7b;">
+                Button not working? Copy and paste this link into your browser:
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.5;word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" style="color:#b4532a;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+              </p>
             </td>
           </tr>
 
           <tr>
-            <td style="padding:28px 40px 0;">
+            <td style="padding:26px 40px 0;">
               <div style="height:1px;background:#f1e7db;line-height:1px;font-size:0;">&nbsp;</div>
             </td>
           </tr>
@@ -59,8 +81,8 @@
           <tr>
             <td style="padding:20px 40px 34px;">
               <p style="margin:0;font-size:13px;line-height:1.6;color:#9a8b7b;text-align:center;">
-                Didn't create a Kidzopedia account? You can safely ignore this email — no account will be created.
-                <br />For your security, never share this code with anyone.
+                Didn't ask to reset your password? You can safely ignore this email —
+                your password will stay exactly as it is.
               </p>
             </td>
           </tr>

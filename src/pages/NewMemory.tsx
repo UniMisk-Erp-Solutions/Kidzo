@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ArrowLeft, CalendarIcon, Camera, Loader2, X, Plus } from "lucide-react";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useChildren } from "@/hooks/useChildren";
 import { useCalendarMemory } from "@/hooks/useCalendarMemory";
 import { useMemories } from "@/hooks/useMemories";
@@ -35,6 +36,15 @@ const NewMemory = () => {
   const { data: child } = useActiveChild();
   const { data: allChildren = [] } = useChildren();
   const qc = useQueryClient();
+
+  // Read-only (viewer) shares must not reach this page, even by typing the URL.
+  const { canEdit, isViewer, loading: roleLoading } = useCanEditChild(child?.id);
+  useEffect(() => {
+    if (!roleLoading && child && isViewer) {
+      toast.error("You have view-only access to this child — you can't add memories.");
+      navigate("/moments", { replace: true });
+    }
+  }, [roleLoading, child, isViewer, navigate]);
 
   // Other children you own — candidates to also tag this memory onto (siblings).
   const siblings = useMemo(
