@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { PhoneField, toE164 } from "@/components/childbook/PhoneField";
+import { AcceptTerms } from "@/components/AcceptTerms";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -23,6 +24,10 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
+
+  // Terms + Privacy consent (required to create an account, on either route)
+  const [agreedEmail, setAgreedEmail] = useState(false);
+  const [agreedPhone, setAgreedPhone] = useState(false);
 
   // Email verification (6-digit OTP)
   const [emailOtpSent, setEmailOtpSent] = useState(false);
@@ -77,6 +82,10 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreedEmail) {
+      toast.error("Please accept the Terms & Privacy Policy to continue");
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -133,6 +142,10 @@ const Auth = () => {
     e.preventDefault();
     if (phoneLocal.replace(/[^0-9]/g, "").length < 6) {
       toast.error("Enter a valid WhatsApp number");
+      return;
+    }
+    if (!agreedPhone) {
+      toast.error("Please accept the Terms & Privacy Policy to continue");
       return;
     }
     setLoading(true);
@@ -208,7 +221,8 @@ const Auth = () => {
                         <Input id="signup-password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl" />
                         <p className="text-[12px] text-muted-foreground">At least 6 characters</p>
                       </div>
-                      <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading}>
+                      <AcceptTerms id="accept-email" checked={agreedEmail} onChange={setAgreedEmail} />
+                      <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading || !agreedEmail}>
                         {loading ? "Creating account..." : "Create my Kidzopedia"}
                       </Button>
                     </form>
@@ -269,7 +283,8 @@ const Auth = () => {
                       )}
                     </p>
                   </div>
-                  <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading}>
+                  <AcceptTerms id="accept-phone" checked={agreedPhone} onChange={setAgreedPhone} />
+                  <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading || !agreedPhone}>
                     {loading ? "Sending code…" : "Send code on WhatsApp"}
                   </Button>
                 </form>
@@ -319,7 +334,7 @@ const Auth = () => {
         </div>
 
         <p className="mt-6 text-center text-[12px] text-muted-foreground">
-          By continuing you agree to keep your family's memories safe with us.
+          Your family's memories stay private — never sold, never used for ads.
         </p>
       </div>
     </div>
