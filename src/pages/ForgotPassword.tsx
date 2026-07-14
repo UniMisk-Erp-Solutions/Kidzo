@@ -32,7 +32,7 @@ const ForgotPassword = () => {
     <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
-          <BrandLogo className="mb-3 h-16 w-16 shadow-soft" />
+          <BrandLogo className="mb-3 h-20 w-20" />
           <h1 className="text-3xl font-bold text-foreground">Reset your password</h1>
           <p className="mt-2 text-[15px] text-muted-foreground">We'll send a secure link to your email.</p>
         </div>

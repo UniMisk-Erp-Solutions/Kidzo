@@ -36,7 +36,7 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
           <Link to="/" className="flex min-w-0 items-center gap-2">
-            <BrandLogo className="h-9 w-9 shadow-soft" />
+            <BrandLogo className="h-9 w-9" />
             <span className="truncate text-[17px] font-bold tracking-tight">Kidzopedia</span>
           </Link>
 
@@ -114,7 +114,7 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
           <div className="grid gap-10 md:grid-cols-4">
             <div className="md:col-span-1">
               <Link to="/" className="flex items-center gap-2">
-                <BrandLogo className="h-9 w-9 shadow-soft" />
+                <BrandLogo className="h-9 w-9" />
                 <span className="text-[17px] font-bold tracking-tight">Kidzopedia</span>
               </Link>
               <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
@@ -137,15 +137,15 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
               <ul className="mt-3 space-y-2 text-[14px] text-muted-foreground">
                 <li><Link to="/about" className="hover:text-foreground">About</Link></li>
                 <li><Link to="/contact" className="hover:text-foreground">Contact</Link></li>
+                <li><Link to="/legal" className="hover:text-foreground">Company &amp; Legal</Link></li>
                 <li><Link to="/auth" className="hover:text-foreground">Sign in</Link></li>
-                <li><Link to="/auth" className="hover:text-foreground">Create account</Link></li>
               </ul>
             </div>
 
             <div>
               <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Stay in touch</h3>
               <ul className="mt-3 space-y-2 text-[14px] text-muted-foreground">
-                <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> hello@kidzopedia.com</li>
+                <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> byteosaurus.01@gmail.com</li>
               </ul>
               <div className="mt-4 flex items-center gap-3 text-muted-foreground">
                 <a href="#" aria-label="Twitter" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
@@ -163,10 +163,13 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
 
           <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-muted-foreground sm:flex-row">
             <span>© {new Date().getFullYear()} Kidzopedia. Made with love for families.</span>
-            <div className="flex items-center gap-5">
-              <a href="#" className="hover:text-foreground">Privacy</a>
-              <a href="#" className="hover:text-foreground">Terms</a>
-              <Link to="/contact" className="hover:text-foreground">Contact</Link>
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
+              <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
+              <Link to="/legal/cookies" className="hover:text-foreground">Cookies</Link>
+              <Link to="/legal/cookie-preferences" className="hover:text-foreground">Cookie preferences</Link>
+              <Link to="/legal/data-rights" className="hover:text-foreground">Your data rights</Link>
+              <Link to="/legal" className="hover:text-foreground">Legal</Link>
             </div>
           </div>
         </div>

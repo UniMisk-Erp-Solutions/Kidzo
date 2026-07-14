@@ -86,7 +86,7 @@ const Pricing = () => {
               { "@type": "Question", name: "Is there really a free tier?", acceptedAnswer: { "@type": "Answer", text: "Yes — one child, unlimited memories, milestones and PDF export. Most families start here." } },
               { "@type": "Question", name: "Can I switch plans?", acceptedAnswer: { "@type": "Answer", text: "Any time. Upgrades take effect immediately; downgrades at the end of your billing cycle." } },
               { "@type": "Question", name: "What happens to my data if I cancel?", acceptedAnswer: { "@type": "Answer", text: "Your account stays intact and you can always export everything as a PDF keepsake before leaving." } },
-              { "@type": "Question", name: "Do you offer refunds?", acceptedAnswer: { "@type": "Answer", text: "Yes — within 14 days of purchase, no questions asked. Email hello@kidzopedia.com." } },
+              { "@type": "Question", name: "Do you offer refunds?", acceptedAnswer: { "@type": "Answer", text: "Yes — within 14 days of purchase, no questions asked. Email byteosaurus.01@gmail.com." } },
               { "@type": "Question", name: "Is Lifetime really pay-once?", acceptedAnswer: { "@type": "Answer", text: "Yes. One payment, no renewals. Includes everything in Family forever." } },
               { "@type": "Question", name: "Are there family or education discounts?", acceptedAnswer: { "@type": "Answer", text: "Yes — get in touch and we'll do our best for parent groups, schools and non-profits." } },
               { "@type": "Question", name: "What payment methods are supported?", acceptedAnswer: { "@type": "Answer", text: "Major credit and debit cards, plus Apple Pay and Google Pay where available." } },

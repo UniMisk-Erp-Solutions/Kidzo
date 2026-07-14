@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react";
+import { CONSENT_EVENT, hasConsent } from "@/lib/consent";
 
 // Error & performance monitoring via self-hosted GlitchTip.
 // GlitchTip speaks the Sentry protocol, so we use the open-source Sentry SDK
@@ -9,7 +10,25 @@ import * as Sentry from "@sentry/react";
 
 const dsn = import.meta.env.VITE_GLITCHTIP_DSN as string | undefined;
 
+let started = false;
+
+/**
+ * Starts monitoring only once the user has consented to diagnostics, and stays
+ * armed so that consenting later in the session takes effect immediately.
+ */
 export function initMonitoring(): void {
+  window.addEventListener(CONSENT_EVENT, () => startIfAllowed());
+  startIfAllowed();
+}
+
+function startIfAllowed(): void {
+  if (started) return;
+  if (!hasConsent("diagnostics")) return;
+  started = true;
+  start();
+}
+
+function start(): void {
   if (!dsn) {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console

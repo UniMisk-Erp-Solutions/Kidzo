@@ -26,7 +26,7 @@ const Contact = () => {
     // Open the user's mail client as a graceful no-backend fallback
     const subject = encodeURIComponent(`[Kidzopedia · ${topic}] from ${name || email}`);
     const body = encodeURIComponent(`${message}\n\n— ${name || "A friend"} (${email})`);
-    window.location.href = `mailto:hello@kidzopedia.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:byteosaurus.01@gmail.com?subject=${subject}&body=${body}`;
     setTimeout(() => {
       setSending(false);
       toast.success("Opening your email app to finish sending — we'll reply soon!");
@@ -48,7 +48,7 @@ const Contact = () => {
             contactPoint: {
               "@type": "ContactPoint",
               contactType: "customer support",
-              email: "hello@kidzopedia.com",
+              email: "byteosaurus.01@gmail.com",
               availableLanguage: ["English"],
             },
           },
@@ -57,7 +57,7 @@ const Contact = () => {
             "@type": "FAQPage",
             mainEntity: [
               { "@type": "Question", name: "How quickly do you reply?", acceptedAnswer: { "@type": "Answer", text: "Within 1–2 business days, often the same day." } },
-              { "@type": "Question", name: "Where do I report a bug?", acceptedAnswer: { "@type": "Answer", text: "Use the form on this page with topic 'Bug report' or email hello@kidzopedia.com with steps to reproduce." } },
+              { "@type": "Question", name: "Where do I report a bug?", acceptedAnswer: { "@type": "Answer", text: "Use the form on this page with topic 'Bug report' or email byteosaurus.01@gmail.com with steps to reproduce." } },
               { "@type": "Question", name: "How do I request a feature?", acceptedAnswer: { "@type": "Answer", text: "Use the form with topic 'Feature request' — we read every suggestion and reply." } },
               { "@type": "Question", name: "Can I delete my account?", acceptedAnswer: { "@type": "Answer", text: "Yes — from Settings inside the app. Your data is removed and you'll receive an email confirmation." } },
               { "@type": "Question", name: "Do you do press interviews?", acceptedAnswer: { "@type": "Answer", text: "Yes — choose 'Press & partnerships' from the topic list and we'll get back to you quickly." } },
@@ -83,9 +83,9 @@ const Contact = () => {
           {/* Channels */}
           <aside className="space-y-4 md:col-span-2">
             {[
-              { icon: Mail, t: "Email us", d: "hello@kidzopedia.com", href: "mailto:hello@kidzopedia.com" },
-              { icon: LifeBuoy, t: "Help & support", d: "Account, billing, sharing — we're here.", href: "mailto:support@kidzopedia.com" },
-              { icon: MessageCircle, t: "Press & partnerships", d: "Tell us about your community.", href: "mailto:hello@kidzopedia.com" },
+              { icon: Mail, t: "Email us", d: "byteosaurus.01@gmail.com", href: "mailto:byteosaurus.01@gmail.com" },
+              { icon: LifeBuoy, t: "Help & support", d: "Account, billing, sharing — we're here.", href: "mailto:byteosaurus.01@gmail.com" },
+              { icon: MessageCircle, t: "Press & partnerships", d: "Tell us about your community.", href: "mailto:byteosaurus.01@gmail.com" },
             ].map((c) => (
               <a
                 key={c.t}

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { DevStatusBanner } from "@/components/DevStatusBanner";
+import { CookieBanner } from "@/components/CookieBanner";
 import { AdminRoute } from "@/components/AdminRoute";
 import PricingPage from "./pages/Pricing.tsx";
 import Billing from "./pages/Billing.tsx";
@@ -43,6 +44,15 @@ import OrderConfirmation from "./pages/books/OrderConfirmation.tsx";
 import ExportShare from "./pages/ExportShare.tsx";
 import GetApp from "./pages/GetApp.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import CompanyLegal from "./pages/legal/CompanyLegal.tsx";
+import Terms from "./pages/legal/Terms.tsx";
+import Privacy from "./pages/legal/Privacy.tsx";
+import CookiePolicy from "./pages/legal/CookiePolicy.tsx";
+import CookiePreferences from "./pages/legal/CookiePreferences.tsx";
+import Disclaimer from "./pages/legal/Disclaimer.tsx";
+import ActivityInsight from "./pages/legal/ActivityInsight.tsx";
+import DataProcessing from "./pages/legal/DataProcessing.tsx";
+import DataRights from "./pages/legal/DataRights.tsx";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +66,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ScrollToTop />
+          <CookieBanner />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/get-app" element={<GetApp />} />
@@ -84,6 +95,17 @@ const App = () => (
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+
+            {/* Company & Legal */}
+            <Route path="/legal" element={<CompanyLegal />} />
+            <Route path="/legal/terms" element={<Terms />} />
+            <Route path="/legal/privacy" element={<Privacy />} />
+            <Route path="/legal/data-processing" element={<DataProcessing />} />
+            <Route path="/legal/data-rights" element={<DataRights />} />
+            <Route path="/legal/activity-insight" element={<ActivityInsight />} />
+            <Route path="/legal/cookies" element={<CookiePolicy />} />
+            <Route path="/legal/cookie-preferences" element={<CookiePreferences />} />
+            <Route path="/legal/disclaimer" element={<Disclaimer />} />
             <Route
               path="/home"
               element={
