@@ -28,17 +28,18 @@ export const TopBar = ({ childName }: { childName: string }) => {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-6 py-3 md:max-w-4xl">
-        <div className="flex min-w-0 items-center gap-2.5">
+        {/* Never squeeze the child's name — it is the point of the header. */}
+        <div className="flex shrink-0 items-center gap-2.5">
           <Link to="/home" aria-label="Kidzopedia home">
             <BrandLogo className="h-9 w-9" />
           </Link>
-          <div className="min-w-0 leading-tight">
+          <div className="leading-tight">
             <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Kidzopedia</div>
             <ChildSwitcher childName={childName} />
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex items-center gap-1">
           <NotificationsBell />
 
           {/* Help & legal — every policy is reachable from inside the app */}
