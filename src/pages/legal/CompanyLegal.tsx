@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, FileText, Scale, ShieldCheck } from "lucide-react";
 import { LandingLayout } from "@/components/landing/LandingLayout";
 import { SEO } from "@/components/SEO";
+import { BackToApp } from "@/components/legal/LegalDoc";
 import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
 
 const CompanyLegal = () => (
@@ -12,6 +13,10 @@ const CompanyLegal = () => (
     />
 
     <div className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
+      <div className="mb-6 flex justify-end">
+        <BackToApp />
+      </div>
+
       <header className="max-w-3xl">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[12px] font-medium text-primary-deep">
           <Scale className="h-3.5 w-3.5" /> Company &amp; Legal

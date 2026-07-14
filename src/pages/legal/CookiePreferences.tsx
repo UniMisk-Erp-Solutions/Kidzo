@@ -6,6 +6,7 @@ import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { BackToApp } from "@/components/legal/LegalDoc";
 import { getConsent, resetConsent, saveConsent } from "@/lib/consent";
 import { LEGAL } from "@/pages/legal/legalConfig";
 
@@ -47,12 +48,15 @@ const CookiePreferences = () => {
       />
 
       <div className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
-        <Link
-          to="/legal"
-          className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Company &amp; Legal
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            to="/legal"
+            className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" /> Company &amp; Legal
+          </Link>
+          <BackToApp />
+        </div>
 
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Cookie Preferences</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">

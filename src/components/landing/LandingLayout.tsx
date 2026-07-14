@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ReactNode, useEffect, useState } from "react";
 import { ArrowRight, Github, Instagram, Mail, Menu, Twitter, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,7 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
     <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/40 bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
-          <Link to="/" className="flex min-w-0 items-center gap-2">
+          <Link to={user ? "/home" : "/"} className="flex min-w-0 items-center gap-2">
             <BrandLogo className="h-9 w-9" />
             <span className="truncate text-[17px] font-bold tracking-tight">Kidzopedia</span>
           </Link>
@@ -111,15 +112,26 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
 
       <footer className="border-t border-border bg-muted/30">
         <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="grid gap-10 md:grid-cols-4">
+          <div className="grid gap-10 md:grid-cols-3 lg:grid-cols-5">
             <div className="md:col-span-1">
-              <Link to="/" className="flex items-center gap-2">
+              <Link to={user ? "/home" : "/"} className="flex items-center gap-2">
                 <BrandLogo className="h-9 w-9" />
                 <span className="text-[17px] font-bold tracking-tight">Kidzopedia</span>
               </Link>
               <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
                 The little encyclopedia of your child's life — private, warm, and made to last.
               </p>
+              <div className="mt-4 flex items-center gap-3 text-muted-foreground">
+                <a href="#" aria-label="Twitter" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
+                  <Twitter className="h-4 w-4" />
+                </a>
+                <a href="#" aria-label="Instagram" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
+                  <Instagram className="h-4 w-4" />
+                </a>
+                <a href="#" aria-label="GitHub" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
+                  <Github className="h-4 w-4" />
+                </a>
+              </div>
             </div>
 
             <div>
@@ -138,39 +150,32 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
                 <li><Link to="/about" className="hover:text-foreground">About</Link></li>
                 <li><Link to="/contact" className="hover:text-foreground">Contact</Link></li>
                 <li><Link to="/legal" className="hover:text-foreground">Company &amp; Legal</Link></li>
-                <li><Link to="/auth" className="hover:text-foreground">Sign in</Link></li>
+                <li><Link to={user ? "/home" : "/auth"} className="hover:text-foreground">{user ? "My Kidzopedia" : "Sign in"}</Link></li>
               </ul>
             </div>
 
-            <div>
-              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Stay in touch</h3>
-              <ul className="mt-3 space-y-2 text-[14px] text-muted-foreground">
-                <li className="flex items-center gap-2"><Mail className="h-4 w-4" /> byteosaurus.01@gmail.com</li>
+            {/* Every legal document, listed on its own — not hidden behind a hub page */}
+            <div className="lg:col-span-2">
+              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Legal</h3>
+              <ul className="mt-3 grid gap-x-8 gap-y-2 text-[14px] text-muted-foreground sm:grid-cols-2">
+                {LEGAL_DOCS.map((d) => (
+                  <li key={d.slug}>
+                    <Link to={d.slug} className="hover:text-foreground">{d.title}</Link>
+                  </li>
+                ))}
               </ul>
-              <div className="mt-4 flex items-center gap-3 text-muted-foreground">
-                <a href="#" aria-label="Twitter" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
-                  <Twitter className="h-4 w-4" />
-                </a>
-                <a href="#" aria-label="Instagram" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
-                  <Instagram className="h-4 w-4" />
-                </a>
-                <a href="#" aria-label="GitHub" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
-                  <Github className="h-4 w-4" />
-                </a>
-              </div>
+              <p className="mt-4 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+                <Mail className="h-4 w-4 shrink-0" />
+                <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
+              </p>
             </div>
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-muted-foreground sm:flex-row">
             <span>© {new Date().getFullYear()} Kidzopedia. Made with love for families.</span>
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-              <Link to="/legal/privacy" className="hover:text-foreground">Privacy</Link>
-              <Link to="/legal/terms" className="hover:text-foreground">Terms</Link>
-              <Link to="/legal/cookies" className="hover:text-foreground">Cookies</Link>
-              <Link to="/legal/cookie-preferences" className="hover:text-foreground">Cookie preferences</Link>
-              <Link to="/legal/data-rights" className="hover:text-foreground">Your data rights</Link>
-              <Link to="/legal" className="hover:text-foreground">Legal</Link>
-            </div>
+            <span>
+              {LEGAL.entity} is the Data Fiduciary for {LEGAL.product} under India&apos;s DPDP Act, 2023.
+            </span>
           </div>
         </div>
       </footer>

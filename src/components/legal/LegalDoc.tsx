@@ -1,11 +1,29 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, Printer } from "lucide-react";
 import { LandingLayout } from "@/components/landing/LandingLayout";
 import { SEO } from "@/components/SEO";
+import { useAuth } from "@/contexts/AuthContext";
 import { LEGAL } from "@/pages/legal/legalConfig";
 
 export type Section = { id: string; title: string; body: ReactNode };
+
+/**
+ * Signed-in readers came from the app, so send them back to the dashboard —
+ * not to the marketing site, and never to the sign-in page.
+ */
+export const BackToApp = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <Link
+      to="/home"
+      className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary-deep transition-opacity hover:opacity-80"
+    >
+      <LayoutDashboard className="h-4 w-4" /> Back to dashboard
+    </Link>
+  );
+};
 
 /** Shared chrome for every legal document: title, dates, table of contents, numbered sections. */
 export const LegalDoc = ({
@@ -23,12 +41,15 @@ export const LegalDoc = ({
     <SEO title={`${title} · ${LEGAL.product}`} description={description} />
 
     <div className="mx-auto max-w-6xl px-6 py-12 sm:py-16">
-      <Link
-        to="/legal"
-        className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Company &amp; Legal
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to="/legal"
+          className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Company &amp; Legal
+        </Link>
+        <BackToApp />
+      </div>
 
       <header className="mt-4 border-b border-border pb-8">
         <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">{title}</h1>
