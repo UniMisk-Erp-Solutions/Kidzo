@@ -44,7 +44,7 @@ const Features = () => {
             "@context": "https://schema.org",
             "@type": "FAQPage",
             mainEntity: [
-              { "@type": "Question", name: "Can I track more than one child?", acceptedAnswer: { "@type": "Answer", text: "Yes — each child has its own profile, memory book and sharing controls. Family and Lifetime plans support up to five." } },
+              { "@type": "Question", name: "Can I track more than one child?", acceptedAnswer: { "@type": "Answer", text: "Yes — each child has its own profile, memory book and sharing controls. The Free plan includes one child, Family supports two and Premium supports up to five." } },
               { "@type": "Question", name: "What kinds of memories can I capture?", acceptedAnswer: { "@type": "Answer", text: "Photos, tiny stories, reactions, who was there, mood and category — anything you'd like to remember in a year, in ten, in thirty." } },
               { "@type": "Question", name: "How are achievements tracked?", acceptedAnswer: { "@type": "Answer", text: "Log academics, sports, music and art achievements with photos, grades or notes. We build a beautiful year-by-year summary automatically." } },
               { "@type": "Question", name: "Is the records vault secure?", acceptedAnswer: { "@type": "Answer", text: "Yes. Records are stored privately under strict per-user access rules and only visible to you and the family you invite." } },

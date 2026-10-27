@@ -140,8 +140,20 @@ const sections: Section[] = [
             ["You cancel later in a billing cycle", "No refund for the remaining part of that cycle; you keep the paid features until it ends"],
             ["We are at fault — a prolonged outage or a charge we should not have made", "We refund you, in full, without you having to argue for it"],
             ["A printed keepsake book that arrives damaged or wrong", "We reprint it or refund it. Tell us within 7 days of delivery"],
+            ["You cancel a printed book order before it enters printing", "Full refund. Once printing has started the book is made-to-order and cannot be returned for a change of mind"],
           ]}
         />
+        <P>
+          The full details are in our{" "}
+          <Link to="/legal/refund-policy" className="font-medium text-primary-deep hover:underline">
+            Cancellation &amp; Refund Policy
+          </Link>{" "}
+          and{" "}
+          <Link to="/legal/shipping-policy" className="font-medium text-primary-deep hover:underline">
+            Shipping &amp; Delivery Policy
+          </Link>
+          .
+        </P>
         <P>
           Refunds are returned to the original payment method and typically reach you within 5–7 working days once we
           approve them. To ask for one, write to{" "}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Sparkles } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,10 +27,24 @@ const FEATURE_LABEL: Record<string, string> = {
   ai_suggestions: "AI suggestions",
 };
 
+const FEATURE_ORDER = [
+  "max_children",
+  "max_storage_mb",
+  "pdf_export",
+  "photo_book_orders",
+  "share_links",
+  "family_invites",
+  "ai_suggestions",
+];
+
+const formatStorage = (mb: number) => (mb >= 1024 ? `${+(mb / 1024).toFixed(1)} GB` : `${mb} MB`);
+
 const formatFeature = (f: Feature) => {
   if (f.key === "max_children") {
-    if (f.value_int === null) return "Unlimited children";
     return `${f.value_int} child${f.value_int === 1 ? "" : "ren"}`;
+  }
+  if (f.key === "max_storage_mb") {
+    return `${formatStorage(f.value_int ?? 0)} storage`;
   }
   return FEATURE_LABEL[f.key] ?? f.key;
 };
@@ -88,7 +102,12 @@ const Pricing = () => {
 
         <div className="grid gap-6 md:grid-cols-3">
           {plans.map((plan) => {
-            const planFeats = features.filter((f) => f.plan_id === plan.id);
+            const rank = (k: string) => (FEATURE_ORDER.indexOf(k) === -1 ? 99 : FEATURE_ORDER.indexOf(k));
+            const planFeats = features
+              .filter((f) => f.plan_id === plan.id)
+              // Numeric limits with no value are not shown (we never advertise "unlimited").
+              .filter((f) => !(["max_children", "max_storage_mb"].includes(f.key) && f.value_int === null))
+              .sort((a, b) => rank(a.key) - rank(b.key));
             const price = cycle === "monthly" ? plan.price_monthly : plan.price_yearly;
             const isPopular = plan.slug === "family";
             return (
@@ -115,7 +134,11 @@ const Pricing = () => {
                     const enabled = f.value_bool !== false || f.value_int !== null;
                     return (
                       <li key={f.key} className="flex items-start gap-2">
-                        <Check className={`mt-0.5 h-4 w-4 shrink-0 ${enabled ? "text-primary" : "text-muted-foreground/40"}`} />
+                        {enabled ? (
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        ) : (
+                          <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/40" />
+                        )}
                         <span className={enabled ? "text-foreground" : "text-muted-foreground/60 line-through"}>
                           {formatFeature(f)}
                         </span>

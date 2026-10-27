@@ -71,9 +71,10 @@ const Billing = () => {
                 {Object.entries(features).map(([key, f]) => {
                   if (f.value_bool === false) return null;
                   if (f.key === "max_children") {
+                    if (f.value_int === null) return null;
                     return (
                       <Badge key={key} variant="secondary">
-                        {f.value_int === null ? "Unlimited children" : `${f.value_int} child${f.value_int === 1 ? "" : "ren"}`}
+                        {`${f.value_int} child${f.value_int === 1 ? "" : "ren"}`}
                       </Badge>
                     );
                   }

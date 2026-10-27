@@ -1,4 +1,4 @@
-// Pricing helpers for printed books (USD).
+// Pricing helpers for printed books (INR).
 // All prices stored as numbers; rendered with formatCurrency().
 
 export type BookSize = "8x10" | "10x12" | "12x14";
@@ -6,25 +6,25 @@ export type PaperQuality = "matte" | "glossy" | "premium";
 export type BindingType = "soft" | "hard" | "leather";
 
 export const BOOK_SIZES: Record<BookSize, { label: string; price: number; subtitle: string }> = {
-  "8x10": { label: '8" × 10" (Standard)', price: 34.99, subtitle: "Most popular, perfect for shelves" },
-  "10x12": { label: '10" × 12" (Premium)', price: 49.99, subtitle: "Larger format, more impressive" },
-  "12x14": { label: '12" × 14" (Deluxe)', price: 69.99, subtitle: "Heirloom quality, museum-grade" },
+  "8x10": { label: '8" × 10" (Standard)', price: 1499, subtitle: "Most popular, perfect for shelves" },
+  "10x12": { label: '10" × 12" (Premium)', price: 1999, subtitle: "Larger format, more impressive" },
+  "12x14": { label: '12" × 14" (Deluxe)', price: 2799, subtitle: "Heirloom quality, museum-grade" },
 };
 
 export const PAPER_QUALITIES: Record<PaperQuality, { label: string; price: number; subtitle: string }> = {
   matte: { label: "Matte finish", price: 0, subtitle: "Professional look, soft finish" },
-  glossy: { label: "Glossy finish", price: 5, subtitle: "Vibrant colors, lab quality" },
-  premium: { label: "Premium finish", price: 10, subtitle: "Archival, museum-grade" },
+  glossy: { label: "Glossy finish", price: 199, subtitle: "Vibrant colors, lab quality" },
+  premium: { label: "Premium finish", price: 399, subtitle: "Archival, museum-grade" },
 };
 
 export const BINDING_TYPES: Record<BindingType, { label: string; price: number; subtitle: string }> = {
   soft: { label: "Soft cover", price: 0, subtitle: "Flexible, lightweight" },
-  hard: { label: "Hard cover", price: 15, subtitle: "Rigid, professional, durable" },
-  leather: { label: "Leather-bound", price: 30, subtitle: "Luxury, heirloom quality" },
+  hard: { label: "Hard cover", price: 599, subtitle: "Rigid, professional, durable" },
+  leather: { label: "Leather-bound", price: 1199, subtitle: "Luxury, heirloom quality" },
 };
 
-export const SHIPPING_FLAT = 7.99;
-export const TAX_RATE = 0.06;
+export const SHIPPING_FLAT = 99;
+export const TAX_RATE = 0.18; // GST (estimate) — confirm the applicable rate with your CA;
 
 export function calculatePrice(opts: {
   size: BookSize;
@@ -44,7 +44,7 @@ export function calculatePrice(opts: {
 }
 
 export function formatCurrency(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n);
 }
 
 export function formatOrderNumber(id: string) {

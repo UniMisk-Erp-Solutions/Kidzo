@@ -50,6 +50,8 @@ import Privacy from "./pages/legal/Privacy.tsx";
 import CookiePolicy from "./pages/legal/CookiePolicy.tsx";
 import CookiePreferences from "./pages/legal/CookiePreferences.tsx";
 import Disclaimer from "./pages/legal/Disclaimer.tsx";
+import RefundPolicy from "./pages/legal/RefundPolicy.tsx";
+import ShippingPolicy from "./pages/legal/ShippingPolicy.tsx";
 import ActivityInsight from "./pages/legal/ActivityInsight.tsx";
 import DataProcessing from "./pages/legal/DataProcessing.tsx";
 import DataRights from "./pages/legal/DataRights.tsx";
@@ -106,6 +108,8 @@ const App = () => (
             <Route path="/legal/cookies" element={<CookiePolicy />} />
             <Route path="/legal/cookie-preferences" element={<CookiePreferences />} />
             <Route path="/legal/disclaimer" element={<Disclaimer />} />
+            <Route path="/legal/refund-policy" element={<RefundPolicy />} />
+            <Route path="/legal/shipping-policy" element={<ShippingPolicy />} />
             <Route
               path="/home"
               element={

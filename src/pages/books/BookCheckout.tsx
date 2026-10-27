@@ -21,6 +21,7 @@ import {
 } from "@/lib/bookPricing";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { loadRazorpay } from "@/lib/razorpay";
 import { cn } from "@/lib/utils";
 
 type RadioOption<T extends string> = { id: T; label: string; price: number; subtitle: string };
@@ -83,7 +84,7 @@ const BookCheckout = () => {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
-  const [country, setCountry] = useState("United States");
+  const [phone, setPhone] = useState("");
   const [terms, setTerms] = useState(false);
   const [placing, setPlacing] = useState(false);
 
@@ -102,7 +103,7 @@ const BookCheckout = () => {
     ([id, v]) => ({ id, label: v.label, price: v.price, subtitle: v.subtitle }),
   );
 
-  const validAddress = name && street && city && state && zip && country;
+  const validAddress = name && street && city && state && zip && phone;
 
   const handlePlaceOrder = async () => {
     if (!book || !user) return;
@@ -116,43 +117,80 @@ const BookCheckout = () => {
     }
     setPlacing(true);
     try {
-      // 1) Persist book selections + status
+      // 1) Save the chosen options (the order status is set by the server once payment is verified)
       await update.mutateAsync({
         id: book.id,
-        patch: {
-          book_size: size,
-          paper_quality: paper,
-          binding_type: binding,
+        patch: { book_size: size, paper_quality: paper, binding_type: binding, quantity },
+      });
+
+      // 2) Load Razorpay Checkout
+      if (!(await loadRazorpay())) {
+        toast.error("Couldn't load the secure payment window. Check your connection and try again.");
+        setPlacing(false);
+        return;
+      }
+
+      // 3) The server prices the order and creates the Razorpay order
+      const { data: order, error } = await supabase.functions.invoke("razorpay-create-book-order", {
+        body: {
+          user_book_id: book.id,
+          size,
+          paper,
+          binding,
           quantity,
-          status: "ordered",
+          shipping_address: { name, phone, street, city, state, zip },
         },
       });
-      // 2) Create order row (Printful is stubbed — placeholder external id)
-      const stubExternalId = `stub-${book.id.slice(0, 8)}-${Date.now()}`;
-      const { error } = await supabase.from("book_orders").insert({
-        user_book_id: book.id,
-        printful_order_id: stubExternalId,
-        status: "pending",
-        shipping_address: { name, street, city, state, zip, country },
-        cost_breakdown: {
-          base: price.base,
-          paper: price.paper,
-          binding: price.binding,
-          unit: price.unit,
-          subtotal: price.subtotal,
-          shipping: price.shipping,
-          tax: price.tax,
-          total: price.total,
-          quantity,
+      if (error || !order || order.error) {
+        toast.error(order?.error || error?.message || "Could not start payment. Please try again.");
+        setPlacing(false);
+        return;
+      }
+
+      // 4) Open Razorpay; the signature is verified server-side on success
+      const rzp = new window.Razorpay({
+        key: order.key_id,
+        order_id: order.order_id,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Kidzopedia",
+        description: order.description,
+        prefill: order.prefill,
+        theme: { color: "#E29578" },
+        handler: async (resp: any) => {
+          const { data: verify, error: vErr } = await supabase.functions.invoke("razorpay-verify-book-payment", {
+            body: {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+              book_order_id: order.book_order_id,
+            },
+          });
+          if (vErr || !verify || verify.error || !verify.ok) {
+            toast.error(
+              "We couldn't confirm your payment yet. If money was deducted, your order will be confirmed automatically within a minute — or write to us and we'll sort it out.",
+            );
+            setPlacing(false);
+            return;
+          }
+          toast.success("Payment successful — order placed! 🎉");
+          navigate(`/books/${book.id}/confirmation`);
+        },
+        modal: {
+          ondismiss: () => {
+            setPlacing(false);
+            toast("Payment cancelled. Your book is saved — you can order any time.");
+          },
         },
       });
-      if (error) throw error;
-      toast.success("Order placed! 🎉");
-      navigate(`/books/${book.id}/confirmation`);
+      rzp.on("payment.failed", (r: any) => {
+        toast.error(r?.error?.description || "Payment failed. Please try again.");
+        setPlacing(false);
+      });
+      rzp.open();
     } catch (e) {
       console.error(e);
-      toast.error("Could not place order. Please try again.");
-    } finally {
+      toast.error("Could not start payment. Please try again.");
       setPlacing(false);
     }
   };
@@ -253,27 +291,31 @@ const BookCheckout = () => {
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <Label className="text-[12px]">Full name</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" />
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Priya Sharma" />
+                </div>
+                <div className="sm:col-span-2">
+                  <Label className="text-[12px]">Mobile number (for the courier)</Label>
+                  <Input type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="98765 43210" />
                 </div>
                 <div className="sm:col-span-2">
                   <Label className="text-[12px]">Street address</Label>
-                  <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="123 Main St, Apt 4" />
+                  <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Flat / house no., building, area" />
                 </div>
                 <div>
                   <Label className="text-[12px]">City</Label>
                   <Input value={city} onChange={(e) => setCity(e.target.value)} />
                 </div>
                 <div>
-                  <Label className="text-[12px]">State / Province</Label>
+                  <Label className="text-[12px]">State</Label>
                   <Input value={state} onChange={(e) => setState(e.target.value)} />
                 </div>
                 <div>
-                  <Label className="text-[12px]">ZIP / Postal code</Label>
-                  <Input value={zip} onChange={(e) => setZip(e.target.value)} />
+                  <Label className="text-[12px]">PIN code</Label>
+                  <Input inputMode="numeric" maxLength={6} value={zip} onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))} placeholder="380015" />
                 </div>
                 <div>
                   <Label className="text-[12px]">Country</Label>
-                  <Input value={country} onChange={(e) => setCountry(e.target.value)} />
+                  <Input value="India" readOnly disabled />
                 </div>
               </div>
             </section>
@@ -310,7 +352,7 @@ const BookCheckout = () => {
                   <span>{formatCurrency(price.shipping)}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span className="text-muted-foreground">Tax (est.)</span>
+                  <span className="text-muted-foreground">GST (est.)</span>
                   <span>{formatCurrency(price.tax)}</span>
                 </li>
                 <li className="my-2 border-t" />
@@ -324,7 +366,7 @@ const BookCheckout = () => {
             <section className="rounded-2xl border bg-card p-4 md:p-5">
               <h3 className="text-[14px] font-semibold">Payment</h3>
               <p className="mt-1 text-[12px] text-muted-foreground">
-                Payments aren't live yet. We will reserve your book and email you when checkout opens.
+                Secure payment by Razorpay — UPI, cards, net banking and wallets. We never see your card details. We currently deliver within India only.
               </p>
               <label className="mt-3 flex items-start gap-2 text-[12px]">
                 <input
@@ -334,7 +376,7 @@ const BookCheckout = () => {
                   className="mt-0.5"
                 />
                 <span>
-                  I agree to the order terms and understand pricing is for preview only.
+                  I agree to the <a href="/legal/terms" target="_blank" rel="noreferrer" className="underline">Terms</a>, <a href="/legal/refund-policy" target="_blank" rel="noreferrer" className="underline">Refund Policy</a> and <a href="/legal/shipping-policy" target="_blank" rel="noreferrer" className="underline">Shipping Policy</a>. I understand my book is printed to order.
                 </span>
               </label>
             </section>
@@ -357,7 +399,7 @@ const BookCheckout = () => {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <ShoppingBag className="h-4 w-4" /> Place order
+                  <ShoppingBag className="h-4 w-4" /> Pay {formatCurrency(price.total)}
                 </>
               )}
             </Button>

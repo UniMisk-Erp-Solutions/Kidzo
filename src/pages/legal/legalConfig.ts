@@ -11,9 +11,11 @@ export const LEGAL = {
   /** Legal entity that operates the product (the "Data Fiduciary" under the DPDP Act). */
   entity: "UniMisk ERP Solutions",
   /** Registered office. Leave "" until confirmed — it is omitted from the pages when empty. */
-  registeredAddress: "",
+  registeredAddress: "C-1008, West Wing, 10th Floor, Stratum@Venus Ground, Nr. Jhansi Rani Statue, Nehru Nagar, Ahmedabad, Gujarat 380015, India",
   /** CIN / GSTIN etc. Optional. */
   registrationNo: "",
+  /** Support phone number (Razorpay expects a reachable contact). Omitted from pages when empty. */
+  phone: "+91 82383 26605",
 
   /** Primary contact for support and legal notices. */
   contactEmail: "byteosaurus.01@gmail.com",
@@ -92,6 +94,16 @@ export const LEGAL_DOCS: {
     slug: "/legal/terms",
     title: "Terms & Conditions",
     summary: "The agreement between you and us — your account, your plan, acceptable use, and liability.",
+  },
+  {
+    slug: "/legal/refund-policy",
+    title: "Cancellation & Refund Policy",
+    summary: "How to cancel a plan, when you get a refund, and how long it takes to reach you.",
+  },
+  {
+    slug: "/legal/shipping-policy",
+    title: "Shipping & Delivery Policy",
+    summary: "Instant activation for plans, and delivery times and replacements for printed books.",
   },
   {
     slug: "/legal/privacy",

@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ReactNode, useEffect, useState } from "react";
-import { ArrowRight, Github, Instagram, Mail, Menu, Twitter, X } from "lucide-react";
+import { ArrowRight, Github, Instagram, Mail, MapPin, Menu, Phone, Twitter, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
 import { Button } from "@/components/ui/button";
@@ -168,6 +168,18 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
                 <Mail className="h-4 w-4 shrink-0" />
                 <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
               </p>
+              {LEGAL.phone && (
+                <p className="mt-2 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+                  <Phone className="h-4 w-4 shrink-0" />
+                  <a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a>
+                </p>
+              )}
+              {LEGAL.registeredAddress && (
+                <p className="mt-2 flex items-start gap-2 text-[13.5px] leading-relaxed text-muted-foreground">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{LEGAL.entity}, {LEGAL.registeredAddress}</span>
+                </p>
+              )}
             </div>
           </div>
 

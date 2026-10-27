@@ -70,6 +70,17 @@ Deno.serve(async (req) => {
 
     // ---- one-time order backstop (legacy / non-recurring) ----
     else if ((eventType === "payment.captured" || eventType === "order.paid") && orderId) {
+      // Printed photo book payment? (orders created by razorpay-create-book-order)
+      const { data: bookOrder } = await admin.from("book_orders")
+        .select("id, cost_breakdown").eq("razorpay_order_id", orderId).maybeSingle();
+      if (bookOrder) {
+        await admin.rpc("mark_book_order_paid", {
+          p_razorpay_order: orderId,
+          p_payment: paymentId ?? null,
+          p_amount: (bookOrder.cost_breakdown as { total?: number } | null)?.total ?? null,
+        });
+        return new Response("ok", { status: 200 });
+      }
       const { data: invoice } = await admin.from("invoices")
         .select("id, user_id, plan_id, billing_cycle, status, coupon_id, discount_amount")
         .eq("provider_order_id", orderId).maybeSingle();

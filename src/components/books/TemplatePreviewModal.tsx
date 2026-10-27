@@ -17,7 +17,7 @@ export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-2xl sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90vh] flex-col gap-6 overflow-y-auto rounded-2xl p-6 sm:max-w-2xl sm:p-8 [&>*]:shrink-0">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             {template.name}
@@ -66,7 +66,7 @@ export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }:
 
         {/* Color scheme */}
         <div>
-          <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
             Color scheme
           </div>
           <div className="flex flex-wrap gap-2">
@@ -93,10 +93,10 @@ export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }:
 
         {/* Sample pages */}
         <div>
-          <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
             Sample pages
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-4">
             {template.page_layouts.slice(0, 3).map((p, i) => (
               <div
                 key={i}
@@ -117,7 +117,7 @@ export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }:
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

@@ -35,7 +35,7 @@ import { buildFaqJsonLd } from "@/lib/seoJsonLd";
 
 const HOME_FAQS = [
   { question: "What is Kidzopedia?", answer: "Kidzopedia is a warm, private digital keepsake where parents capture photos, milestones, achievements and important records for each child — and turn them into a printable PDF book." },
-  { question: "Is Kidzopedia free?", answer: "Yes. The Free plan covers one child with unlimited memories and milestones. Family and Lifetime plans add multi-child support and extra storage." },
+  { question: "Is Kidzopedia free?", answer: "Yes. The Free plan covers one child profile, free forever. Family (₹299/month, 2 children) and Premium (₹599/month, 5 children) add more children, storage and features." },
   { question: "Who can see my child's memories?", answer: "Only you and the family members you explicitly invite. Every child has its own access list and roles (viewer or editor) you control." },
   { question: "Can grandparents and co-parents join?", answer: "Yes — share per child with a single magic link. They sign up in seconds with no app store or special setup." },
   { question: "Can I export everything as a printable book?", answer: "Yes. Filter by year, choose what to include, and download a beautiful PDF keepsake any time." },
@@ -95,7 +95,7 @@ const Landing = () => {
             description: "Capture memories, track milestones, and store records — turn it all into a printed keepsake.",
             applicationCategory: "LifestyleApplication",
             operatingSystem: "Web",
-            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            offers: { "@type": "Offer", price: "0", priceCurrency: "INR" },
           },
           {
             "@context": "https://schema.org",

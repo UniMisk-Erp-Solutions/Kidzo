@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { LandingLayout } from "@/components/landing/LandingLayout";
 import { SEO } from "@/components/SEO";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,46 +10,46 @@ import ogImage from "@/assets/og-kidzopedia.jpg";
 const PLANS = [
   {
     name: "Free",
-    price: "$0",
+    price: "₹0",
     cadence: "forever",
-    description: "Everything you need to start your child's book.",
+    description: "Start your journey — 1 child, core memories.",
     cta: "Start free",
     featured: false,
     features: [
       "1 child profile",
-      "Unlimited memories & milestones",
-      "PDF keepsake export",
-      "Invite up to 2 family members",
+      "100 MB storage",
+      "Memories, milestones & growth charts",
       "Private by default",
     ],
   },
   {
     name: "Family",
-    price: "$5",
+    price: "₹299",
     cadence: "/month",
-    description: "For families building books for more than one little one.",
-    cta: "Start free trial",
+    description: "For growing families — up to 2 children, PDF export, sharing.",
+    cta: "Choose Family",
     featured: true,
     features: [
-      "Up to 5 child profiles",
-      "Unlimited family invites",
-      "Priority PDF rendering",
-      "Records vault with extra storage",
-      "Email support",
+      "Up to 2 child profiles",
+      "2 GB storage",
+      "PDF keepsake export",
+      "Printed photo book orders",
+      "Public share links & family invites",
     ],
   },
   {
-    name: "Lifetime",
-    price: "$99",
-    cadence: "one-time",
-    description: "Pay once, keep your books for life — including the kids' future.",
-    cta: "Get lifetime",
+    name: "Premium",
+    price: "₹599",
+    cadence: "/month",
+    description: "For bigger families — up to 5 children, AI suggestions, priority support.",
+    cta: "Choose Premium",
     featured: false,
     features: [
+      "Up to 5 child profiles",
+      "10 GB storage",
       "Everything in Family",
-      "Pay once, no subscription",
-      "Hand-off to your child at 18",
-      "Bonus print-quality export",
+      "AI suggestions",
+      "Priority support",
     ],
   },
 ];
@@ -62,7 +62,7 @@ const Pricing = () => {
     <LandingLayout>
       <SEO
         title="Pricing — Simple, Gentle Plans for Every Family | Kidzopedia"
-        description="Start free with one child and unlimited memories. Upgrade to Family for multiple kids, or buy Lifetime once — no ads, ever."
+        description="Start free with one child. Upgrade to Family (2 children, ₹299/month) or Premium (5 children, ₹599/month) — no ads, ever."
         ogImage={ogImage}
         jsonLd={[
           {
@@ -75,7 +75,7 @@ const Pricing = () => {
               "@type": "Offer",
               name: p.name,
               price: p.price.replace(/[^0-9.]/g, "") || "0",
-              priceCurrency: "USD",
+              priceCurrency: "INR",
               description: p.description,
             })),
           },
@@ -83,13 +83,13 @@ const Pricing = () => {
             "@context": "https://schema.org",
             "@type": "FAQPage",
             mainEntity: [
-              { "@type": "Question", name: "Is there really a free tier?", acceptedAnswer: { "@type": "Answer", text: "Yes — one child, unlimited memories, milestones and PDF export. Most families start here." } },
+              { "@type": "Question", name: "Is there really a free tier?", acceptedAnswer: { "@type": "Answer", text: "Yes — one child profile with 100 MB of storage, free forever. Most families start here." } },
               { "@type": "Question", name: "Can I switch plans?", acceptedAnswer: { "@type": "Answer", text: "Any time. Upgrades take effect immediately; downgrades at the end of your billing cycle." } },
               { "@type": "Question", name: "What happens to my data if I cancel?", acceptedAnswer: { "@type": "Answer", text: "Your account stays intact and you can always export everything as a PDF keepsake before leaving." } },
               { "@type": "Question", name: "Do you offer refunds?", acceptedAnswer: { "@type": "Answer", text: "Yes — within 14 days of purchase, no questions asked. Email byteosaurus.01@gmail.com." } },
-              { "@type": "Question", name: "Is Lifetime really pay-once?", acceptedAnswer: { "@type": "Answer", text: "Yes. One payment, no renewals. Includes everything in Family forever." } },
+              { "@type": "Question", name: "How do I cancel?", acceptedAnswer: { "@type": "Answer", text: "From Settings → Billing, any time. Cancelling stops the next renewal and you keep paid features until the end of the period you paid for." } },
               { "@type": "Question", name: "Are there family or education discounts?", acceptedAnswer: { "@type": "Answer", text: "Yes — get in touch and we'll do our best for parent groups, schools and non-profits." } },
-              { "@type": "Question", name: "What payment methods are supported?", acceptedAnswer: { "@type": "Answer", text: "Major credit and debit cards, plus Apple Pay and Google Pay where available." } },
+              { "@type": "Question", name: "What payment methods are supported?", acceptedAnswer: { "@type": "Answer", text: "UPI, credit and debit cards, net banking and wallets, processed securely by Razorpay." } },
             ],
           },
         ]}
@@ -150,7 +150,16 @@ const Pricing = () => {
         </div>
 
         <p className="mt-8 text-center text-[13px] text-muted-foreground">
-          Pricing shown in USD. Subscriptions can be cancelled any time. Lifetime is a one-off, no renewals.
+          Prices are in Indian Rupees (₹) and include applicable taxes. Paid plans renew at the end of each billing
+          period (monthly or yearly) and can be cancelled any time. Payments are processed securely by Razorpay — we never see your card details. See our{" "}
+          <Link to="/legal/refund-policy" className="font-medium text-primary-deep hover:underline">
+            Cancellation &amp; Refund Policy
+          </Link>{" "}
+          and{" "}
+          <Link to="/legal/shipping-policy" className="font-medium text-primary-deep hover:underline">
+            Shipping &amp; Delivery Policy
+          </Link>
+          .
         </p>
       </section>
 
@@ -159,8 +168,9 @@ const Pricing = () => {
           <h2 className="text-center text-2xl font-bold md:text-3xl">Common pricing questions</h2>
           <dl className="mt-8 space-y-4">
             {[
-              { q: "Is there really a free tier?", a: "Yes — one child, unlimited memories. Most families start here." },
+              { q: "Is there really a free tier?", a: "Yes — one child profile with 100 MB of storage, free forever. Most families start here." },
               { q: "Can I switch plans?", a: "Any time. Upgrades take effect immediately; downgrades at the end of your billing cycle." },
+              { q: "Do you offer refunds?", a: "Yes — a full refund if you cancel within 14 days of first paying. Details are in our Cancellation & Refund Policy." },
               { q: "What happens to my data if I cancel?", a: "Your account stays intact, and you can always export everything as a PDF keepsake." },
             ].map((f) => (
               <div key={f.q} className="rounded-2xl border border-border bg-card p-5 shadow-soft">

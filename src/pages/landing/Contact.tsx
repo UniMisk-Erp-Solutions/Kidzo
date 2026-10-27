@@ -8,6 +8,7 @@ import { SEO } from "@/components/SEO";
 import { Mail, MessageCircle, LifeBuoy, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import ogImage from "@/assets/og-kidzopedia.jpg";
+import { LEGAL } from "@/pages/legal/legalConfig";
 
 const Contact = () => {
   const [name, setName] = useState("");
@@ -61,7 +62,7 @@ const Contact = () => {
               { "@type": "Question", name: "How do I request a feature?", acceptedAnswer: { "@type": "Answer", text: "Use the form with topic 'Feature request' — we read every suggestion and reply." } },
               { "@type": "Question", name: "Can I delete my account?", acceptedAnswer: { "@type": "Answer", text: "Yes — from Settings inside the app. Your data is removed and you'll receive an email confirmation." } },
               { "@type": "Question", name: "Do you do press interviews?", acceptedAnswer: { "@type": "Answer", text: "Yes — choose 'Press & partnerships' from the topic list and we'll get back to you quickly." } },
-              { "@type": "Question", name: "Is there phone support?", acceptedAnswer: { "@type": "Answer", text: "Not yet. Email gives us the room to write you a thoughtful reply with screenshots when needed." } },
+              { "@type": "Question", name: "Is there phone support?", acceptedAnswer: { "@type": "Answer", text: `Yes — call or WhatsApp ${LEGAL.phone}, Monday to Saturday, 10 AM–6 PM IST. For anything needing screenshots, email is best.` } },
             ],
           },
         ]}
@@ -101,6 +102,33 @@ const Contact = () => {
                 </div>
               </a>
             ))}
+
+            {/* Business identity — shown so customers and payment reviewers can see who operates the service */}
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-soft">
+              <div className="text-[15px] font-semibold">Business details</div>
+              <dl className="mt-2 space-y-1 text-[14px] text-muted-foreground">
+                <div>
+                  <dt className="sr-only">Operated by</dt>
+                  <dd>{LEGAL.product} is operated by {LEGAL.entity}.</dd>
+                </div>
+                {LEGAL.registeredAddress && (
+                  <div>
+                    <dt className="sr-only">Address</dt>
+                    <dd>{LEGAL.registeredAddress}</dd>
+                  </div>
+                )}
+                {LEGAL.phone && (
+                  <div>
+                    <dt className="sr-only">Phone</dt>
+                    <dd><a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a></dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="sr-only">Support hours</dt>
+                  <dd>Phone: Mon–Sat, 10 AM–6 PM IST. Email replies within 1–2 business days.</dd>
+                </div>
+              </dl>
+            </div>
           </aside>
 
           {/* Form */}
