@@ -16,6 +16,11 @@ SELECT
   'All ages',
   24,
   false,
-  (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM public.book_templates),
+  (SELECT COALESCE(MIN(sort_order), 1) - 1 FROM public.book_templates), -- first in the list
   NULL
 WHERE NOT EXISTS (SELECT 1 FROM public.book_templates WHERE slug = 'scrapbook-mosaic-little-explorer');
+
+-- If it was already inserted earlier, move it to the front of the list.
+UPDATE public.book_templates
+SET sort_order = (SELECT MIN(sort_order) - 1 FROM public.book_templates WHERE slug <> 'scrapbook-mosaic-little-explorer')
+WHERE slug = 'scrapbook-mosaic-little-explorer';
