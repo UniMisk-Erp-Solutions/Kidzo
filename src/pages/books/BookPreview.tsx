@@ -15,6 +15,7 @@ import { PageEditorDialog } from "@/components/books/PageEditorDialog";
 import { pageKeyFor, readPageData, type CustomPagesMap, type EditorElement } from "@/components/books/editor/types";
 import { calculatePrice, formatCurrency, type BookSize, type PaperQuality, type BindingType } from "@/lib/bookPricing";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { useScreenGuard } from "@/lib/screenGuard";
 import { isPageLocked, FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
 import { LockedBookPage } from "@/components/books/LockedBookPage";
 import { ScreenshotShield } from "@/components/books/ScreenshotShield";
@@ -30,6 +31,8 @@ const BookPreview = () => {
   const { can, loading: entLoading } = useEntitlements();
   // Plans with printed-book orders (Family/Premium) see every page; Free sees only the first few.
   const fullAccess = !entLoading && can("photo_book_orders");
+  // Android app: the OS itself blocks screenshots/recording on this screen (web uses ScreenshotShield).
+  useScreenGuard(true);
 
   const [pageIndex, setPageIndex] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
