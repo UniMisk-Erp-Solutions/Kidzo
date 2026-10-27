@@ -10,7 +10,6 @@ import { TemplatePreviewModal } from "@/components/books/TemplatePreviewModal";
 import { useBookTemplates, type BookTemplate } from "@/hooks/useBookTemplates";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useCreateUserBook } from "@/hooks/useUserBooks";
-import { useFeatureGuard, isPlanLockedError } from "@/hooks/useFeatureGuard";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +28,6 @@ const TemplateSelector = () => {
   const { data: templates = [], isLoading } = useBookTemplates();
   const { data: child } = useActiveChild();
   const createBook = useCreateUserBook();
-  const guard = useFeatureGuard();
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -54,7 +52,6 @@ const TemplateSelector = () => {
       toast.error("Please add a child profile first");
       return;
     }
-    if (!guard("photo_book_orders", "Photo book orders")) return;
     try {
       const book = await createBook.mutateAsync({
         child_id: child.id,
@@ -65,14 +62,7 @@ const TemplateSelector = () => {
       navigate(`/books/${book.id}/memories`);
     } catch (e) {
       console.error(e);
-      if (isPlanLockedError((e as { message?: string })?.message)) {
-        toast.error("Photo book orders are a paid feature.", {
-          description: "Upgrade your plan to unlock it.",
-          action: { label: "Upgrade", onClick: () => navigate("/pricing-plans") },
-        });
-      } else {
-        toast.error("Couldn't create book");
-      }
+      toast.error("Couldn't create book");
     }
   };
 

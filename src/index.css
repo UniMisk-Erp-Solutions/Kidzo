@@ -278,3 +278,10 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Book previews must not appear on paper / "save as PDF" */
+@media print {
+  .screenshot-shield {
+    display: none !important;
+  }
+}

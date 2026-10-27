@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Download, Loader2, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Download, Loader2, Lock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
@@ -14,6 +14,10 @@ import { PdfExportDialog } from "@/components/books/PdfExportDialog";
 import { PageEditorDialog } from "@/components/books/PageEditorDialog";
 import { pageKeyFor, readPageData, type CustomPagesMap, type EditorElement } from "@/components/books/editor/types";
 import { calculatePrice, formatCurrency, type BookSize, type PaperQuality, type BindingType } from "@/lib/bookPricing";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { isPageLocked, FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
+import { LockedBookPage } from "@/components/books/LockedBookPage";
+import { ScreenshotShield } from "@/components/books/ScreenshotShield";
 
 const BookPreview = () => {
   const { id } = useParams();
@@ -23,6 +27,9 @@ const BookPreview = () => {
   const { data: children } = useChildren();
   const { data: allMemories = [] } = useMemories(book?.child_id);
   const updateBook = useUpdateUserBook();
+  const { can, loading: entLoading } = useEntitlements();
+  // Plans with printed-book orders (Family/Premium) see every page; Free sees only the first few.
+  const fullAccess = !entLoading && can("photo_book_orders");
 
   const [pageIndex, setPageIndex] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -102,8 +109,15 @@ const BookPreview = () => {
     [book?.book_size, book?.paper_quality, book?.binding_type, book?.quantity],
   );
 
+  const promptUpgrade = () =>
+    toast.error("Upgrade to export", {
+      description: "The free plan previews the first 2 pages. Family and Premium unlock the full book.",
+      action: { label: "See plans", onClick: () => navigate("/pricing-plans") },
+    });
+
   const handleDownload = async () => {
     if (!book || !template || !colors || !child) return;
+    if (!fullAccess) return promptUpgrade();
     setPdfState({ open: true, progress: { phase: "preparing", current: 0, total: pages.length }, error: null });
     try {
       await exportBookPdf({
@@ -140,6 +154,7 @@ const BookPreview = () => {
 
   const total = pages.length;
   const current = pages[pageIndex];
+  const currentLocked = isPageLocked(pageIndex, fullAccess);
   const currentKey = current
     ? pageKeyFor(current as { kind: string; memory?: { id: string }; number?: number; spreadKey?: string })
     : "";
@@ -199,7 +214,14 @@ const BookPreview = () => {
                 backgroundColor: colors.primary,
               }}
             >
-              {current && <BookPageFrame page={current} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />}
+              <ScreenshotShield>
+                {current &&
+                  (currentLocked ? (
+                    <LockedBookPage colors={colors} pageNumber={pageIndex + 1} />
+                  ) : (
+                    <BookPageFrame page={current} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
+                  ))}
+              </ScreenshotShield>
             </div>
 
             {/* Prev / next overlay buttons */}
@@ -223,6 +245,7 @@ const BookPreview = () => {
             {/* Page counter overlay */}
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-card/90 px-3 py-0.5 text-[11px] font-medium text-muted-foreground shadow-soft backdrop-blur">
               {pageIndex + 1} / {total}
+              {!fullAccess && !entLoading && ` · free preview: ${FREE_PREVIEW_PAGES} pages`}
             </div>
           </div>
         </div>
@@ -248,11 +271,19 @@ const BookPreview = () => {
                   >
                     {idx + 1}
                   </span>
-                  {p.kind === "memory" && p.memory.photo_url && (
-                    <img src={p.memory.photo_url} alt="" className="h-full w-full object-cover opacity-80" />
-                  )}
-                  {p.kind === "memory-spread" && p.memories[0]?.photo_url && (
-                    <img src={p.memories[0].photo_url} alt="" className="h-full w-full object-cover opacity-80" />
+                  {isPageLocked(idx, fullAccess) ? (
+                    <span className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-[2px]">
+                      <Lock className="h-3 w-3 text-muted-foreground" />
+                    </span>
+                  ) : (
+                    <>
+                      {p.kind === "memory" && p.memory.photo_url && (
+                        <img src={p.memory.photo_url} alt="" draggable={false} className="h-full w-full object-cover opacity-80" />
+                      )}
+                      {p.kind === "memory-spread" && p.memories[0]?.photo_url && (
+                        <img src={p.memories[0].photo_url} alt="" draggable={false} className="h-full w-full object-cover opacity-80" />
+                      )}
+                    </>
                   )}
                 </button>
               ))}
@@ -267,14 +298,20 @@ const BookPreview = () => {
                   <Download className="h-4 w-4" />
                   <span className="hidden sm:inline">Download PDF</span>
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => setEditorOpen(true)}>
+                <Button size="sm" variant="secondary" disabled={currentLocked} onClick={() => setEditorOpen(true)}>
                   <Pencil className="h-4 w-4" />
                   <span className="hidden sm:inline">Edit page</span>
                 </Button>
               </div>
-              <Button size="sm" onClick={() => navigate(`/books/${book.id}/checkout`)}>
-                Continue to order <ArrowRight className="h-4 w-4" />
-              </Button>
+              {fullAccess ? (
+                <Button size="sm" onClick={() => navigate(`/books/${book.id}/checkout`)}>
+                  Continue to order <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button size="sm" variant="warm" onClick={() => navigate("/pricing-plans")}>
+                  <Lock className="h-4 w-4" /> Upgrade to export
+                </Button>
+              )}
             </div>
           </div>
         </div>

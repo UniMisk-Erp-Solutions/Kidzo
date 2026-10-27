@@ -60,6 +60,16 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    // Only plans that include printed-book orders may buy (free plan can create + preview only).
+    const { data: sub } = await admin
+      .from("user_subscriptions").select("plan_id").eq("user_id", user.id).maybeSingle();
+    const { data: feat } = sub
+      ? await admin.from("plan_features").select("value_bool").eq("plan_id", sub.plan_id).eq("key", "photo_book_orders").maybeSingle()
+      : { data: null };
+    if (feat?.value_bool !== true) {
+      return json({ error: "Upgrade to Family or Premium to order a printed book." }, 403);
+    }
+
     // The caller must own the book.
     const { data: book } = await admin
       .from("user_books").select("id, parent_id, title").eq("id", user_book_id).maybeSingle();

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { loadRazorpay } from "@/lib/razorpay";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { cn } from "@/lib/utils";
 
 type RadioOption<T extends string> = { id: T; label: string; price: number; subtitle: string };
@@ -70,6 +71,7 @@ const BookCheckout = () => {
   const { data: book, isLoading } = useUserBook(id);
   const { data: children } = useChildren();
   const update = useUpdateUserBook();
+  const { can, loading: entLoading } = useEntitlements();
 
   const child = children?.find((c) => c.id === book?.child_id);
 
@@ -195,10 +197,38 @@ const BookCheckout = () => {
     }
   };
 
-  if (isLoading || !book) {
+  if (isLoading || !book || entLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // The free plan can create and preview a book but not order it (also enforced on the server).
+  if (!can("photo_book_orders")) {
+    return (
+      <div className="min-h-screen bg-background pb-28 md:pb-12">
+        <TopBar childName={child?.name ?? ""} />
+        <main className="mx-auto flex max-w-md flex-col items-center px-6 py-16 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/30">
+            <Lock className="h-6 w-6" />
+          </span>
+          <h1 className="mt-4 text-[22px] font-bold">Upgrade to order your book</h1>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
+            Your free plan can create and preview books. Family and Premium unlock every page, PDF download and
+            printed copies delivered to your door.
+          </p>
+          <div className="mt-6 flex gap-2">
+            <Button variant="outline" onClick={() => navigate(`/books/${book.id}/preview`)}>
+              Back to preview
+            </Button>
+            <Button variant="warm" onClick={() => navigate("/pricing-plans")}>
+              See plans
+            </Button>
+          </div>
+        </main>
+        <BottomNav />
       </div>
     );
   }
