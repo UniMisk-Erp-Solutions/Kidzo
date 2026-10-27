@@ -62,7 +62,8 @@ const TemplateSelector = () => {
       navigate(`/books/${book.id}/memories`);
     } catch (e) {
       console.error(e);
-      toast.error("Couldn't create book");
+      const msg = (e as { message?: string })?.message;
+      toast.error("Couldn't create book", msg ? { description: msg } : undefined);
     }
   };
 
