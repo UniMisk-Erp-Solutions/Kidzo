@@ -41,11 +41,11 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="relative min-h-screen pb-28">
       <TopBar childName={child.name} />
 
-      <main className="mx-auto max-w-2xl px-6 py-6 md:max-w-4xl md:py-10">
-        <div className="space-y-6 md:space-y-8">
+      <main className="mx-auto max-w-2xl px-6 py-8 md:max-w-[88rem] md:px-10 md:py-14">
+        <div className="space-y-8 md:space-y-12">
           <AgeHero
             childId={child.id}
             childName={child.name}
@@ -54,7 +54,7 @@ const Index = () => {
             canEdit={canEdit}
           />
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <Button variant="outline" size="sm" onClick={() => navigate("/export")}>
               <BookOpen className="h-4 w-4" /> Export & share
             </Button>
@@ -74,20 +74,20 @@ const Index = () => {
           <button
             type="button"
             onClick={() => navigate("/books/new")}
-            className="group flex w-full items-center gap-4 rounded-3xl border border-border bg-gradient-celebrate p-5 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift"
+            className="group flex w-full items-center gap-4 rounded-3xl border border-border bg-gradient-celebrate p-6 text-left md:p-7 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-card/80 text-accent-foreground">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-card/85 text-primary-deep">
               <BookOpen className="h-6 w-6" />
             </span>
             <div className="flex-1">
-              <div className="text-[15px] font-semibold text-secondary-foreground">
+              <div className="text-[15px] font-semibold text-[hsl(var(--on-celebrate))]">
                 Turn memories into a printed book
               </div>
-              <div className="text-[12px] text-secondary-foreground/80">
+              <div className="text-[12px] text-[hsl(var(--on-celebrate)/0.8)]">
                 50+ templates · printed and shipped to your door
               </div>
             </div>
-            <ArrowRight className="h-5 w-5 text-secondary-foreground transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-5 w-5 text-[hsl(var(--on-celebrate))] transition-transform group-hover:translate-x-0.5" />
           </button>
 
           <QuickStats
@@ -95,10 +95,16 @@ const Index = () => {
             achievementsCount={achievements.length}
             documentsCount={documents.length}
           />
-          {canEdit && <CreateMomentCTA />}
-          <Flashbacks memories={memories} variant="card" />
-          <RecentTimeline memories={memories} achievements={achievements} />
-          <UpcomingMilestones dob={new Date(child.dob)} childName={child.name} />
+          <div className="grid gap-8 md:gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+            <div className="space-y-8 md:space-y-12">
+              {canEdit && <CreateMomentCTA />}
+              <Flashbacks memories={memories} variant="card" />
+              <RecentTimeline memories={memories} achievements={achievements} />
+            </div>
+            <div className="space-y-8 lg:sticky lg:top-[calc(var(--topbar-h,72px)+1.5rem)]">
+              <UpcomingMilestones dob={new Date(child.dob)} childName={child.name} />
+            </div>
+          </div>
         </div>
       </main>
 

@@ -161,12 +161,12 @@ const Family = () => {
     <div className="min-h-screen bg-background pb-28">
       <TopBar childName={childName} />
 
-      <main className="mx-auto max-w-2xl space-y-6 px-6 py-6 md:max-w-4xl md:py-10">
+      <main className="mx-auto max-w-2xl space-y-6 px-6 py-6 md:max-w-6xl md:py-10">
         <header className="animate-fade-in-up">
           <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/25 text-primary-deep">
             <Users className="h-5 w-5" />
           </span>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Family sharing</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Family sharing</h1>
           <p className="mt-1 text-[14px] text-muted-foreground">
             {isOwner
               ? `Invite a co-parent or grandparent to ${childName}'s journey.`

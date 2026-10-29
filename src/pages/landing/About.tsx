@@ -67,7 +67,7 @@ const About = () => {
       <section className="bg-gradient-warm">
         <div className="mx-auto max-w-4xl px-6 py-16 text-center md:py-24">
           <img src={logo} alt="Kidzopedia logo" width={72} height={72} className="mx-auto h-16 w-16" />
-          <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="font-display mt-4 text-4xl font-bold tracking-tight md:text-5xl">
             We're building the warmest place on the internet for childhood.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-[16px] leading-relaxed text-muted-foreground">
@@ -78,7 +78,7 @@ const About = () => {
       </section>
 
       <section className="mx-auto max-w-3xl px-6 py-16 md:py-20">
-        <h2 className="text-3xl font-bold tracking-tight">Our story</h2>
+        <h2 className="font-display text-3xl font-bold tracking-tight">Our story</h2>
         <div className="mt-5 space-y-5 text-[16px] leading-relaxed text-muted-foreground">
           <p>
             Children grow at the speed of light. The first words, the first steps, the strange little phrases only your family knows —
@@ -97,7 +97,7 @@ const About = () => {
 
       <section className="bg-muted/30">
         <div className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-          <h2 className="text-center text-3xl font-bold tracking-tight">What we believe</h2>
+          <h2 className="font-display text-center text-3xl font-bold tracking-tight">What we believe</h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             {VALUES.map((v) => (
               <article key={v.t} className="rounded-3xl border border-border bg-card p-7 shadow-soft">
@@ -114,7 +114,7 @@ const About = () => {
 
       <section className="border-t border-border">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-20">
-          <h2 className="text-3xl font-bold md:text-4xl">Come build a book with us.</h2>
+          <h2 className="font-display text-3xl font-bold md:text-4xl">Come build a book with us.</h2>
           <p className="mt-3 text-muted-foreground">Free to start. Treasured forever.</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button variant="warm" size="lg" onClick={() => navigate(user ? "/home" : "/auth")}>

@@ -1,163 +1,325 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&family=Nunito:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&family=Nunito:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,500..900,0..100,0..1;1,9..144,500..900,0..100,0..1&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ChildBook Design System
-   Warm, celebratory, trustworthy. All colors HSL.
-*/
+/* Kidzopedia Design System — "Digital scrapbook"
+   Palette: Lavender #A78BFA · Coral #FF7E86 · Butter #FFD66B · Mint #74D9BD · Sky #87C8F5 · Peach #FFB895
+            Warm White #FFFAF5 · Deep Plum #302447.  All colors HSL triplets.
+   Each app section re-themes --primary/--ring/--sec-* via [data-section] (see below). */
 
 @layer base {
   :root {
-    /* Brand palette */
-    --background: 41 60% 97%;            /* Warm Cream #FEFBF3 */
-    --foreground: 240 4% 25%;            /* Dark Charcoal #3E3E42 */
+    --background: 30 100% 98%;           /* Warm White #FFFAF5 */
+    --foreground: 261 32% 22%;           /* Deep Plum #302447 */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 4% 25%;
+    --card-foreground: 261 32% 22%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 4% 25%;
+    --popover-foreground: 261 32% 22%;
 
-    --primary: 153 19% 72%;              /* Primary Teal #A8C5BA */
-    --primary-foreground: 240 6% 20%;
-    --primary-deep: 153 22% 58%;
+    --primary: 255 92% 76%;              /* Lavender #A78BFA */
+    --primary-foreground: 261 40% 14%;
+    --primary-deep: 258 58% 52%;         /* readable lavender for text/icons */
 
-    --secondary: 17 65% 72%;             /* Soft Coral #E8A087 */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 356 100% 75%;           /* Coral #FF7E86 */
+    --secondary-foreground: 261 40% 14%;
 
-    --muted: 36 23% 95%;                 /* Light Gray/Cream #F5F3F0 */
-    --muted-foreground: 240 4% 45%;
+    --muted: 270 60% 96%;                /* faint lavender wash */
+    --muted-foreground: 261 14% 40%;
 
-    --accent: 32 41% 71%;                /* Warm Gold #D4B896 */
-    --accent-foreground: 240 6% 20%;
+    --accent: 43 100% 71%;               /* Butter #FFD66B */
+    --accent-foreground: 261 40% 14%;
 
-    --success: 150 19% 57%;              /* #7BA892 */
-    --success-foreground: 0 0% 100%;
+    --success: 163 60% 66%;              /* Mint #74D9BD */
+    --success-foreground: 261 40% 14%;
 
-    --warning: 32 47% 64%;               /* #D4A574 */
-    --warning-foreground: 240 6% 20%;
+    --warning: 20 100% 79%;              /* Peach #FFB895 */
+    --warning-foreground: 261 40% 14%;
 
-    --destructive: 0 39% 73%;            /* Error Rose #D89B9B */
+    --destructive: 356 78% 62%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 33 22% 86%;                /* Soft warm border */
-    --input: 33 22% 86%;
-    --ring: 153 22% 58%;
+    --border: 265 35% 90%;
+    --input: 265 35% 90%;
+    --ring: 258 58% 52%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
+
+    /* Palette tokens (use directly for decoration) */
+    --lavender: 255 92% 76%;
+    --coral: 356 100% 75%;
+    --butter: 43 100% 71%;
+    --mint: 163 60% 66%;
+    --sky: 205 85% 76%;
+    --peach: 20 100% 79%;
+    --plum: 261 32% 22%;
+
+    /* Per-theme semantic extras (see palette blocks below) */
+    --btn-foreground: 261 40% 14%;       /* text on gradient buttons */
+    --on-celebrate: 261 40% 14%;         /* text on --gradient-celebrate (book promo banners) */
+    --body-texture: none;                /* optional paper texture layered over the page wash */
+
+    /* Section identity — overridden per [data-section]. Default = Home (lavender/violet). */
+    --sec-1: 255 92% 76%;
+    --sec-2: 205 85% 76%;
+    --sec-3: 356 100% 80%;
+    --sec-deep: 258 58% 52%;
 
     /* Gradients */
-    --gradient-warm: linear-gradient(135deg, hsl(41 60% 97%) 0%, hsl(36 35% 92%) 100%);
-    --gradient-hero: linear-gradient(140deg, hsl(153 30% 86%) 0%, hsl(32 50% 86%) 100%);
-    --gradient-celebrate: linear-gradient(135deg, hsl(32 41% 71%) 0%, hsl(17 65% 78%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(30 100% 98%) 0%, hsl(270 70% 97%) 55%, hsl(20 100% 96%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(var(--sec-1) / 0.85) 0%, hsl(var(--sec-2) / 0.75) 48%, hsl(var(--sec-3) / 0.8) 100%);
+    --gradient-celebrate: linear-gradient(135deg, hsl(var(--sec-1)) 0%, hsl(var(--sec-3)) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(var(--sec-1)) 0%, hsl(var(--sec-3)) 100%);
 
-    /* Shadows — soft, lifted */
-    --shadow-soft: 0 1px 2px hsl(33 22% 50% / 0.04), 0 4px 16px hsl(33 22% 40% / 0.06);
-    --shadow-lift: 0 4px 8px hsl(33 22% 50% / 0.06), 0 12px 28px hsl(33 22% 40% / 0.10);
-    --shadow-glow: 0 8px 32px hsl(153 25% 60% / 0.18);
+    /* Shadows — soft, tinted by the section */
+    --shadow-soft: 0 1px 2px hsl(261 32% 22% / 0.05), 0 6px 20px hsl(var(--sec-deep) / 0.10);
+    --shadow-lift: 0 4px 8px hsl(261 32% 22% / 0.06), 0 16px 36px hsl(var(--sec-deep) / 0.18);
+    --shadow-glow: 0 10px 36px hsl(var(--sec-1) / 0.45);
 
     /* Motion */
     --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     --transition-base: all 200ms var(--ease-soft);
 
-    --sidebar-background: 41 60% 97%;
-    --sidebar-foreground: 240 4% 25%;
-    --sidebar-primary: 153 22% 58%;
+    --sidebar-background: 30 100% 98%;
+    --sidebar-foreground: 261 32% 22%;
+    --sidebar-primary: 258 58% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 36 23% 95%;
-    --sidebar-accent-foreground: 240 4% 25%;
-    --sidebar-border: 33 22% 86%;
-    --sidebar-ring: 153 22% 58%;
+    --sidebar-accent: 270 60% 96%;
+    --sidebar-accent-foreground: 261 32% 22%;
+    --sidebar-border: 265 35% 90%;
+    --sidebar-ring: 258 58% 52%;
   }
 
-  /* Theme: Soft Pastel Dream — opt-in via .theme-dream on <html>
-     Source of truth: design-3.md (Soft Pastel Dream) — exact hex → HSL */
-  .theme-dream {
-    --background: 280 25% 97%;          /* #F8F5FA deeper cream */
-    --foreground: 260 30% 28%;          /* #463766 darker plum */
-
-    --card: 280 25% 97%;
-    --card-foreground: 260 30% 28%;
-
-    --popover: 280 25% 97%;
-    --popover-foreground: 260 30% 28%;
-
-    --primary: 261 60% 78%;             /* #B8A8E0 deeper lilac */
-    --primary-foreground: 260 30% 28%;
-    --primary-deep: 254 45% 58%;        /* #8F80C4 richer mauve */
-
-    --secondary: 261 55% 84%;           /* #C8BDE8 misty lilac */
-    --secondary-foreground: 260 30% 28%;
-
-    --muted: 270 30% 94%;               /* #ECE6F2 morning haze */
-    --muted-foreground: 257 25% 55%;    /* #8275A0 dusty plum */
-
-    --accent: 338 75% 88%;              /* #F0C8D8 whisper pink */
-    --accent-foreground: 260 30% 28%;
-
-    --success: 138 40% 76%;             /* #A8D0B8 mint cloud */
-    --success-foreground: 260 30% 28%;
-
-    --warning: 36 85% 82%;              /* #F0D0A8 peach cloud */
-    --warning-foreground: 260 30% 28%;
-
-    --destructive: 346 60% 80%;         /* #E0A8B8 rose cloud */
-    --destructive-foreground: 260 30% 28%;
-
-    --border: 270 35% 90%;              /* #E0D5E8 petal border */
-    --input: 270 35% 90%;
-    --ring: 254 45% 58%;
-
-    --radius: 1.125rem;
-
-    --gradient-warm: linear-gradient(135deg, hsl(270 30% 96%) 0%, hsl(330 40% 97%) 40%, hsl(39 60% 96%) 100%);
-    --gradient-hero: linear-gradient(140deg, hsl(261 55% 90%) 0%, hsl(338 70% 90%) 60%, hsl(38 80% 90%) 100%);
-    --gradient-celebrate: linear-gradient(135deg, hsl(261 60% 82%) 0%, hsl(338 75% 88%) 55%, hsl(36 90% 82%) 100%);
-
-    --shadow-soft: 0 2px 8px hsl(260 30% 28% / 0.05), 0 4px 20px hsl(260 30% 28% / 0.07);
-    --shadow-lift: 0 4px 20px hsl(260 30% 28% / 0.07), 0 12px 40px hsl(260 30% 28% / 0.09);
-    --shadow-glow: 0 12px 40px hsl(254 45% 58% / 0.28);
-
-    --sidebar-background: 280 25% 97%;
-    --sidebar-foreground: 260 30% 28%;
-    --sidebar-primary: 254 45% 58%;
-    --sidebar-primary-foreground: 260 30% 28%;
-    --sidebar-accent: 270 30% 94%;
-    --sidebar-accent-foreground: 260 30% 28%;
-    --sidebar-border: 270 35% 90%;
-    --sidebar-ring: 254 45% 58%;
+  /* Section identities: set on <html data-section="…"> by SectionTheme (src/components/SectionTheme.tsx) */
+  [data-section="home"] {
+    --primary: 255 92% 76%; --primary-deep: 258 58% 52%; --ring: 258 58% 52%;
+    --sec-1: 255 92% 76%; --sec-2: 205 85% 78%; --sec-3: 356 100% 82%; --sec-deep: 258 58% 52%;
+  }
+  [data-section="moments"] {
+    --primary: 356 100% 75%; --primary-deep: 352 72% 48%; --ring: 352 72% 48%;
+    --sec-1: 356 100% 75%; --sec-2: 20 100% 80%; --sec-3: 330 90% 86%; --sec-deep: 352 72% 48%;
+  }
+  [data-section="grow"] {
+    --primary: 163 60% 62%; --primary-deep: 165 62% 30%; --ring: 165 62% 30%;
+    --sec-1: 163 60% 66%; --sec-2: 140 55% 74%; --sec-3: 195 70% 78%; --sec-deep: 165 62% 30%;
+  }
+  [data-section="books"] {
+    --primary: 43 100% 66%; --primary-deep: 32 92% 34%; --ring: 32 92% 34%;
+    --sec-1: 43 100% 71%; --sec-2: 32 100% 72%; --sec-3: 20 100% 80%; --sec-deep: 32 92% 34%;
+  }
+  [data-section="docs"] {
+    --primary: 205 85% 70%; --primary-deep: 205 78% 36%; --ring: 205 78% 36%;
+    --sec-1: 205 85% 76%; --sec-2: 188 75% 72%; --sec-3: 225 85% 82%; --sec-deep: 205 78% 36%;
+  }
+  [data-section="family"] {
+    --primary: 20 100% 74%; --primary-deep: 14 66% 42%; --ring: 14 66% 42%;
+    --sec-1: 20 100% 79%; --sec-2: 12 75% 70%; --sec-3: 38 100% 78%; --sec-deep: 14 66% 42%;
   }
 
-  .theme-dream body {
-    font-family: 'Nunito', 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ── Theme palettes ─────────────────────────────────────────────────────────
+     <html data-palette="daydream|explorer|tales"> (set by src/hooks/useTheme.ts and the inline script in index.html).
+     Daydream = the :root defaults above. Explorer/Tales re-map the semantic tokens AND the six decorative "slot"
+     colours (--lavender, --coral, --butter, --mint, --sky, --peach, --plum) so every component that uses them follows
+     the theme. Section tints are re-declared per palette so each section keeps an identity inside the palette. */
+
+  /* Little Explorer — blue adventure. Palette: #C0E6FD #80AAD3 #5B86B6 #3F6593 #1B3554 #000F22 (pale sky to midnight) */
+  [data-palette="explorer"] {
+    --background: 205 100% 98%;
+    --foreground: 212 100% 7%;
+    --card: 0 0% 100%;
+    --card-foreground: 212 100% 7%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 212 100% 7%;
+    --primary: 213 40% 41%;
+    --primary-foreground: 0 0% 100%;
+    --primary-deep: 213 51% 22%;
+    --secondary: 210 47% 66%;
+    --secondary-foreground: 212 100% 7%;
+    --muted: 203 93% 94%;
+    --muted-foreground: 213 35% 30%;
+    --accent: 203 93% 88%;
+    --accent-foreground: 212 100% 7%;
+    --success: 210 45% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 203 93% 88%;
+    --warning-foreground: 212 100% 7%;
+    --border: 207 60% 86%;
+    --input: 207 60% 86%;
+    --ring: 213 51% 22%;
+    --sidebar-background: 205 100% 98%;
+    --sidebar-foreground: 212 100% 7%;
+    --sidebar-primary: 213 51% 22%;
+    --sidebar-accent: 203 93% 94%;
+    --sidebar-accent-foreground: 212 100% 7%;
+    --sidebar-border: 207 60% 86%;
+    --sidebar-ring: 213 51% 22%;
+
+    --lavender: 210 37% 54%;   /* #5B86B6 */
+    --coral: 213 40% 41%;      /* #3F6593 */
+    --butter: 203 93% 88%;     /* #C0E6FD */
+    --mint: 210 47% 66%;       /* #80AAD3 */
+    --sky: 203 93% 80%;        /* lighter sky */
+    --peach: 205 100% 94%;     /* mist */
+    --plum: 212 100% 7%;       /* #000F22 */
+
+    --btn-foreground: 0 0% 100%;
+    --on-celebrate: 0 0% 100%;
+    --body-texture: none;
+    --gradient-warm: linear-gradient(135deg, hsl(205 100% 98%) 0%, hsl(203 93% 95%) 55%, hsl(210 60% 94%) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(213 40% 41%) 0%, hsl(213 51% 27%) 100%);
+    --gradient-celebrate: linear-gradient(135deg, hsl(210 37% 50%) 0%, hsl(213 51% 22%) 100%);
+    --gradient-hero: linear-gradient(120deg, hsl(203 93% 88% / 0.96) 0%, hsl(210 47% 74% / 0.94) 50%, hsl(210 37% 58% / 0.92) 100%);
   }
-  .theme-dream h1, .theme-dream h2, .theme-dream h3, .theme-dream h4 {
-    font-family: 'Quicksand', 'Nunito', system-ui, sans-serif;
-    letter-spacing: -0.01em;
+  [data-palette="explorer"][data-section="home"] { --sec-1: 210 37% 54%; --sec-2: 203 93% 88%; --sec-3: 210 47% 66%; --sec-deep: 213 51% 22%; }
+  [data-palette="explorer"][data-section="moments"] { --sec-1: 210 47% 66%; --sec-2: 203 93% 88%; --sec-3: 213 40% 50%; --sec-deep: 213 51% 24%; }
+  [data-palette="explorer"][data-section="grow"] { --sec-1: 203 93% 82%; --sec-2: 210 47% 66%; --sec-3: 210 37% 54%; --sec-deep: 213 51% 20%; }
+  [data-palette="explorer"][data-section="books"] { --sec-1: 213 40% 46%; --sec-2: 210 47% 66%; --sec-3: 203 93% 88%; --sec-deep: 213 51% 22%; }
+  [data-palette="explorer"][data-section="docs"] { --sec-1: 210 37% 54%; --sec-2: 203 93% 84%; --sec-3: 213 40% 41%; --sec-deep: 213 51% 20%; }
+  [data-palette="explorer"][data-section="family"] { --sec-1: 203 93% 86%; --sec-2: 210 37% 58%; --sec-3: 210 47% 70%; --sec-deep: 213 51% 24%; }
+
+  /* Timeless Tales — warm cream storybook with brick/terracotta, gingham trim and sage + mustard accents */
+  [data-palette="tales"] {
+    --background: 40 62% 95%;
+    --foreground: 12 38% 20%;
+    --card: 40 75% 98%;
+    --card-foreground: 12 38% 20%;
+    --popover: 40 75% 98%;
+    --popover-foreground: 12 38% 20%;
+    --primary: 11 49% 47%;
+    --primary-foreground: 0 0% 100%;
+    --primary-deep: 10 55% 36%;
+    --secondary: 12 45% 76%;
+    --secondary-foreground: 12 40% 16%;
+    --muted: 38 45% 89%;
+    --muted-foreground: 12 24% 33%;
+    --accent: 40 62% 66%;
+    --accent-foreground: 12 40% 16%;
+    --success: 120 25% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 40 62% 66%;
+    --warning-foreground: 12 40% 16%;
+    --border: 30 32% 82%;
+    --input: 30 32% 82%;
+    --ring: 10 55% 36%;
+    --sidebar-background: 40 62% 95%;
+    --sidebar-foreground: 12 38% 20%;
+    --sidebar-primary: 10 55% 36%;
+    --sidebar-accent: 38 45% 89%;
+    --sidebar-accent-foreground: 12 38% 20%;
+    --sidebar-border: 30 32% 82%;
+    --sidebar-ring: 10 55% 36%;
+
+    --lavender: 11 49% 52%;    /* brick */
+    --coral: 12 50% 72%;       /* clay blush */
+    --butter: 40 62% 68%;      /* mustard */
+    --mint: 108 22% 68%;       /* sage */
+    --sky: 205 26% 72%;        /* dusty blue */
+    --peach: 20 62% 82%;       /* apricot */
+    --plum: 12 38% 20%;        /* warm brown */
+
+    --btn-foreground: 0 0% 100%;
+    --on-celebrate: 0 0% 100%;
+    --body-texture: repeating-linear-gradient(115deg, hsl(12 38% 20% / 0.018) 0 2px, transparent 2px 9px);
+    --gradient-warm: linear-gradient(135deg, hsl(40 62% 95%) 0%, hsl(30 60% 93%) 55%, hsl(12 50% 93%) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(11 52% 50%) 0%, hsl(8 48% 40%) 100%);
+    --gradient-celebrate: linear-gradient(135deg, hsl(11 50% 47%) 0%, hsl(14 46% 38%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(40 70% 90% / 0.95) 0%, hsl(20 62% 86% / 0.92) 40%, hsl(12 50% 78% / 0.9) 75%, hsl(108 22% 82% / 0.85) 100%);
+  }
+  [data-palette="tales"][data-section="home"] { --sec-1: 11 49% 62%; --sec-2: 40 62% 72%; --sec-3: 108 22% 74%; --sec-deep: 10 55% 36%; }
+  [data-palette="tales"][data-section="moments"] { --sec-1: 12 50% 70%; --sec-2: 20 62% 80%; --sec-3: 40 62% 74%; --sec-deep: 8 55% 34%; }
+  [data-palette="tales"][data-section="grow"] { --sec-1: 108 22% 64%; --sec-2: 40 62% 72%; --sec-3: 12 50% 78%; --sec-deep: 118 30% 24%; }
+  [data-palette="tales"][data-section="books"] { --sec-1: 40 62% 66%; --sec-2: 12 50% 70%; --sec-3: 20 62% 82%; --sec-deep: 28 65% 28%; }
+  [data-palette="tales"][data-section="docs"] { --sec-1: 205 26% 68%; --sec-2: 108 22% 70%; --sec-3: 40 62% 76%; --sec-deep: 205 40% 28%; }
+  [data-palette="tales"][data-section="family"] { --sec-1: 12 50% 70%; --sec-2: 40 62% 72%; --sec-3: 11 49% 62%; --sec-deep: 10 50% 32%; }
+  /* Gingham picnic trim under the header (Tales only) */
+  [data-palette="tales"]:not([data-landing]) header.sticky::after {
+    content: ""; display: block; height: 9px;
+    background-color: hsl(40 75% 98%);
+    background-image:
+      linear-gradient(90deg, hsl(11 49% 52% / 0.5) 50%, transparent 50%),
+      linear-gradient(hsl(11 49% 52% / 0.5) 50%, transparent 50%);
+    background-size: 18px 18px;
+  }
+
+  /* First landing page ("/") — peach cream, terracotta, olive ink, lilac band; heavy soft serif + DM Sans.
+     Set by <html data-landing="wash"> from src/pages/Landing.tsx; independent of the in-app theme. */
+  [data-landing="wash"] {
+    --background: 27 66% 91%;
+    --foreground: 55 38% 15%;
+    --card: 30 85% 97%;
+    --card-foreground: 55 38% 15%;
+    --popover: 30 85% 97%;
+    --popover-foreground: 55 38% 15%;
+    --primary: 15 64% 46%;
+    --primary-foreground: 0 0% 100%;
+    --primary-deep: 14 66% 36%;
+    --secondary: 267 27% 81%;
+    --secondary-foreground: 55 38% 15%;
+    --muted: 27 50% 86%;
+    --muted-foreground: 45 18% 30%;
+    --accent: 41 85% 62%;
+    --accent-foreground: 55 38% 15%;
+    --border: 25 40% 80%;
+    --input: 25 40% 80%;
+    --ring: 14 66% 36%;
+    --lavender: 267 27% 76%;
+    --coral: 9 70% 62%;
+    --butter: 41 85% 62%;
+    --mint: 100 20% 62%;
+    --sky: 267 27% 81%;
+    --peach: 20 70% 82%;
+    --plum: 55 38% 15%;
+    --btn-foreground: 0 0% 100%;
+    --on-celebrate: 0 0% 100%;
+    --body-texture: none;
+    --sec-1: 15 64% 52%; --sec-2: 41 85% 66%; --sec-3: 9 70% 66%; --sec-deep: 14 66% 36%;
+    --gradient-button: linear-gradient(135deg, hsl(15 64% 48%) 0%, hsl(12 62% 40%) 100%);
+    --gradient-celebrate: linear-gradient(135deg, hsl(15 64% 48%) 0%, hsl(9 62% 42%) 100%);
+    --gradient-warm: linear-gradient(135deg, hsl(27 66% 92%) 0%, hsl(30 60% 89%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(41 85% 80% / 0.9) 0%, hsl(20 70% 80% / 0.9) 50%, hsl(9 62% 70% / 0.9) 100%);
+
+    --wash-olive: 70 38% 28%;
+    --wash-mustard: 41 85% 64%;
+    --wash-coral: 9 70% 62%;
+    --wash-lilac: 267 27% 81%;
+    --wash-lilac-deep: 267 30% 62%;
+    --wash-cream: 30 85% 96%;
+    --wash-ink: 55 38% 15%;
+  }
+  [data-landing="wash"] body { font-family: 'DM Sans', 'Inter', system-ui, sans-serif; background-image: none; }
+  [data-landing="wash"] .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: "SOFT" 100, "WONK" 1;
+    letter-spacing: -0.02em;
   }
 
   .dark {
-    --background: 240 8% 10%;
-    --foreground: 41 30% 94%;
-    --card: 240 8% 13%;
-    --card-foreground: 41 30% 94%;
-    --popover: 240 8% 13%;
-    --popover-foreground: 41 30% 94%;
-    --primary: 153 22% 58%;
-    --primary-foreground: 240 8% 10%;
-    --secondary: 17 50% 65%;
-    --secondary-foreground: 240 8% 10%;
-    --muted: 240 6% 18%;
-    --muted-foreground: 41 15% 70%;
-    --accent: 32 35% 60%;
-    --accent-foreground: 240 8% 10%;
-    --destructive: 0 39% 60%;
+    --background: 261 30% 11%;
+    --foreground: 30 60% 96%;
+    --card: 261 26% 15%;
+    --card-foreground: 30 60% 96%;
+    --popover: 261 26% 15%;
+    --popover-foreground: 30 60% 96%;
+    --primary: 255 85% 72%;
+    --primary-foreground: 261 40% 12%;
+    --primary-deep: 255 90% 80%;
+    --secondary: 356 90% 70%;
+    --secondary-foreground: 261 40% 12%;
+    --muted: 261 20% 19%;
+    --muted-foreground: 261 15% 72%;
+    --accent: 43 90% 66%;
+    --accent-foreground: 261 40% 12%;
+    --destructive: 356 70% 58%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 22%;
-    --input: 240 6% 22%;
-    --ring: 153 22% 58%;
+    --border: 261 18% 25%;
+    --input: 261 18% 25%;
+    --ring: 255 90% 80%;
+    --sec-deep: 255 90% 80%;
   }
 }
 
@@ -172,10 +334,26 @@
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv11", "ss01";
+    background-image:
+      radial-gradient(60% 40% at 0% 0%, hsl(var(--sec-1) / 0.20), transparent 70%),
+      radial-gradient(50% 40% at 100% 8%, hsl(var(--sec-2) / 0.18), transparent 70%),
+      radial-gradient(60% 40% at 50% 100%, hsl(var(--sec-3) / 0.16), transparent 70%),
+      var(--body-texture);
+    background-attachment: fixed;
     transition: background-color 160ms var(--ease-soft), color 160ms var(--ease-soft);
   }
   h1, h2, h3, h4 {
     letter-spacing: -0.02em;
+  }
+  /* Editorial serif for display headings (add .font-display); <em> inside gets the colourful italic */
+  .font-display {
+    font-family: 'Fraunces', 'Georgia', serif;
+    font-optical-sizing: auto;
+    letter-spacing: -0.025em;
+  }
+  .font-display em, .font-display i {
+    font-style: italic;
+    font-weight: 500;
   }
 }
 
@@ -232,6 +410,12 @@
       linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
     background-size: 18px 18px;
   }
+  /* Brown kraft paper fibres */
+  .paper-kraft {
+    background-image:
+      repeating-linear-gradient(115deg, rgba(90,60,25,0.07) 0 2px, transparent 2px 9px),
+      radial-gradient(circle at 30% 25%, rgba(255,255,255,0.16), transparent 60%);
+  }
   /* Cardstock cutout shadow on stickers/photos */
   .cutout-shadow {
     filter: drop-shadow(0 2px 1px rgba(0,0,0,0.18)) drop-shadow(0 6px 8px rgba(0,0,0,0.12));
@@ -261,7 +445,86 @@
   }
 }
 
+@layer utilities {
+  /* ── Scrapbook kit ─────────────────────────────────────── */
+  /* Section-tinted surfaces */
+  .bg-sec-hero { background-image: var(--gradient-hero); }
+  .bg-sec-wash {
+    background-image:
+      radial-gradient(60% 50% at 8% 0%, hsl(var(--sec-1) / 0.28), transparent 70%),
+      radial-gradient(50% 45% at 100% 10%, hsl(var(--sec-2) / 0.26), transparent 70%),
+      radial-gradient(55% 40% at 50% 100%, hsl(var(--sec-3) / 0.22), transparent 70%);
+  }
+  .text-sec { color: hsl(var(--sec-deep)); }
+  .text-sec-gradient {
+    background-image: linear-gradient(100deg, hsl(var(--sec-deep)), hsl(var(--coral)) 70%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .btn-gradient {
+    background-image: var(--gradient-button);
+    color: hsl(var(--btn-foreground));
+    box-shadow: 0 6px 18px hsl(var(--sec-1) / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.45);
+  }
+  .btn-gradient:hover { filter: saturate(1.1) brightness(1.03); box-shadow: 0 10px 26px hsl(var(--sec-1) / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.5); }
+
+  /* Layered paper card with soft tinted depth */
+  .card-paper {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-soft);
+    transition: transform 220ms var(--ease-soft), box-shadow 220ms var(--ease-soft);
+  }
+  .card-paper:hover { transform: translateY(-3px) rotate(-0.4deg); box-shadow: var(--shadow-lift); }
+
+  /* Frosted glass */
+  .glass {
+    background: hsl(var(--card) / 0.62);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid rgb(255 255 255 / 0.55);
+  }
+
+  /* Washi tape strip — put on a relatively-positioned parent */
+  .washi {
+    position: absolute; height: 22px; width: 76px; opacity: 0.9;
+    background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.45) 0 6px, transparent 6px 12px);
+    background-color: hsl(var(--tape, var(--butter)));
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+    clip-path: polygon(0 8%, 4% 0, 8% 8%, 12% 0, 100% 0, 96% 50%, 100% 100%, 0 100%, 4% 50%);
+  }
+  /* Polaroid photo frame */
+  .polaroid {
+    background: #fff; padding: 8px 8px 26px; border-radius: 4px;
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.1), 0 14px 28px hsl(var(--sec-deep) / 0.22);
+  }
+  .polaroid img { border-radius: 2px; }
+
+  /* Ambient glow blobs */
+  .blob { position: absolute; border-radius: 9999px; filter: blur(48px); pointer-events: none; }
+
+  /* Floating doodles */
+  .float-slow { animation: float-y 6s ease-in-out infinite; }
+  .float-med { animation: float-y 4.5s ease-in-out -1.2s infinite; }
+  .sway { animation: sway 5s ease-in-out infinite; transform-origin: 50% 90%; }
+  .twinkle { animation: twinkle 3.2s ease-in-out infinite; }
+  .drift { animation: drift 14s ease-in-out infinite alternate; }
+  .wash-spin-slow { animation: wash-spin 40s linear infinite; }
+  @keyframes drift { from { transform: translateX(-24px) translateY(0); } to { transform: translateX(34px) translateY(14px); } }
+  .wash-spin { animation: wash-spin 28s linear infinite; }
+  @keyframes wash-spin { to { transform: rotate(360deg); } }
+  .page-in { animation: page-in 180ms var(--ease-soft) backwards; }
+  @keyframes float-y { 0%,100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-9px) rotate(var(--r, 0deg)); } }
+  @keyframes sway { 0%,100% { transform: rotate(var(--r, 0deg)); } 50% { transform: rotate(calc(var(--r, 0deg) + 3deg)); } }
+  @keyframes twinkle { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.82); } }
+  /* backwards fill + opacity-only end state: no transform lingers, so fixed/sticky bars inside pages keep working */
+  @keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;

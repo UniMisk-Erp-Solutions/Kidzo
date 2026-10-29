@@ -187,7 +187,7 @@ const BookPreview = () => {
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Step 3 of 4
               </div>
-              <h1 className="truncate text-[15px] font-bold leading-tight md:text-[17px]">
+              <h1 className="font-display truncate text-[15px] font-bold leading-tight md:text-[17px]">
                 Preview your book
               </h1>
             </div>

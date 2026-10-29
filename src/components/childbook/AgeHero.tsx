@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import heroImg from "@/assets/hero-child.jpg";
-import { Sparkles, Camera, Loader2, Trash2 } from "lucide-react";
+import { Camera, Loader2, Trash2 } from "lucide-react";
+import { Sparkle, Squiggle, ThemeAccent, Washi } from "./Doodles";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpdateChild } from "@/hooks/useChildren";
@@ -130,40 +131,48 @@ export const AgeHero = ({ childId, childName, dob, avatarUrl, canEdit = true }: 
   return (
     <section
       aria-label={`${childName}'s age`}
-      className="relative overflow-hidden rounded-3xl bg-gradient-hero p-6 shadow-soft sm:p-8 animate-fade-in-up"
+      className="relative overflow-hidden rounded-[2rem] bg-sec-hero p-6 shadow-lift sm:p-9 animate-fade-in-up"
     >
-      <div className="absolute -right-6 -top-6 h-40 w-40 rounded-full bg-accent/30 blur-3xl" aria-hidden />
-      <div className="absolute -bottom-10 -left-10 h-44 w-44 rounded-full bg-primary/30 blur-3xl" aria-hidden />
+      {/* ambient glows + floating doodles */}
+      <div className="blob -right-10 -top-12 h-52 w-52 bg-butter/60" aria-hidden />
+      <div className="blob -bottom-16 -left-10 h-56 w-56 bg-sky/60" aria-hidden />
+      <div className="blob right-1/3 top-1/2 h-40 w-40 bg-coral/30" aria-hidden />
+      <Sparkle className="twinkle absolute left-[46%] top-5 h-6 w-6 text-white/90" />
+      <Sparkle className="twinkle absolute bottom-6 left-[38%] h-4 w-4 text-butter" />
+      <ThemeAccent className="float-med absolute right-[44%] top-1/2 hidden h-6 w-6 text-coral/80 sm:block" />
 
-      <div className="relative grid items-center gap-6 sm:grid-cols-[1fr_auto]">
+      <div className="relative grid items-center gap-8 sm:grid-cols-[1fr_auto]">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-card/70 px-3 py-1 text-[12px] font-medium text-foreground/80 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
+          <div className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold text-foreground/80">
+            <Sparkle className="h-3 w-3 text-sec" />
             Today's keepsake
           </div>
-          <h1 className="mt-3 text-2xl font-bold leading-tight text-foreground sm:text-3xl md:text-4xl">
+          <h1 className="font-display mt-4 text-4xl font-bold leading-[1.05] text-plum sm:text-5xl md:text-6xl">
             {childName} is{" "}
-            <span className="text-primary-deep">
-              {years} {years === 1 ? "year" : "years"}, {months} {months === 1 ? "month" : "months"}, {days}{" "}
-              {days === 1 ? "day" : "days"}
-            </span>{" "}
-            old.
+            <em className="text-sec-gradient pr-1">
+              {years} {years === 1 ? "year" : "years"}
+            </em>
+            , {months} {months === 1 ? "month" : "months"} &amp; {days} {days === 1 ? "day" : "days"} old.
           </h1>
-          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-foreground/70">
-            That's <strong className="font-semibold text-foreground">{totalDays.toLocaleString()} days</strong> of giggles,
+          <Squiggle className="mt-4 text-white/80" />
+          <p className="mt-3 max-w-md text-[15px] leading-relaxed text-plum/75">
+            That's <strong className="font-bold text-plum">{totalDays.toLocaleString()} days</strong> of giggles,
             firsts, and stories worth saving.
           </p>
         </div>
 
-        <div className="relative mx-auto h-32 w-32 sm:h-40 sm:w-40 md:h-48 md:w-48">
-          <div className="absolute inset-0 animate-soft-bounce">
+        {/* Polaroid portrait */}
+        <div className="relative mx-auto w-40 sm:w-48 md:w-56">
+          <Washi className="-top-3 left-1/2 z-10 -translate-x-1/2 rotate-[-4deg]" tone="coral" />
+          <div className="float-slow polaroid rotate-3" style={{ ["--r" as string]: "3deg" }}>
             <img
               src={displaySrc}
               alt={avatarUrl ? `${childName}'s photo` : `Illustration celebrating ${childName}`}
               width={256}
               height={256}
-              className="h-full w-full rounded-3xl object-cover shadow-lift"
+              className="aspect-square w-full object-cover"
             />
+            <p className="font-handwritten absolute inset-x-0 bottom-1 text-center text-lg text-plum/80">{childName} ♡</p>
           </div>
 
           {canEdit && (
@@ -183,7 +192,7 @@ export const AgeHero = ({ childId, childName, dob, avatarUrl, canEdit = true }: 
                     disabled={uploading}
                     aria-label={avatarUrl ? "Photo options" : "Upload a photo"}
                     title={avatarUrl ? "Photo options" : "Upload a photo"}
-                    className="absolute -bottom-1 -right-1 inline-flex h-9 w-9 items-center justify-center rounded-full bg-card text-foreground shadow-lift ring-2 ring-background transition hover:scale-105 disabled:opacity-60"
+                    className="btn-gradient absolute -bottom-3 -right-3 inline-flex h-11 w-11 items-center justify-center rounded-full ring-4 ring-white/80 transition hover:scale-105 disabled:opacity-60"
                   >
                     {uploading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

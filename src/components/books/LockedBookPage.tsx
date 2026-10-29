@@ -35,14 +35,14 @@ export const LockedBookPage = ({
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Page {pageNumber} · locked
           </div>
-          <h3 className="mt-1 text-[18px] font-bold leading-tight text-foreground">Upgrade to export</h3>
+          <h3 className="mt-1 text-[18px] font-bold leading-tight text-foreground">Upgrade to view</h3>
           <p className="mx-auto mt-1 max-w-[16rem] text-[13px] leading-relaxed text-muted-foreground">
             The free plan previews the first 2 pages. Upgrade to see every page, download your book and order a
             printed copy.
           </p>
         </div>
         <Button size="sm" variant="warm" onClick={() => navigate("/pricing-plans")}>
-          <Sparkles className="h-4 w-4" /> See plans
+          <Sparkles className="h-4 w-4" /> Upgrade
         </Button>
       </div>
     </div>

@@ -88,7 +88,7 @@ const Onboarding = () => {
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             {isAddingAnother ? "Add another child" : "Step 1 of 1"}
           </span>
-          <h1 className="mt-3 text-3xl font-bold text-foreground">
+          <h1 className="font-display mt-3 text-3xl font-bold text-foreground">
             {isAddingAnother ? "Tell us about your next little one" : "Tell us about your little one"}
           </h1>
           <p className="mt-2 text-[15px] text-muted-foreground">

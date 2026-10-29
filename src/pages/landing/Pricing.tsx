@@ -20,6 +20,7 @@ const PLANS = [
       "100 MB storage",
       "Memories, milestones & growth charts",
       "Create photo books & preview 2 pages",
+      "Birth certificate vault (1 document)",
       "Private by default",
     ],
   },
@@ -27,7 +28,7 @@ const PLANS = [
     name: "Family",
     price: "₹299",
     cadence: "/month",
-    description: "For growing families — up to 2 children, PDF export, sharing.",
+    description: "For growing families — up to 2 children, PDF export, sharing, marksheet & school folders.",
     cta: "Choose Family",
     featured: true,
     features: [
@@ -36,6 +37,7 @@ const PLANS = [
       "PDF keepsake export",
       "Full book preview & PDF download",
       "Order printed photo books",
+      "Document folders — 20 marksheets & 7 school certificates",
       "Public share links & family invites",
     ],
   },
@@ -43,14 +45,14 @@ const PLANS = [
     name: "Premium",
     price: "₹599",
     cadence: "/month",
-    description: "For bigger families — up to 5 children, AI suggestions, priority support.",
+    description: "For bigger families — up to 5 children, unlimited documents, priority support.",
     cta: "Choose Premium",
     featured: false,
     features: [
       "Up to 5 child profiles",
       "10 GB storage",
       "Everything in Family",
-      "AI suggestions",
+      "Unlimited documents in every folder + achievement certificates",
       "Priority support",
     ],
   },
@@ -101,7 +103,7 @@ const Pricing = () => {
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1 text-[12px] font-medium text-foreground/80 backdrop-blur">
             <Sparkles className="h-3.5 w-3.5 text-accent" /> Pricing
           </span>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="font-display mt-4 text-4xl font-bold tracking-tight md:text-5xl">
             Simple, gentle pricing for every family.
           </h1>
           <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">
@@ -167,7 +169,7 @@ const Pricing = () => {
 
       <section className="border-t border-border bg-muted/30">
         <div className="mx-auto max-w-3xl px-6 py-14 md:py-16">
-          <h2 className="text-center text-2xl font-bold md:text-3xl">Common pricing questions</h2>
+          <h2 className="font-display text-center text-2xl font-bold md:text-3xl">Common pricing questions</h2>
           <dl className="mt-8 space-y-4">
             {[
               { q: "Is there really a free tier?", a: "Yes — one child profile with 100 MB of storage, free forever. Most families start here." },

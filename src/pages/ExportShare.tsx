@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  ArrowUp,
-  ArrowDown,
+  ArrowRight,
   Download,
   Eye,
   Link2,
   Loader2,
+  Lock,
   Mail,
   Star,
 } from "lucide-react";
@@ -23,31 +23,66 @@ import { BottomNav } from "@/components/childbook/BottomNav";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useMemories, type Memory } from "@/hooks/useMemories";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { useScreenGuard } from "@/lib/screenGuard";
+import { FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
+import { ScreenshotShield } from "@/components/books/ScreenshotShield";
+import { ExportMemoryCard } from "@/components/books/ExportMemoryCard";
+import { PdfPagesView } from "@/components/books/PdfPagesView";
+import { LockedBookPage } from "@/components/books/LockedBookPage";
 import { supabase } from "@/integrations/supabase/client";
-import { exportShareBook, type LayoutStyle } from "@/lib/exportShareBook";
+import type { LayoutStyle } from "@/lib/exportShareBook";
+import { clearOpenRequest, startExport, useExportJob } from "@/lib/exportJobStore";
 import { format } from "date-fns";
 
-const LAYOUTS: { id: LayoutStyle; title: string; desc: string }[] = [
+const LAYOUTS: { id: LayoutStyle; title: string; desc: string; swatches?: string[] }[] = [
+  { id: "scrapbook-kraft", title: "Burgundy Diary", desc: "Kraft paper, torn burgundy panels & a vintage camera — 4 photos a page.", swatches: ["#C8A57A", "#7A1F2B", "#E0B24A"] },
+  { id: "scrapbook-film", title: "Film Roll", desc: "A big hero photo with a film roll across the page and marker scribbles.", swatches: ["#E4DCCB", "#16161a", "#F0C84A"] },
+  { id: "scrapbook-news", title: "Newsprint Collage", desc: "Taped, tilted photos over vintage newspaper with cut-out headlines.", swatches: ["#E8E1D1", "#D4553F", "#F3C94C"] },
   { id: "classic", title: "Classic coffee-table", desc: "Bold hero photo with caption — warm and traditional." },
   { id: "minimal", title: "Minimal", desc: "Lots of whitespace, centered photo and title." },
   { id: "timeline", title: "Timeline-first", desc: "Dark date rail down the left with story alongside." },
 ];
+
+const LOCKED_COLORS = { primary: "#fcfaf7", accent: "#a8c5ba", gold: "#e8c98a", coral: "#e9b4a0", mint: "#a8c5ba" };
 
 const ExportShare = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: child } = useActiveChild();
   const { data: memories = [] } = useMemories(child?.id);
+  const { can, loading: entLoading } = useEntitlements();
+  const canDownload = can("pdf_export");
+  const goUpgrade = () => navigate("/pricing-plans");
 
   const [order, setOrder] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [coverOverrides, setCoverOverrides] = useState<Record<string, string>>({});
-  const [layout, setLayout] = useState<LayoutStyle>("classic");
-  const [busy, setBusy] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [layout, setLayout] = useState<LayoutStyle>("scrapbook-kraft");
+  const job = useExportJob();
+  const [sharing, setSharing] = useState(false);
+  const busy = job.busy || sharing;
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [lastBlob, setLastBlob] = useState<Blob | null>(null);
-  const [lastFilename, setLastFilename] = useState<string>("keepsake.pdf");
+  const lastBlob = child && job.childId === child.id ? job.blob : null;
+  const lastFilename = job.filename;
+  const previewUrl = previewOpen && lastBlob ? "open" : null;
+  const onPageRef = useRef(true);
+  useEffect(() => {
+    onPageRef.current = true;
+    return () => {
+      onPageRef.current = false;
+    };
+  }, []);
+  // A build finished (here or while the user was away): open its preview once.
+  useEffect(() => {
+    if (job.openRequested && lastBlob) {
+      setPreviewOpen(true);
+      clearOpenRequest();
+    }
+  }, [job.openRequested, lastBlob]);
+  // No plan may capture the PDF preview: blocks screenshots/recording in the Android app.
+  useScreenGuard(!!previewUrl);
 
   // Seed selection/order from memories on first load
   useEffect(() => {
@@ -92,43 +127,26 @@ const ExportShare = () => {
 
   const generate = async (mode: "preview" | "download") => {
     if (!child) return;
+    if (mode === "download" && !canDownload) {
+      toast.error("Upgrade to download", { action: { label: "See plans", onClick: goUpgrade } });
+      return;
+    }
     if (includedMemories.length === 0) {
       toast.error("Pick at least one memory to include.");
       return;
     }
-    setBusy(true);
-    const t = toast.loading("Building your photo book…");
-    try {
-      const { blob, filename, report } = await exportShareBook({
-        childName: child.name,
-        childDob: new Date(child.dob),
-        memories: includedMemories,
-        coverOverrides,
-        layout,
-        download: mode === "download",
-      });
-      setLastBlob(blob);
-      setLastFilename(filename);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      toast.success(
-        mode === "download" ? "Saved 💛" : "Preview ready",
-        {
-          id: t,
-          description: report.failedImages.length
-            ? `${report.imagesLoaded}/${report.imagesAttempted} photos embedded.`
-            : undefined,
-        },
-      );
-    } catch (e) {
-      toast.error("Couldn't generate PDF", {
-        id: t,
-        description: e instanceof Error ? e.message : String(e),
-      });
-    } finally {
-      setBusy(false);
-    }
+    void startExport({
+      childId: child.id,
+      childName: child.name,
+      childDob: new Date(child.dob),
+      memories: includedMemories,
+      coverOverrides,
+      layout,
+      mode,
+      maxPages: canDownload ? undefined : FREE_PREVIEW_PAGES,
+      isOnPage: () => onPageRef.current,
+      goToExport: () => navigate("/export"),
+    });
   };
 
   const downloadCurrent = () => {
@@ -145,7 +163,7 @@ const ExportShare = () => {
       toast.error("Generate the PDF first.");
       return;
     }
-    setBusy(true);
+    setSharing(true);
     const t = toast.loading("Uploading your photo book…");
     try {
       const path = `${user.id}/${child.id}-${Date.now()}-${lastFilename}`;
@@ -163,7 +181,7 @@ const ExportShare = () => {
         description: e instanceof Error ? e.message : String(e),
       });
     } finally {
-      setBusy(false);
+      setSharing(false);
     }
   };
 
@@ -190,13 +208,13 @@ const ExportShare = () => {
   return (
     <div className="min-h-screen bg-background pb-28">
       <TopBar childName={child.name} />
-      <main className="mx-auto max-w-3xl px-4 py-6 md:max-w-5xl md:py-10">
+      <main className="mx-auto max-w-3xl px-4 py-6 md:max-w-6xl md:py-10">
         <div className="mb-6 flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Export & share</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">Export & share</h1>
             <p className="text-sm text-muted-foreground">
               Build a printable photo book of {child.name}'s memories and share it with family.
             </p>
@@ -221,7 +239,16 @@ const ExportShare = () => {
                   >
                     <RadioGroupItem value={l.id} id={`layout-${l.id}`} className="mt-1" />
                     <div>
-                      <div className="text-sm font-semibold text-foreground">{l.title}</div>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        {l.title}
+                        {l.swatches && (
+                          <span className="flex -space-x-1" aria-hidden>
+                            {l.swatches.map((s) => (
+                              <span key={s} className="h-3.5 w-3.5 rounded-full border border-card" style={{ backgroundColor: s }} />
+                            ))}
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-1 text-xs text-muted-foreground">{l.desc}</div>
                     </div>
                   </Label>
@@ -244,82 +271,23 @@ const ExportShare = () => {
               {ordered.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No memories yet — add some first.</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="grid grid-cols-1 gap-5 min-[480px]:grid-cols-2 lg:grid-cols-3 lg:gap-6">
                   {ordered.map((m, idx) => {
                     const photos = m.photo_urls?.length ? m.photo_urls : m.photo_url ? [m.photo_url] : [];
-                    const currentCover = coverOverrides[m.id] ?? photos[0];
-                    const isSel = selected.has(m.id);
                     return (
-                      <li
+                      <ExportMemoryCard
                         key={m.id}
-                        className={`rounded-xl border p-3 transition-opacity ${
-                          isSel ? "border-border bg-card" : "border-dashed border-border bg-muted/30 opacity-60"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={isSel}
-                            onCheckedChange={() => toggleSelected(m.id)}
-                            className="mt-1"
-                            aria-label={`Include ${m.title}`}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-baseline justify-between gap-3">
-                              <p className="truncate text-sm font-semibold text-foreground">{m.title}</p>
-                              <span className="shrink-0 text-[11px] text-muted-foreground">
-                                {format(new Date(m.happened_at), "MMM d, yyyy")}
-                              </span>
-                            </div>
-                            {photos.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {photos.map((url) => {
-                                  const isCover = url === currentCover;
-                                  return (
-                                    <button
-                                      key={url}
-                                      type="button"
-                                      onClick={() => setCoverOverrides({ ...coverOverrides, [m.id]: url })}
-                                      title={isCover ? "Hero cover" : "Use as hero cover"}
-                                      className={`relative h-14 w-14 overflow-hidden rounded-md border-2 transition-all ${
-                                        isCover ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-border"
-                                      }`}
-                                    >
-                                      <img src={url} alt="" className="h-full w-full object-cover" />
-                                      {isCover && (
-                                        <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-primary/90 py-0.5 text-[9px] font-semibold text-primary-foreground">
-                                          <Star className="h-2.5 w-2.5 fill-current" /> COVER
-                                        </span>
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 flex-col gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => move(idx, -1)}
-                              disabled={idx === 0}
-                              aria-label="Move up"
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => move(idx, 1)}
-                              disabled={idx === ordered.length - 1}
-                              aria-label="Move down"
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </li>
+                        title={m.title}
+                        date={m.happened_at}
+                        photos={photos}
+                        coverUrl={coverOverrides[m.id] ?? photos[0]}
+                        selected={selected.has(m.id)}
+                        onToggle={() => toggleSelected(m.id)}
+                        onCover={(url) => setCoverOverrides({ ...coverOverrides, [m.id]: url })}
+                        onMove={(dir) => move(idx, dir)}
+                        canPrev={idx > 0}
+                        canNext={idx < ordered.length - 1}
+                      />
                     );
                   })}
                 </ul>
@@ -342,9 +310,15 @@ const ExportShare = () => {
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
                   Preview PDF
                 </Button>
-                <Button variant="outline" onClick={() => generate("download")} disabled={busy}>
-                  <Download className="h-4 w-4" /> Download
-                </Button>
+                {!entLoading && !canDownload ? (
+                  <Button variant="outline" onClick={goUpgrade}>
+                    <Lock className="h-4 w-4" /> Upgrade to download
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => generate("download")} disabled={busy || entLoading}>
+                    <Download className="h-4 w-4" /> Download
+                  </Button>
+                )}
               </div>
             </Card>
 
@@ -376,27 +350,36 @@ const ExportShare = () => {
       <Dialog
         open={!!previewUrl}
         onOpenChange={(o) => {
-          if (!o) {
-            if (previewUrl) URL.revokeObjectURL(previewUrl);
-            setPreviewUrl(null);
-          }
+          if (!o) setPreviewOpen(false);
         }}
       >
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Preview — {lastFilename}</DialogTitle>
           </DialogHeader>
-          {previewUrl && (
-            <iframe
-              src={previewUrl}
-              title="PDF preview"
-              className="h-[70vh] w-full rounded-md border border-border"
-            />
+          {previewUrl && lastBlob && (
+            <div className="h-[70vh] overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
+              <ScreenshotShield>
+                <PdfPagesView blob={lastBlob}>
+                  {!entLoading && !canDownload && (
+                    <div className="mx-auto aspect-[3/4] w-full max-w-[560px] overflow-hidden rounded-md border border-border">
+                      <LockedBookPage colors={LOCKED_COLORS} pageNumber={FREE_PREVIEW_PAGES + 1} />
+                    </div>
+                  )}
+                </PdfPagesView>
+              </ScreenshotShield>
+            </div>
           )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={downloadCurrent}>
-              <Download className="h-4 w-4" /> Download
-            </Button>
+            {canDownload ? (
+              <Button variant="outline" onClick={downloadCurrent}>
+                <Download className="h-4 w-4" /> Download
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={goUpgrade}>
+                <Lock className="h-4 w-4" /> Upgrade to download
+              </Button>
+            )}
             <Button variant="warm" onClick={createShareLink} disabled={busy}>
               <Link2 className="h-4 w-4" /> Share link
             </Button>

@@ -1,4 +1,5 @@
 import { ExternalLink, HelpCircle, LifeBuoy, LogOut, Scale, Settings } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,10 +15,24 @@ import {
 import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
 import { ChildSwitcher } from "./ChildSwitcher";
 import { NotificationsBell } from "./NotificationsBell";
+import { ThemeMenu } from "./ThemeMenu";
+import { PrimaryNav } from "./BottomNav";
 
 export const TopBar = ({ childName }: { childName: string }) => {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Publish the real header height (it changes with the nav row / breakpoint) so sticky bars below can sit under it.
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const publish = () => document.documentElement.style.setProperty("--topbar-h", `${el.offsetHeight}px`);
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -26,8 +41,8 @@ export const TopBar = ({ childName }: { childName: string }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-6 py-3 md:max-w-4xl">
+    <header ref={headerRef} className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-6 py-3 md:max-w-[88rem] md:px-10">
         {/* Never squeeze the child's name — it is the point of the header. */}
         <div className="flex shrink-0 items-center gap-2.5">
           <Link to="/home" aria-label="Kidzopedia home">
@@ -39,7 +54,10 @@ export const TopBar = ({ childName }: { childName: string }) => {
           </div>
         </div>
 
+        <PrimaryNav inline />
+
         <div className="flex items-center gap-1">
+          <ThemeMenu />
           <NotificationsBell />
 
           {/* Help & legal — every policy is reachable from inside the app */}
@@ -96,6 +114,7 @@ export const TopBar = ({ childName }: { childName: string }) => {
           </button>
         </div>
       </div>
+      <PrimaryNav />
     </header>
   );
 };

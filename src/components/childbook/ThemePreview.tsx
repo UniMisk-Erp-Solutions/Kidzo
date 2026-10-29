@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { AppTheme } from "@/hooks/useTheme";
+import { THEMES, type AppTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 interface ThemePreviewProps {
@@ -33,7 +33,7 @@ export function ThemePreview({ open, theme, onClose, onApply }: ThemePreviewProp
             Preview
           </span>
           <span className="font-medium text-foreground">
-            {theme === "dream" ? "Soft Pastel Dream" : "Legacy"} · {SCREENS[idx].label}
+            {THEMES.find((t) => t.id === theme)?.name} · {SCREENS[idx].label}
           </span>
         </div>
         <div className="flex items-center gap-2">

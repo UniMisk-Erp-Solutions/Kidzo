@@ -4,6 +4,8 @@ import { Sparkles, CalendarClock, Camera, ArrowRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const TOUR_KEY = "childbook:featureTour:v1";
 
@@ -36,21 +38,33 @@ const STEPS: Step[] = [
 
 export const FeatureTour = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const seen = localStorage.getItem(TOUR_KEY);
-    if (!seen) {
-      // Slight delay so the dashboard mounts first
-      const t = setTimeout(() => setOpen(true), 400);
-      return () => clearTimeout(t);
-    }
-  }, []);
+    if (typeof window === "undefined" || loading || !user) return;
+    // Seen on this account (any device) or on this browser for this account
+    const seen =
+      user.user_metadata?.feature_tour_seen === true ||
+      localStorage.getItem(`${TOUR_KEY}:${user.id}`) ||
+      // Legacy global flag from before the key was per-user
+      localStorage.getItem(TOUR_KEY);
+    if (seen) return;
+    // Only auto-show for brand-new accounts (first login), not returning users
+    const createdAt = new Date(user.created_at).getTime();
+    const isNewAccount = Date.now() - createdAt < 24 * 60 * 60 * 1000;
+    if (!isNewAccount) return;
+    // Slight delay so the dashboard mounts first
+    const t = setTimeout(() => setOpen(true), 400);
+    return () => clearTimeout(t);
+  }, [user, loading]);
 
   const finish = () => {
-    localStorage.setItem(TOUR_KEY, "1");
+    if (user) {
+      localStorage.setItem(`${TOUR_KEY}:${user.id}`, "1");
+      supabase.auth.updateUser({ data: { feature_tour_seen: true } }).catch(() => {});
+    }
     setOpen(false);
     setStep(0);
   };

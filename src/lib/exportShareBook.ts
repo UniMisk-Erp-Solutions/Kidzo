@@ -1,8 +1,12 @@
 import jsPDF from "jspdf";
 import { format } from "date-fns";
 import type { Memory } from "@/hooks/useMemories";
+import { exportBookPdf } from "@/lib/exportBookPdf";
+import { SCRAPBOOK_EXPORT_PRESETS, type ScrapbookExportLayout } from "@/lib/scrapbookExportPresets";
 
-export type LayoutStyle = "classic" | "minimal" | "timeline";
+export type LayoutStyle = "classic" | "minimal" | "timeline" | ScrapbookExportLayout;
+
+export const isScrapbookLayout = (l: LayoutStyle): l is ScrapbookExportLayout => l in SCRAPBOOK_EXPORT_PRESETS;
 
 export type ShareBookReport = {
   totalItems: number;
@@ -85,8 +89,37 @@ export async function exportShareBook(opts: {
   coverOverrides?: Record<string, string>;
   layout: LayoutStyle;
   download?: boolean;
+  /** Cap the PDF at this many pages (free-plan preview). The rest is never generated. */
+  maxPages?: number;
 }): Promise<{ blob: Blob; filename: string; report: ShareBookReport }> {
-  const { childName, childDob, memories, coverOverrides, layout, download = false } = opts;
+  const { childName, childDob, coverOverrides, layout, download = false, maxPages } = opts;
+
+  // Scrapbook collage looks: rendered by the book page renderer (many photos per page, tape, film roll…)
+  if (isScrapbookLayout(layout)) {
+    const template = SCRAPBOOK_EXPORT_PRESETS[layout];
+    const withCovers = opts.memories.map((m) => ({ ...m, photo_url: coverPhotoFor(m, coverOverrides) }));
+    const filename = `${childName.replace(/\s+/g, "_")}_scrapbook_${layout}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
+    const photoCount = withCovers.filter((m) => m.photo_url).length;
+    const blob = await exportBookPdf({
+      title: `${childName}'s Memory Book`,
+      childName,
+      childDob: childDob.toISOString(),
+      template,
+      colors: template.color_scheme,
+      memories: withCovers,
+      maxPages,
+      filename: download ? filename : undefined,
+    });
+    return {
+      blob,
+      filename,
+      // the page renderer doesn't report per-image failures, so count what we handed it
+      report: { totalItems: withCovers.length, imagesAttempted: photoCount, imagesLoaded: photoCount, failedImages: [] },
+    };
+  }
+
+  // page 1 is the cover, so a cap of N leaves room for N-1 memory pages
+  const memories = maxPages ? opts.memories.slice(0, Math.max(0, maxPages - 1)) : opts.memories;
   const report: ShareBookReport = {
     totalItems: memories.length,
     imagesAttempted: 0,
@@ -317,6 +350,9 @@ export async function exportShareBook(opts: {
     }
   }
 
+  if (maxPages) {
+    while (doc.getNumberOfPages() > maxPages) doc.deletePage(doc.getNumberOfPages());
+  }
   const filename = `${childName.replace(/\s+/g, "_")}_keepsake_${layout}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
   const blob = doc.output("blob");
   if (download) doc.save(filename);

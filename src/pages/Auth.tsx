@@ -12,6 +12,7 @@ import { AcceptTerms } from "@/components/AcceptTerms";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { WashShell } from "@/components/landing/WashShell";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -166,11 +167,11 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
+    <WashShell className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandLogo className="mb-3 h-20 w-20" />
-          <h1 className="text-3xl font-bold text-foreground">Kidzopedia</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Kidzopedia</h1>
           <p className="mt-2 text-[15px] text-muted-foreground">Capture every moment, celebrate every milestone.</p>
         </div>
 
@@ -337,7 +338,7 @@ const Auth = () => {
           Your family's memories stay private — never sold, never used for ads.
         </p>
       </div>
-    </div>
+    </WashShell>
   );
 };
 

@@ -122,7 +122,7 @@ const BookCustomizer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32 md:pb-12">
+    <div className="min-h-screen bg-background pb-44 md:pb-44">
       <TopBar childName={child?.name ?? ""} />
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
         <Button variant="ghost" size="sm" onClick={() => navigate(`/books/${book.id}/memories`)} className="-ml-3 mb-3">
@@ -131,7 +131,7 @@ const BookCustomizer = () => {
 
         <div className="mb-6">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Step 2 of 4</div>
-          <h1 className="mt-1 text-[24px] font-bold tracking-tight md:text-[28px]">Customize your book</h1>
+          <h1 className="font-display mt-1 text-[24px] font-bold tracking-tight md:text-[28px]">Customize your book</h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Make it yours — change the title, colors, and reorder pages.
           </p>
@@ -315,7 +315,7 @@ const BookCustomizer = () => {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-card/95 backdrop-blur md:bottom-0">
+      <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="text-[13px] text-muted-foreground">Step 2 of 4</div>
           <div className="flex items-center gap-2">

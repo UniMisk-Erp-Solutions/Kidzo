@@ -90,10 +90,10 @@ const Moments = () => {
       <TopBar childName={child?.name ?? "Your child"} />
 
       {/* Sticky filter bar */}
-      <div className="sticky top-[57px] z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto max-w-4xl space-y-3 px-6 py-3">
+      <div className="sticky top-[var(--topbar-h,72px)] z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto max-w-6xl space-y-3 px-6 py-3">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Moments</h1>
+            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Moments</h1>
             <div className="flex items-center gap-2">
               <div className="flex items-center rounded-full border border-border bg-card p-0.5">
                 <button
@@ -175,7 +175,7 @@ const Moments = () => {
         </div>
       </div>
 
-      <main className="mx-auto max-w-4xl px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">
         {memories.length > 0 && <Flashbacks memories={memories} variant="strip" />}
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">

@@ -61,7 +61,7 @@ const GetApp = () => {
         <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/30 text-primary-deep shadow-soft">
           <Smartphone className="h-7 w-7" strokeWidth={2.2} />
         </span>
-        <h1 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 className="font-display mt-6 text-3xl font-bold tracking-tight sm:text-4xl">
           Take Kidzopedia anywhere
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground sm:text-lg">

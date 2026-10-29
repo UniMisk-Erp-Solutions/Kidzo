@@ -13,6 +13,29 @@ import {
 import { ElementsOverlay } from "@/components/books/editor/EditorElements";
 import { pageKeyFor, readPageData, type CustomPagesMap } from "@/components/books/editor/types";
 
+const HANDWRITING_FONTS = /Caveat|Kalam|Patrick Hand|Shadows Into Light/i;
+
+/**
+ * html2canvas draws these web fonts about 0.2em lower than the browser does, which pushes titles out of
+ * their boxes in the PDF. Nudge only the text (not its box) back up, on the cloned DOM used for the capture.
+ */
+export function nudgeHandwritingText(root: HTMLElement) {
+  const doc = root.ownerDocument;
+  const view = doc.defaultView;
+  if (!view) return;
+  root.querySelectorAll<HTMLElement>("*").forEach((el) => {
+    if (!HANDWRITING_FONTS.test(view.getComputedStyle(el).fontFamily)) return;
+    Array.from(el.childNodes).forEach((n) => {
+      if (n.nodeType !== Node.TEXT_NODE || !n.textContent?.trim()) return;
+      const shift = doc.createElement("span");
+      shift.style.position = "relative";
+      shift.style.top = "-0.2em";
+      n.replaceWith(shift);
+      shift.appendChild(n);
+    });
+  });
+}
+
 export type PdfProgressPhase =
   | "preparing"
   | "fonts"
@@ -46,11 +69,14 @@ export async function exportBookPdf(opts: {
   memories: Memory[];
   customPages?: CustomPagesMap;
   filename?: string;
+  /** Only render the first N pages (free-plan preview). */
+  maxPages?: number;
   onProgress?: (progress: PdfProgress) => void;
 }): Promise<Blob> {
-  const { title, subtitle, childName, childDob, template, colors, memories, customPages, filename, onProgress } = opts;
+  const { title, subtitle, childName, childDob, template, colors, memories, customPages, filename, maxPages, onProgress } = opts;
 
-  const pages = buildPages({ title, subtitle, childName, childDob, template, memories });
+  const allPages = buildPages({ title, subtitle, childName, childDob, template, memories });
+  const pages = maxPages ? allPages.slice(0, maxPages) : allPages;
   if (pages.length === 0) throw new Error("No pages to export");
 
   const report = (p: PdfProgress) => {
@@ -166,6 +192,7 @@ export async function exportBookPdf(opts: {
         windowWidth: BOOK_PAGE_W,
         windowHeight: BOOK_PAGE_H,
         imageTimeout: 8000,
+        onclone: (_doc, cloned) => nudgeHandwritingText(cloned),
       });
 
       const imgData = canvas.toDataURL("image/jpeg", 0.92);

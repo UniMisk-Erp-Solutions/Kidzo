@@ -1,5 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AmbientDecor } from "@/components/AmbientDecor";
+import { SectionTheme, PageTransition } from "@/components/SectionTheme";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -29,7 +31,7 @@ import Onboarding from "./pages/Onboarding.tsx";
 import Moments from "./pages/Moments.tsx";
 import NewMemory from "./pages/NewMemory.tsx";
 import Grow from "./pages/Grow.tsx";
-import Records from "./pages/Records.tsx";
+import Documents from "./pages/Documents.tsx";
 import Family from "./pages/Family.tsx";
 import Share from "./pages/Share.tsx";
 import Settings from "./pages/Settings.tsx";
@@ -56,7 +58,8 @@ import ActivityInsight from "./pages/legal/ActivityInsight.tsx";
 import DataProcessing from "./pages/legal/DataProcessing.tsx";
 import DataRights from "./pages/legal/DataRights.tsx";
 
-const queryClient = new QueryClient();
+// Short staleTime: revisiting a page shows cached data instantly instead of refetching every time.
+const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false } } });
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -68,7 +71,10 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ScrollToTop />
+          <SectionTheme />
+          <AmbientDecor />
           <CookieBanner />
+          <PageTransition>
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/get-app" element={<GetApp />} />
@@ -143,13 +149,14 @@ const App = () => (
               }
             />
             <Route
-              path="/records"
+              path="/documents"
               element={
                 <ProtectedRoute>
-                  <Records />
+                  <Documents />
                 </ProtectedRoute>
               }
             />
+            <Route path="/records" element={<Navigate to="/documents" replace />} />
             <Route
               path="/family"
               element={
@@ -267,6 +274,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </PageTransition>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

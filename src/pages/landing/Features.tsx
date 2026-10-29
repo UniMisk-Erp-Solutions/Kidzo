@@ -60,7 +60,7 @@ const Features = () => {
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             Features
           </span>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="font-display mt-4 text-4xl font-bold tracking-tight md:text-5xl">
             Everything you need to remember the little things.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-[16px] leading-relaxed text-muted-foreground">
@@ -86,7 +86,7 @@ const Features = () => {
       <section className="border-t border-border bg-muted/30">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-20">
           <BookHeart className="mx-auto h-10 w-10 text-primary-deep" />
-          <h2 className="mt-3 text-3xl font-bold md:text-4xl">Ready to start your child's book?</h2>
+          <h2 className="font-display mt-3 text-3xl font-bold md:text-4xl">Ready to start your child's book?</h2>
           <p className="mt-3 text-muted-foreground">It's free to start. Add your first memory in under a minute.</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button variant="warm" size="lg" onClick={() => navigate(user ? "/home" : "/auth")}>

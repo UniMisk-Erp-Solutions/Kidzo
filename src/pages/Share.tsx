@@ -84,7 +84,7 @@ const Share = () => {
 
         {error || !info ? (
           <>
-            <h1 className="text-xl font-semibold text-foreground">Invite unavailable</h1>
+            <h1 className="font-display text-xl font-semibold text-foreground">Invite unavailable</h1>
             <p className="mt-2 text-[14px] text-muted-foreground">{error ?? "This invite couldn't be found."}</p>
             <Button variant="soft" className="mt-5 w-full" onClick={() => navigate("/")}>
               Go home
@@ -92,7 +92,7 @@ const Share = () => {
           </>
         ) : used ? (
           <>
-            <h1 className="text-xl font-semibold text-foreground">This invite has already been used</h1>
+            <h1 className="font-display text-xl font-semibold text-foreground">This invite has already been used</h1>
             <p className="mt-2 text-[14px] text-muted-foreground">Ask the family to send a fresh one.</p>
             <Button variant="soft" className="mt-5 w-full" onClick={() => navigate("/")}>
               Go home
@@ -100,7 +100,7 @@ const Share = () => {
           </>
         ) : expired ? (
           <>
-            <h1 className="text-xl font-semibold text-foreground">This invite has expired</h1>
+            <h1 className="font-display text-xl font-semibold text-foreground">This invite has expired</h1>
             <p className="mt-2 text-[14px] text-muted-foreground">Ask for a new link from the parent.</p>
             <Button variant="soft" className="mt-5 w-full" onClick={() => navigate("/")}>
               Go home
@@ -108,7 +108,7 @@ const Share = () => {
           </>
         ) : (
           <>
-            <h1 className="text-xl font-semibold text-foreground">
+            <h1 className="font-display text-xl font-semibold text-foreground">
               You're invited to {info.child_name}'s journey
             </h1>
             <p className="mt-2 text-[14px] text-muted-foreground">

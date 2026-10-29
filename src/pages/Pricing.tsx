@@ -16,7 +16,7 @@ type Plan = {
   currency: string;
   sort_order: number;
 };
-type Feature = { plan_id: string; key: string; value_int: number | null; value_bool: boolean | null };
+type Feature = { plan_id: string; key: string; value_int: number | null; value_bool: boolean | null; value_text?: string | null };
 
 const FEATURE_LABEL: Record<string, string> = {
   max_children: "children",
@@ -24,18 +24,20 @@ const FEATURE_LABEL: Record<string, string> = {
   photo_book_orders: "Photo book orders",
   share_links: "Public share links",
   family_invites: "Family invites",
-  ai_suggestions: "AI suggestions",
 };
 
 const FEATURE_ORDER = [
   "max_children",
   "max_storage_mb",
+  "document_limits",
   "pdf_export",
   "photo_book_orders",
   "share_links",
   "family_invites",
-  "ai_suggestions",
 ];
+
+// Retired features that may still be in the table.
+const HIDDEN_FEATURES = ["ai_suggestions"];
 
 const formatStorage = (mb: number) => (mb >= 1024 ? `${+(mb / 1024).toFixed(1)} GB` : `${mb} MB`);
 
@@ -45,6 +47,20 @@ const formatFeature = (f: Feature) => {
   }
   if (f.key === "max_storage_mb") {
     return `${formatStorage(f.value_int ?? 0)} storage`;
+  }
+  if (f.key === "document_limits") {
+    let limits: Record<string, number | null> = {};
+    try {
+      limits = f.value_text ? JSON.parse(f.value_text) : {};
+    } catch {
+      /* treat as unlimited */
+    }
+    const entries = Object.entries(limits).filter(([, n]) => typeof n === "number");
+    if (entries.length === 0) return "Unlimited documents in every folder, incl. achievement certificates";
+    const m = limits.marksheet ?? 0;
+    const s = limits.school ?? 0;
+    if (m > 0 || s > 0) return `Document folders — up to ${m} marksheets & ${s} school certificates`;
+    return "Birth certificate vault (1 document)";
   }
   return FEATURE_LABEL[f.key] ?? f.key;
 };
@@ -59,7 +75,7 @@ const Pricing = () => {
   useEffect(() => {
     (async () => {
       const { data: p } = await supabase.from("plans").select("*").eq("is_active", true).order("sort_order");
-      const { data: f } = await supabase.from("plan_features").select("plan_id, key, value_int, value_bool");
+      const { data: f } = await supabase.from("plan_features").select("plan_id, key, value_int, value_bool, value_text");
       setPlans((p ?? []) as Plan[]);
       setFeatures((f ?? []) as Feature[]);
     })();
@@ -82,7 +98,7 @@ const Pricing = () => {
     <div className="min-h-screen bg-gradient-warm px-4 py-12 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-6xl">
         <div className="mb-10 text-center">
-          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">Pick the plan for your family</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">Pick the plan for your family</h1>
           <p className="mt-3 text-muted-foreground">Start free. Upgrade anytime to unlock more children and features.</p>
           <div className="mt-6 inline-flex rounded-xl border border-border bg-card p-1">
             <button
@@ -106,6 +122,7 @@ const Pricing = () => {
             const planFeats = features
               .filter((f) => f.plan_id === plan.id)
               // Numeric limits with no value are not shown (we never advertise "unlimited").
+              .filter((f) => !HIDDEN_FEATURES.includes(f.key))
               .filter((f) => !(["max_children", "max_storage_mb"].includes(f.key) && f.value_int === null))
               .sort((a, b) => rank(a.key) - rank(b.key));
             const price = cycle === "monthly" ? plan.price_monthly : plan.price_yearly;

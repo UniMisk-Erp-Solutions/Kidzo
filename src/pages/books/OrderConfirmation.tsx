@@ -96,7 +96,7 @@ const OrderConfirmation = () => {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-card text-accent shadow-soft">
             <CheckCircle2 className="h-9 w-9" />
           </div>
-          <h1 className="mt-4 text-[26px] font-bold md:text-[32px]">Order placed! 🎉</h1>
+          <h1 className="font-display mt-4 text-[26px] font-bold md:text-[32px]">Order placed! 🎉</h1>
           <p className="mt-2 text-[14px] text-secondary-foreground/80">
             Your memory book is queued for printing. We'll email you when it ships.
           </p>

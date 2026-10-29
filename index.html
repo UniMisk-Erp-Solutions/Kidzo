@@ -6,7 +6,26 @@
     <title>Kidzopedia — The Little Encyclopedia of Your Child's Life</title>
     <meta name="description" content="Kidzopedia is a warm digital keepsake for parents to capture memories, track milestones, and safely store every important document of your child's life." />
     <meta name="author" content="Kidzopedia" />
-    <meta name="theme-color" content="#FEFBF3" />
+    <meta name="theme-color" content="#FBF4E6" />
+
+    <!-- Apply the saved theme before first paint (keep in sync with src/hooks/useTheme.ts) -->
+    <script>
+      (function () {
+        try {
+          var ok = { daydream: 1, explorer: 1, tales: 1 };
+          var chrome = { daydream: "#FFFAF5", explorer: "#F5FBFF", tales: "#FBF4E6" };
+          var q = new URLSearchParams(location.search).get("themePreview");
+          var id = localStorage.getItem("childbook:activeChildId");
+          var t = (id && localStorage.getItem("kidzopedia:theme:" + id)) || localStorage.getItem("kidzopedia:theme");
+          t = ok[q] ? q : ok[t] ? t : "tales";
+          document.documentElement.setAttribute("data-palette", t);
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute("content", chrome[t]);
+        } catch (e) {
+          document.documentElement.setAttribute("data-palette", "tales");
+        }
+      })();
+    </script>
 
     <!-- Favicon (browser tab) -->
     <link rel="icon" href="/favicon.ico" sizes="any" />

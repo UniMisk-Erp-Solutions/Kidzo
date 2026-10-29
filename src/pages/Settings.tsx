@@ -29,10 +29,10 @@ import { useActiveChildId, useLeaveSharedChild, useUpdateChild } from "@/hooks/u
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useTheme, type AppTheme } from "@/hooks/useTheme";
-import { Check, Eye, Palette, RotateCcw } from "lucide-react";
+import { useTheme, THEMES, DEFAULT_THEME, type AppTheme } from "@/hooks/useTheme";
+import { ThemePicker } from "@/components/childbook/ThemePicker";
+import { Palette } from "lucide-react";
 import { ThemePreview } from "@/components/childbook/ThemePreview";
-import { Slider } from "@/components/ui/slider";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -43,9 +43,9 @@ const Settings = () => {
   const activeChild = children.find((c) => c.id === activeId) ?? child;
   const isOwner = !!activeChild && !!user && activeChild.user_id === user.id;
   const updateChild = useUpdateChild();
-  const { theme, setTheme, intensity, setIntensity, startPreview, stopPreview, reset, childId } = useTheme();
+  const { theme, setTheme, startPreview, stopPreview, reset } = useTheme();
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewTheme, setPreviewThemeLocal] = useState<AppTheme>("dream");
+  const [previewTheme, setPreviewThemeLocal] = useState<AppTheme>("explorer");
 
   const [name, setName] = useState("");
   const [dob, setDob] = useState<Date | undefined>();
@@ -246,7 +246,7 @@ const Settings = () => {
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
 
-        <h1 className="mb-6 text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className="font-display mb-6 text-2xl font-bold text-foreground">Settings</h1>
 
         {/* Plan & billing */}
         <section className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-soft">
@@ -278,142 +278,37 @@ const Settings = () => {
           </div>
         </section>
 
-        {/* Appearance / Theme */}
+        {/* Appearance & Themes */}
         <section className="mb-8 rounded-3xl border border-border bg-card p-6 shadow-soft">
-          <div className="mb-4 flex items-start gap-3">
+          <div className="mb-5 flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/25 text-primary-deep">
               <Palette className="h-5 w-5" />
             </span>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
+              <h2 className="font-display text-lg font-semibold text-foreground">Appearance &amp; Themes</h2>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                Pick a design theme for{" "}
-                <span className="font-medium text-foreground">{activeChild.name}</span>. Each child
-                profile remembers its own look.
+                Choose the look for{" "}
+                <span className="font-medium text-foreground">{activeChild.name}</span>&apos;s scrapbook. Every theme is
+                available to everyone, and each child profile remembers its own.
               </p>
             </div>
           </div>
-
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setPreviewThemeLocal("dream");
-                setPreviewOpen(true);
-                startPreview("dream");
-              }}
-            >
-              <Eye className="h-4 w-4" /> Preview Dream theme
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                reset();
-                toast.success("Restored Legacy theme");
-              }}
-            >
-              <RotateCcw className="h-4 w-4" /> Reset to Legacy
-            </Button>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            {([
-              {
-                id: "legacy" as AppTheme,
-                name: "Legacy",
-                tagline: "Warm cream & teal — the original look.",
-                swatches: ["#FEFBF3", "#A8C5BA", "#E8A087", "#D4B896", "#3E3E42"],
-              },
-              {
-                id: "dream" as AppTheme,
-                name: "Soft Pastel Dream",
-                tagline: "Powdered lilac, whisper pink & butter cloud.",
-                swatches: ["#FFFCFF", "#D4C5F0", "#FCE4EC", "#FFF0D4", "#5D4E7C"],
-              },
-            ]).map((t) => {
-              const active = theme === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => {
-                    setTheme(t.id);
-                    toast.success(`Theme: ${t.name}`);
-                  }}
-                  className={cn(
-                    "group relative flex flex-col gap-3 rounded-2xl border p-4 text-left transition-all",
-                    active
-                      ? "border-primary-deep bg-primary/10 shadow-soft"
-                      : "border-border bg-background/40 hover:border-primary/60 hover:bg-muted/40",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-sm font-semibold text-foreground">{t.name}</div>
-                    {active && (
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-deep text-primary-foreground">
-                        <Check className="h-3.5 w-3.5" />
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    {t.swatches.map((c) => (
-                      <span
-                        key={c}
-                        className="h-6 w-6 rounded-full border border-border"
-                        style={{ background: c }}
-                      />
-                    ))}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{t.tagline}</div>
-                </button>
-              );
-            })}
-          </div>
-
-          {theme === "dream" && (
-            <div className="mt-5 rounded-2xl border border-border bg-background/40 p-4">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">Dream intensity</div>
-                  <div className="text-xs text-muted-foreground">
-                    Slide to darken the pastel palette to your taste.
-                  </div>
-                </div>
-                <span className="text-xs font-medium text-primary-deep">
-                  {Math.round(intensity * 100)}%
-                </span>
-              </div>
-              <Slider
-                value={[Math.round(intensity * 100)]}
-                min={0}
-                max={100}
-                step={1}
-                aria-label="Dream theme intensity"
-                onValueChange={(v) => setIntensity((v[0] ?? 0) / 100)}
-                onKeyDown={(e) => {
-                  // Radix handles ArrowLeft/Right/Up/Down/Home/End/PageUp/PageDown.
-                  // Add Enter to cycle through soft → mid → deep → soft.
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const pct = Math.round(intensity * 100);
-                    const next = pct < 50 ? 0.5 : pct < 100 ? 1 : 0;
-                    setIntensity(next);
-                  }
-                }}
-              />
-              <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
-                <span>Soft</span>
-                <span className="text-muted-foreground/80">
-                  ← / → to adjust · Enter to cycle
-                </span>
-                <span>Deep</span>
-              </div>
-            </div>
-          )}
+          <ThemePicker
+            theme={theme}
+            onSelect={(t) => {
+              setTheme(t);
+              toast.success(`Theme: ${THEMES.find((x) => x.id === t)?.name}`);
+            }}
+            onPreview={(t) => {
+              setPreviewThemeLocal(t);
+              setPreviewOpen(true);
+              startPreview(t);
+            }}
+            onReset={() => {
+              reset();
+              toast.success(`Restored ${THEMES.find((x) => x.id === DEFAULT_THEME)?.name}`);
+            }}
+          />
         </section>
 
         {/* Your children */}

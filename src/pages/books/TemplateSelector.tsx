@@ -9,6 +9,7 @@ import { TemplateCard } from "@/components/books/TemplateCard";
 import { TemplatePreviewModal } from "@/components/books/TemplatePreviewModal";
 import { useBookTemplates, type BookTemplate } from "@/hooks/useBookTemplates";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { useCreateUserBook } from "@/hooks/useUserBooks";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const FILTERS: { id: string; label: string; match: (t: BookTemplate) => boolean 
   { id: "birthday", label: "Birthday", match: (t) => t.category === "birthday" },
   { id: "seasonal", label: "Holiday", match: (t) => t.category === "seasonal" },
   { id: "everyday", label: "Everyday", match: (t) => t.category === "everyday" },
+  { id: "collage", label: "Collage", match: (t) => /scrapbook-(kraft|filmroll|newsprint)/.test(t.slug) },
   { id: "premium", label: "Premium ✨", match: (t) => t.is_premium },
 ];
 
@@ -28,6 +30,9 @@ const TemplateSelector = () => {
   const { data: templates = [], isLoading } = useBookTemplates();
   const { data: child } = useActiveChild();
   const createBook = useCreateUserBook();
+  const { can, loading: entLoading } = useEntitlements();
+  // Premium templates are for plans that include photo books (Family / Premium).
+  const isLocked = (t: BookTemplate) => t.is_premium && !entLoading && !can("photo_book_orders");
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -48,6 +53,13 @@ const TemplateSelector = () => {
   }, [templates, filter, search]);
 
   const handleSelect = async (t: BookTemplate) => {
+    if (isLocked(t)) {
+      toast("Premium template ✨", {
+        description: "Upgrade to the Family or Premium plan to use this template.",
+        action: { label: "See plans", onClick: () => navigate("/pricing-plans") },
+      });
+      return;
+    }
     if (!child) {
       toast.error("Please add a child profile first");
       return;
@@ -82,7 +94,7 @@ const TemplateSelector = () => {
               <BookOpen className="h-6 w-6" />
             </span>
             <div>
-              <h1 className="text-[26px] font-bold leading-tight tracking-tight md:text-3xl">
+              <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight md:text-3xl">
                 Create your memory book
               </h1>
               <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">
@@ -142,6 +154,7 @@ const TemplateSelector = () => {
               <TemplateCard
                 key={t.id}
                 template={t}
+                locked={isLocked(t)}
                 onSelect={handleSelect}
                 onPreview={setPreviewing}
               />
@@ -152,6 +165,7 @@ const TemplateSelector = () => {
 
       <TemplatePreviewModal
         template={previewing}
+        locked={!!previewing && isLocked(previewing)}
         open={!!previewing}
         onOpenChange={(v) => !v && setPreviewing(null)}
         onSelect={(t) => {

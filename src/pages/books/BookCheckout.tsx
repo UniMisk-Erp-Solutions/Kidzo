@@ -144,7 +144,13 @@ const BookCheckout = () => {
         },
       });
       if (error || !order || order.error) {
-        toast.error(order?.error || error?.message || "Could not start payment. Please try again.");
+        // On a non-2xx the real reason is in the response body, not error.message
+        let reason: string | undefined = order?.error;
+        if (!reason && error && "context" in error) {
+          reason = await (error as { context: Response }).context.json().then((b) => b?.error).catch(() => undefined);
+        }
+        console.error("razorpay-create-book-order failed:", reason ?? error);
+        toast.error(reason || error?.message || "Could not start payment. Please try again.");
         setPlacing(false);
         return;
       }
@@ -214,7 +220,7 @@ const BookCheckout = () => {
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/30">
             <Lock className="h-6 w-6" />
           </span>
-          <h1 className="mt-4 text-[22px] font-bold">Upgrade to order your book</h1>
+          <h1 className="font-display mt-4 text-[22px] font-bold">Upgrade to order your book</h1>
           <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
             Your free plan can create and preview books. Family and Premium unlock every page, PDF download and
             printed copies delivered to your door.
@@ -234,7 +240,7 @@ const BookCheckout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-40 md:pb-12">
+    <div className="min-h-screen bg-background pb-56 md:pb-56">
       <TopBar childName={child?.name ?? ""} />
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
         <Button
@@ -250,7 +256,7 @@ const BookCheckout = () => {
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Step 4 of 4
           </div>
-          <h1 className="mt-1 text-[24px] font-bold tracking-tight md:text-[28px]">Order your book</h1>
+          <h1 className="font-display mt-1 text-[24px] font-bold tracking-tight md:text-[28px]">Order your book</h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Choose your size, paper, and where to ship it.
           </p>
@@ -414,7 +420,7 @@ const BookCheckout = () => {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-card/95 backdrop-blur md:bottom-0">
+      <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="text-[13px]">
             <span className="text-muted-foreground">Total</span>{" "}

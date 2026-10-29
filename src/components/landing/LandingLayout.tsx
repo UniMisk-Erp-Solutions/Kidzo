@@ -1,12 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useState } from "react";
 import { ArrowRight, Github, Instagram, Mail, MapPin, Menu, Phone, Twitter, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/childbook/ThemeToggle";
+import { LandingBackdrop } from "@/components/landing/LandingBackdrop";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -23,6 +23,13 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+
+  // All public marketing pages share the "Wash House" look (see [data-landing="wash"] in index.css),
+  // independent of the in-app theme.
+  useLayoutEffect(() => {
+    document.documentElement.setAttribute("data-landing", "wash");
+    return () => document.documentElement.removeAttribute("data-landing");
+  }, []);
 
   // Close mobile menu and scroll to top on route change
   useEffect(() => {
@@ -57,7 +64,6 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <ThemeToggle />
             {!loading && user ? (
               <Button variant="warm" size="sm" onClick={() => navigate("/home")} className="px-2.5 sm:px-4">
                 <span className="hidden sm:inline">Open my Kidzopedia</span>
@@ -108,7 +114,10 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
         )}
       </header>
 
-      <main>{children}</main>
+      <main className="relative isolate">
+        <LandingBackdrop />
+        {children}
+      </main>
 
       <footer className="border-t border-border bg-muted/30">
         <div className="mx-auto max-w-6xl px-6 py-12">

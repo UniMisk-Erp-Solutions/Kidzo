@@ -70,7 +70,7 @@ const Contact = () => {
       <section className="bg-gradient-warm">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-24">
           <span className="text-[12px] font-semibold uppercase tracking-wider text-primary-deep">Contact</span>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="font-display mt-2 text-4xl font-bold tracking-tight md:text-5xl">
             We'd love to hear from you.
           </h1>
           <p className="mt-4 text-[16px] leading-relaxed text-muted-foreground">

@@ -69,7 +69,7 @@ export const RecentTimeline = ({ memories, achievements, limit = 8 }: Props) => 
           </Button>
         </div>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {items.map((it) =>
             it.kind === "memory" ? (
               <li key={`m-${it.id}`}>

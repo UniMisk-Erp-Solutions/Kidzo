@@ -79,7 +79,7 @@ const HowItWorks = () => {
       <section className="bg-gradient-warm">
         <div className="mx-auto max-w-4xl px-6 py-16 text-center md:py-24">
           <span className="text-[12px] font-semibold uppercase tracking-wider text-primary-deep">How it works</span>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="font-display mt-2 text-4xl font-bold tracking-tight md:text-5xl">
             From first hello to lifelong keepsake — in five gentle steps.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-[16px] leading-relaxed text-muted-foreground">
@@ -100,7 +100,7 @@ const HowItWorks = () => {
                   <span className="text-[12px] font-bold uppercase tracking-wider text-muted-foreground">Step {s.n}</span>
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-xl font-semibold sm:text-2xl">{s.title}</h2>
+                  <h2 className="font-display text-xl font-semibold sm:text-2xl">{s.title}</h2>
                   <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{s.body}</p>
                 </div>
               </div>
@@ -114,7 +114,7 @@ const HowItWorks = () => {
 
       <section className="border-t border-border bg-muted/30">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-20">
-          <h2 className="text-3xl font-bold md:text-4xl">Quietly powerful, gently designed.</h2>
+          <h2 className="font-display text-3xl font-bold md:text-4xl">Quietly powerful, gently designed.</h2>
           <ul className="mx-auto mt-6 grid max-w-xl gap-2 text-left text-[15px]">
             {[
               "Private by default — your data is yours",

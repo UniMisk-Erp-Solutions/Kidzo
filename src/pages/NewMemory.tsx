@@ -304,7 +304,7 @@ const NewMemory = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold text-foreground">New memory</h1>
+          <h1 className="font-display text-lg font-semibold text-foreground">New memory</h1>
         </div>
       </header>
 
@@ -476,6 +476,24 @@ const NewMemory = () => {
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
                   />
+                  <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+                    <Label htmlFor="happened-time" className="text-sm font-medium">
+                      Time
+                    </Label>
+                    <input
+                      id="happened-time"
+                      type="time"
+                      value={format(happenedAt, "HH:mm")}
+                      onChange={(e) => {
+                        const [h, m] = e.target.value.split(":").map(Number);
+                        if (Number.isNaN(h) || Number.isNaN(m)) return;
+                        const next = new Date(happenedAt);
+                        next.setHours(h, m, 0, 0);
+                        setHappenedAt(next);
+                      }}
+                      className="h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
                 </PopoverContent>
               </Popover>
               {autoDateInfo && (

@@ -34,7 +34,7 @@ const Row = ({ memory, onRemove }: { memory: Memory; onRemove: () => void }) => 
     opacity: isDragging ? 0.5 : 1,
   };
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 rounded-xl border bg-card p-2">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 rounded-xl border bg-card p-3">
       <button {...attributes} {...listeners} className="cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground">
         <GripVertical className="h-4 w-4" />
       </button>
@@ -84,7 +84,7 @@ export const SelectedMemoriesList = ({ selectedIds, memoriesById, onReorder, onR
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={selectedIds} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {selectedIds.map((id) => {
             const m = memoriesById[id];
             if (!m) return null;

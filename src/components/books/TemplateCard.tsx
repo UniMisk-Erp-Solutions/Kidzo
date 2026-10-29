@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BookTemplate } from "@/hooks/useBookTemplates";
@@ -14,8 +14,26 @@ const CATEGORY_LABEL: Record<string, string> = {
   everyday: "Everyday",
 };
 
+/** Soft illustrated stand-in photos (sky, sun, hills) so sample pages look real before the user adds photos. */
+const SAMPLE_TONES: [string, string, string][] = [
+  ["#bfe0f5", "#ffe08a", "#7fb069"],
+  ["#f8d3c4", "#fff1b8", "#8fb996"],
+  ["#cfe3d4", "#f9c784", "#6c9a8b"],
+  ["#d9d2f0", "#ffd6a5", "#84a98c"],
+];
+const samplePhoto = (i: number) => {
+  const [sky, sun, hill] = SAMPLE_TONES[i % SAMPLE_TONES.length];
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice">` +
+    `<rect width="120" height="120" fill="${sky}"/><circle cx="${30 + (i % 3) * 25}" cy="34" r="14" fill="${sun}"/>` +
+    `<path d="M0 90 Q30 62 60 86 T120 78 V120 H0Z" fill="${hill}"/><path d="M0 104 Q40 88 80 102 T120 98 V120 H0Z" fill="#5a8f6a" opacity=".75"/></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
 interface Props {
   template: BookTemplate;
+  /** Premium template on a plan that can't use it. */
+  locked?: boolean;
   onSelect: (t: BookTemplate) => void;
   onPreview: (t: BookTemplate) => void;
 }
@@ -23,11 +41,11 @@ interface Props {
 /** Build 2 lightweight mock memories so the card carousel can render real
  *  collage spreads (cover + 2 memory pages) using the actual BookPageView. */
 function buildMockMemories(template: BookTemplate): Memory[] {
+  // All sample memories sit in the same (fixed) year so they land on one page.
   const now = new Date();
-  const last = new Date(now);
-  last.setMonth(last.getMonth() - 4);
-  const earlier = new Date(now);
-  earlier.setMonth(earlier.getMonth() - 9);
+  const earlier = new Date(now.getFullYear() - 1, 5, 8);
+  const last = new Date(now.getFullYear() - 1, 5, 21);
+  const day = (n: number) => new Date(now.getFullYear() - 1, 5, n).toISOString();
 
   const flavorByCat: Record<string, { title1: string; title2: string; story1: string; story2: string }> = {
     timeline: {
@@ -66,7 +84,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
   const base = {
     user_id: "preview",
     child_id: "preview",
-    photo_url: null,
+    photo_url: null as string | null,
     reaction: null,
     created_at: now.toISOString(),
   };
@@ -74,6 +92,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
   return [
     {
       ...base,
+      photo_url: samplePhoto(0),
       id: `mock-1-${template.id}`,
       title: f.title1,
       story: f.story1,
@@ -84,6 +103,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
     } as Memory,
     {
       ...base,
+      photo_url: samplePhoto(1),
       id: `mock-2-${template.id}`,
       title: f.title2,
       story: f.story2,
@@ -91,6 +111,28 @@ function buildMockMemories(template: BookTemplate): Memory[] {
       category: "Adventure",
       who_was_there: ["Grandma"],
       tags: ["fun"],
+    } as Memory,
+    {
+      ...base,
+      photo_url: samplePhoto(2),
+      id: `mock-3-${template.id}`,
+      title: "Little wonders",
+      story: "Small things, big smiles.",
+      happened_at: day(12),
+      category: "Memory",
+      who_was_there: ["Dad"],
+      tags: ["joy"],
+    } as Memory,
+    {
+      ...base,
+      photo_url: samplePhoto(3),
+      id: `mock-4-${template.id}`,
+      title: "Golden hour",
+      story: "The light was perfect and so were you.",
+      happened_at: day(16),
+      category: "Memory",
+      who_was_there: ["Mom"],
+      tags: ["sunset"],
     } as Memory,
   ];
 }
@@ -100,7 +142,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
  * (cover → memory spread 1 → memory spread 2). Uses the same BookPageView
  * the final book uses, so the preview is always WYSIWYG.
  */
-export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
+export const TemplateCard = ({ template, locked = false, onSelect, onPreview }: Props) => {
   const c = template.color_scheme;
   const ink = c.ink ?? c.text ?? "#3E3E42";
   const mint = c.mint ?? c.accent;
@@ -119,8 +161,8 @@ export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
       template,
       memories,
     });
-    // Pick: cover (0), and 2 memory pages
-    const memoryPages = all.filter((p) => p.kind === "memory").slice(0, 2);
+    // Pick: cover (0), and 2 memory pages (or the packed spreads of dense templates)
+    const memoryPages = all.filter((p) => p.kind === "memory" || p.kind === "memory-spread").slice(0, 2);
     return [all[0], ...memoryPages].filter(Boolean);
   }, [template]);
 
@@ -154,13 +196,7 @@ export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
       onMouseLeave={() => setAutoplay(true)}
     >
       {/* Live carousel preview using BookPageFrame */}
-      <button
-        type="button"
-        onClick={() => onPreview(template)}
-        className="relative block aspect-[4/3] w-full overflow-hidden"
-        style={{ backgroundColor: c.primary }}
-        aria-label={`Preview ${template.name}`}
-      >
+      <div className="relative block aspect-[4/3] w-full overflow-hidden" style={{ backgroundColor: c.primary }}>
         {/* Stack each page absolutely; fade between them */}
         {samplePages.map((page, idx) => (
           <div
@@ -171,6 +207,14 @@ export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
             <BookPageFrame page={page} colors={c} className="h-full w-full" />
           </div>
         ))}
+
+        {/* Full-area preview target (a sibling of the controls so buttons are never nested) */}
+        <button
+          type="button"
+          onClick={() => onPreview(template)}
+          className="absolute inset-0"
+          aria-label={`Preview ${template.name}`}
+        />
 
         {/* Carousel controls */}
         {samplePages.length > 1 && (
@@ -193,7 +237,7 @@ export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
             </button>
 
             {/* Dots */}
-            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+            <div className="pointer-events-none absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
               {samplePages.map((_, idx) => (
                 <span
                   key={idx}
@@ -209,7 +253,7 @@ export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
         )}
 
         {template.is_premium && (
-          <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground shadow-soft">
+          <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground shadow-soft">
             <Sparkles className="h-3 w-3" />
             Premium
           </span>
@@ -217,12 +261,12 @@ export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
 
         {/* Sample-page label */}
         <span
-          className="absolute left-2 top-2 rounded-full bg-card/95 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground shadow-soft"
+          className="pointer-events-none absolute left-2 top-2 rounded-full bg-card/95 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground shadow-soft"
           aria-hidden
         >
           {slide === 0 ? "Cover" : `Spread ${slide}`}
         </span>
-      </button>
+      </div>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -249,8 +293,14 @@ export const TemplateCard = ({ template, onSelect, onPreview }: Props) => {
             ))}
           </div>
 
-          <Button size="sm" variant="warm" onClick={() => onSelect(template)}>
-            Select
+          <Button size="sm" variant={locked ? "outline" : "warm"} onClick={() => onSelect(template)}>
+            {locked ? (
+              <>
+                <Lock className="h-3.5 w-3.5" /> Upgrade
+              </>
+            ) : (
+              "Select"
+            )}
           </Button>
         </div>
       </div>

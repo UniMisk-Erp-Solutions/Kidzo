@@ -46,7 +46,7 @@ const Families = () => {
       <section className="bg-gradient-warm">
         <div className="mx-auto max-w-4xl px-6 py-16 text-center md:py-24">
           <span className="text-[12px] font-semibold uppercase tracking-wider text-primary-deep">For families</span>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="font-display mt-2 text-4xl font-bold tracking-tight md:text-5xl">
             A book the whole family writes together.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-[16px] leading-relaxed text-muted-foreground">
@@ -62,7 +62,7 @@ const Families = () => {
               <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/30 text-primary-deep">
                 <r.icon className="h-6 w-6" />
               </span>
-              <h2 className="mt-4 text-2xl font-semibold">{r.role}</h2>
+              <h2 className="font-display mt-4 text-2xl font-semibold">{r.role}</h2>
               <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{r.desc}</p>
             </article>
           ))}
@@ -104,7 +104,7 @@ const Families = () => {
 
       <section className="border-t border-border bg-gradient-warm">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center md:py-20">
-          <h2 className="text-3xl font-bold md:text-4xl">Ready to write together?</h2>
+          <h2 className="font-display text-3xl font-bold md:text-4xl">Ready to write together?</h2>
           <ul className="mx-auto mt-5 grid max-w-md gap-2 text-left text-[15px]">
             {["Per-child sharing", "Viewer & editor roles", "Share-by-link, no setup", "Anyone can leave any time"].map((b) => (
               <li key={b} className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-success" />{b}</li>

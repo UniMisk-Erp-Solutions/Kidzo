@@ -2,14 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type DocCategory =
-  | "birth_certificate"
-  | "vaccination"
-  | "ssn_id"
-  | "school"
-  | "medical"
-  | "passport"
-  | "other";
+/** The only types that can be uploaded. Government IDs (Aadhaar/PAN/passport/SSN) are deliberately not here. */
+export const ALLOWED_DOC_CATEGORIES = ["birth_certificate", "vaccination", "marksheet", "school", "achievement"] as const;
+export type AllowedDocCategory = (typeof ALLOWED_DOC_CATEGORIES)[number];
+
+/** Older uploads may still carry a retired type; they stay viewable/deletable but can't be added to. */
+export type DocCategory = AllowedDocCategory | "ssn_id" | "passport" | "medical" | "other";
+
+export const isAllowedCategory = (c: string): c is AllowedDocCategory =>
+  (ALLOWED_DOC_CATEGORIES as readonly string[]).includes(c);
 
 export type ChildDocument = {
   id: string;

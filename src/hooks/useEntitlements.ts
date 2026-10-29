@@ -10,7 +10,7 @@ export type FeatureKey =
   | "photo_book_orders"
   | "share_links"
   | "family_invites"
-  | "ai_suggestions";
+  | "document_limits";
 
 type FeatureRow = { key: string; value_int: number | null; value_bool: boolean | null; value_text: string | null };
 
@@ -63,5 +63,19 @@ export const useEntitlements = () => {
     return f.value_int; // null means unlimited
   };
 
-  return { planSlug, planName, features, can, limit, loading };
+  /**
+   * Max files for a document folder on this plan: a number (0 = locked) or null = unlimited.
+   * Stored as JSON in the `document_limits` feature, e.g. {"marksheet":20,"school":7}.
+   */
+  const documentLimit = (category: string): number | null => {
+    try {
+      const raw = features["document_limits"]?.value_text;
+      const n = raw ? JSON.parse(raw)?.[category] : null;
+      return typeof n === "number" ? n : null;
+    } catch {
+      return null;
+    }
+  };
+
+  return { planSlug, planName, features, can, limit, documentLimit, loading };
 };

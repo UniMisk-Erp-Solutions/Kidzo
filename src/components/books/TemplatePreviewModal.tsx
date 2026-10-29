@@ -1,16 +1,18 @@
-import { BookOpen, Sparkles } from "lucide-react";
+import { BookOpen, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { BookTemplate } from "@/hooks/useBookTemplates";
 
 interface Props {
   template: BookTemplate | null;
+  /** Premium template on a plan that can't use it — the CTA becomes "Upgrade". */
+  locked?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSelect: (t: BookTemplate) => void;
 }
 
-export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }: Props) => {
+export const TemplatePreviewModal = ({ template, locked = false, open, onOpenChange, onSelect }: Props) => {
   if (!template) return null;
   const c = template.color_scheme;
   const ink = c.ink ?? c.text ?? "#3E3E42";
@@ -122,7 +124,13 @@ export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }:
             Cancel
           </Button>
           <Button variant="warm" size="lg" onClick={() => onSelect(template)}>
-            Select this template
+            {locked ? (
+              <>
+                <Lock className="h-4 w-4" /> Upgrade to use
+              </>
+            ) : (
+              "Select this template"
+            )}
           </Button>
         </div>
       </DialogContent>

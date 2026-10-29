@@ -58,7 +58,7 @@ const MyBooks = () => {
       <main className="mx-auto max-w-2xl px-6 py-6 md:max-w-6xl md:py-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-[26px] font-bold leading-tight tracking-tight md:text-3xl">
+            <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight md:text-3xl">
               My memory books
             </h1>
             <p className="mt-1 text-[14px] text-muted-foreground">

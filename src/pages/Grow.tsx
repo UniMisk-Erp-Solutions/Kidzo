@@ -147,10 +147,10 @@ const Grow = () => {
     <div className="min-h-screen bg-background pb-28">
       <TopBar childName={child?.name ?? "Your child"} />
 
-      <main className="mx-auto max-w-4xl px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">
         <header className="flex items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Grow</h1>
+            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Grow</h1>
             <p className="mt-1 text-[14px] text-muted-foreground">
               {yearCount > 0
                 ? `${yearCount} achievement${yearCount === 1 ? "" : "s"} this year ✨`

@@ -4,6 +4,7 @@ import type { Memory } from "@/hooks/useMemories";
 import type { BookTemplate, BookTemplateColors } from "@/hooks/useBookTemplates";
 import { ElementsOverlay } from "./editor/EditorElements";
 import type { EditorElement } from "./editor/types";
+import { ScrapbookSpreadView } from "./ScrapbookSpreads";
 
 /** Fixed canvas size every book page is designed against. Used for both
  *  on-screen preview (scaled with CSS transform to fit any container)
@@ -22,12 +23,12 @@ export const BOOK_PAGE_H = 800;
  * plus template-flavored cover, intro, chapter and back pages.
  */
 
-export type ScrapbookFlavor = "timeline" | "first-year" | "birthday" | "holiday" | "everyday" | "mosaic" | "collage-zine" | "pocket-album";
+export type ScrapbookFlavor = "timeline" | "first-year" | "birthday" | "holiday" | "everyday" | "mosaic" | "collage-zine" | "pocket-album" | "road-trail" | "kraft" | "filmroll" | "newsprint";
 
 export type MemoryLayout = "collage" | "polaroid-stack" | "magazine" | "journal" | "pocket";
 
 /** Dense layouts that pack multiple memories on a single page. */
-export type MemorySpreadLayout = "grid-collage" | "polaroid-mosaic" | "magazine-mosaic";
+export type MemorySpreadLayout = "grid-collage" | "polaroid-mosaic" | "magazine-mosaic" | "road-trail" | "kraft-collage" | "film-strip" | "newsprint-collage";
 
 export type BookPage =
   | { kind: "cover"; title: string; subtitle?: string | null; childName: string; templateName: string; flavor: ScrapbookFlavor }
@@ -38,11 +39,15 @@ export type BookPage =
   | { kind: "back"; childName: string; flavor: ScrapbookFlavor };
 
 function flavorFromTemplate(t: BookTemplate): ScrapbookFlavor {
+  if (t.slug?.includes("kraft")) return "kraft";
+  if (t.slug?.includes("filmroll")) return "filmroll";
+  if (t.slug?.includes("newsprint")) return "newsprint";
   if (t.slug?.includes("first-year")) return "first-year";
   if (t.slug?.includes("birthday")) return "birthday";
   if (t.slug?.includes("holiday")) return "holiday";
   if (t.slug?.includes("collage-zine")) return "collage-zine";
   if (t.slug?.includes("pocket-album")) return "pocket-album";
+  if (t.slug?.includes("road-trail")) return "road-trail";
   if (t.slug?.includes("mosaic")) return "mosaic";
   if (t.slug?.includes("everyday")) return "everyday";
   return "timeline";
@@ -57,6 +62,10 @@ function densePackFor(flavor: ScrapbookFlavor): { perPage: number; layouts: Memo
     case "mosaic":        return { perPage: 4, layouts: ["grid-collage", "polaroid-mosaic", "magazine-mosaic"] };
     case "collage-zine":  return { perPage: 3, layouts: ["magazine-mosaic", "grid-collage"] };
     case "pocket-album":  return { perPage: 4, layouts: ["polaroid-mosaic"] };
+    case "road-trail":    return { perPage: 4, layouts: ["road-trail"] };
+    case "kraft":         return { perPage: 4, layouts: ["kraft-collage", "newsprint-collage"] };
+    case "filmroll":      return { perPage: 4, layouts: ["film-strip", "kraft-collage"] };
+    case "newsprint":     return { perPage: 4, layouts: ["newsprint-collage", "film-strip"] };
     default: return null;
   }
 }
@@ -284,7 +293,10 @@ const Sticker = ({
       style={{
         backgroundColor: bg,
         color: ink,
-        boxShadow: `inset 0 0 0 2px ${ring}, 0 2px 4px rgba(0,0,0,0.18)`,
+        // a real border (not an inset shadow): html2canvas paints inset shadows as a solid fill in the PDF
+        border: `2px solid ${ring}`,
+        boxShadow: "0 2px 4px rgba(0,0,0,0.18)",
+        lineHeight: 1.3,
         transform: `rotate(${rotate}deg)`,
       }}
     >
@@ -462,14 +474,17 @@ const BubbleTitle = ({
   className?: string;
 }) => (
   <span
-    className={`cutout-shadow inline-block px-4 py-1.5 font-handwritten text-[34px] font-bold leading-none md:text-[44px] ${className}`}
+    className={`cutout-shadow inline-block px-4 py-1.5 font-handwritten text-[34px] font-bold md:text-[44px] ${className}`}
     style={{
       backgroundColor: bg,
       color: ink,
       transform: `rotate(${rotate}deg)`,
       letterSpacing: "0.02em",
       borderRadius: "8px",
-      boxShadow: `inset 0 0 0 3px #fff, 0 4px 10px rgba(0,0,0,0.18)`,
+      // real border + roomy line box so the PDF capture keeps the text centred in the box
+      border: "3px solid #fff",
+      lineHeight: 1.25,
+      boxShadow: "0 4px 10px rgba(0,0,0,0.18)",
     }}
   >
     {text}
@@ -492,6 +507,10 @@ const COVER_TAGLINE: Record<ScrapbookFlavor, string> = {
   "mosaic": "Many memories, one mosaic",
   "collage-zine": "A zine of small wonders",
   "pocket-album": "Polaroids in every pocket",
+  "road-trail": "The road of our memories",
+  "kraft": "Pressed between the pages",
+  "filmroll": "Frame by frame, our story",
+  "newsprint": "Extra! Extra! Our big news",
 };
 
 /** Pick a paper texture class based on flavor — gives each template a personality. */
@@ -501,6 +520,7 @@ function paperTextureFor(flavor: ScrapbookFlavor): string {
     case "birthday": return "paper-grain";
     case "holiday": return "paper-gingham";
     case "everyday": return "paper-ruled";
+    case "kraft": return "paper-kraft";
     default: return "paper-grain";
   }
 }
@@ -1131,6 +1151,87 @@ export const BookPageView = ({ page, colors }: PageProps) => {
                     </div>
                   )}
                   <span className="sr-only">{fallbackBg}</span>
+                </div>
+              );
+            })}
+
+            {PageNum}
+          </div>
+        );
+      }
+
+      /* ─── Kraft / film-strip / newsprint collage spreads ─── */
+      if (page.layout === "kraft-collage" || page.layout === "film-strip" || page.layout === "newsprint-collage") {
+        return (
+          <ScrapbookSpreadView
+            kind={page.layout}
+            items={items}
+            colors={colors}
+            index={page.index}
+            total={page.total}
+          />
+        );
+      }
+
+      /* ─── Spread D: ROAD-TRAIL — winding road, photos alternate sides with map pins ─── */
+      if (page.layout === "road-trail") {
+        // Canvas is 600×800. Photos sit left/right of the road, each with a red pin + label.
+        const stops = [
+          { left: 372, top: 60, w: 200, h: 140, rot: 2, side: "right" as const },
+          { left: 28, top: 235, w: 200, h: 140, rot: -2, side: "left" as const },
+          { left: 372, top: 420, w: 200, h: 140, rot: 2, side: "right" as const },
+          { left: 28, top: 590, w: 200, h: 140, rot: -2, side: "left" as const },
+        ];
+        return (
+          <div
+            className={`paper-crinkle relative h-full w-full overflow-hidden ${tex}`}
+            style={{ backgroundColor: paper, color: ink }}
+          >
+            {/* the road */}
+            <svg viewBox="0 0 600 800" className="absolute inset-0 h-full w-full" aria-hidden>
+              <path
+                d="M300 -10 C 240 90, 240 180, 300 260 S 360 420, 300 520 S 240 680, 300 810"
+                fill="none" stroke="#3b3b3f" strokeWidth="56" strokeLinecap="round"
+              />
+              <path
+                d="M300 -10 C 240 90, 240 180, 300 260 S 360 420, 300 520 S 240 680, 300 810"
+                fill="none" stroke="#f4efe3" strokeWidth="3" strokeDasharray="16 14"
+              />
+            </svg>
+
+            <WashiTape color={colors.accent} className="-top-2 left-8" rotation={-8} width="8rem" />
+            <WashiTape color={colors.coral} className="-top-2 right-10" rotation={6} width="6rem" pattern="dots" />
+            <Doodle d={STAR} color={colors.gold} className="left-6 top-24" size={24} filled fillColor={colors.gold} />
+            <Doodle d={SPARKLE} color={mint} className="bottom-24 right-6" size={24} />
+
+            {items.slice(0, 4).map((m, i) => {
+              const s = stops[i];
+              const date = format(new Date(m.happened_at), "MMM d, yyyy");
+              const label = m.title.length > 22 ? `${m.title.slice(0, 22)}…` : m.title;
+              return (
+                <div key={m.id} className="absolute" style={{ left: s.left, top: s.top, width: s.w }}>
+                  <CutoutPhoto
+                    src={m.photo_url}
+                    rotate={s.rot}
+                    width={`${s.w}px`}
+                    height={`${s.h}px`}
+                    fallbackBg={i % 2 === 0 ? colors.accent : mint}
+                    fallbackInk={ink}
+                  />
+                  <div
+                    className={`mt-2 flex items-center gap-1.5 ${s.side === "right" ? "" : "justify-end"}`}
+                  >
+                    {s.side === "right" && <span className="text-[16px] leading-none" style={{ color: colors.coral }}>📍</span>}
+                    <div className={s.side === "right" ? "text-left" : "text-right"}>
+                      <div className="font-printed text-[12px] font-bold uppercase leading-tight tracking-wide" style={{ color: ink }}>
+                        {label}
+                      </div>
+                      <div className="font-marker text-[10px] uppercase tracking-widest" style={{ color: ink, opacity: 0.6 }}>
+                        {date}
+                      </div>
+                    </div>
+                    {s.side === "left" && <span className="text-[16px] leading-none" style={{ color: colors.coral }}>📍</span>}
+                  </div>
                 </div>
               );
             })}
