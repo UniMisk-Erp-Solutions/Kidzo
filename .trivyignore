@@ -1,0 +1,2 @@
+# Accepted, reviewed Trivy exceptions only. Every entry needs a justification comment above it and an admin's approval.
+# Trivy refuses to run when this file is missing, so it exists even while it is empty.

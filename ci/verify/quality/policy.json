@@ -1,0 +1,176 @@
+{
+  "project": "Kidzo",
+  "typescriptFrom": [
+    "."
+  ],
+  "sourceRoots": [
+    "src",
+    "supabase/functions"
+  ],
+  "extensions": [
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".mjs",
+    ".cjs"
+  ],
+  "exclude": [
+    "(^|/)public/",
+    "(^|/)android/",
+    "\\.min\\.js$",
+    "(^|/)generated/"
+  ],
+  "testPattern": [
+    "(^|/)(__tests__|test|tests|e2e)/",
+    "\\.(test|spec)\\.[cm]?[jt]sx?$"
+  ],
+  "consoleAllowed": [
+    "^supabase/functions/"
+  ],
+  "packages": [
+    "."
+  ],
+  "protectedFiles": [
+    "vercel.json",
+    "capacitor.config.ts",
+    "supabase/config.toml",
+    "tsconfig.json",
+    "tsconfig.app.json"
+  ],
+  "aliases": [
+    {
+      "prefix": "@/",
+      "to": "src/"
+    }
+  ],
+  "thresholds": {
+    "functionLines": {
+      "warn": 60,
+      "fail": 100
+    },
+    "cyclomatic": {
+      "warn": 10,
+      "fail": 15
+    },
+    "cognitive": {
+      "fail": 15
+    },
+    "nesting": {
+      "fail": 4
+    },
+    "params": {
+      "warn": 5
+    },
+    "fileLines": {
+      "warn": 400,
+      "fail": 700
+    },
+    "duplication": {
+      "window": 50,
+      "maxPercent": 3,
+      "tolerance": 0.25
+    }
+  },
+  "architecture": {
+    "rules": [
+      {
+        "id": "ARCH-201",
+        "title": "UI primitives (components/ui) are the bottom layer: they may use lib and hooks only, never pages, contexts, integrations or other components",
+        "from": "^src/components/ui/",
+        "to": "^src/(pages|contexts|integrations|components/(?!ui/))",
+        "suggestion": "pass what the primitive needs in as props"
+      },
+      {
+        "id": "ARCH-202",
+        "title": "a component must not import a page: pages sit above components",
+        "from": "^src/components/",
+        "to": "^src/pages/",
+        "suggestion": "move the shared piece down into components/ (or lib/) and import it from there in both places"
+      },
+      {
+        "id": "ARCH-203",
+        "title": "lib/ (shared helpers) must not import components, pages, contexts or hooks",
+        "from": "^src/lib/",
+        "to": "^src/(components|pages|contexts|hooks)/",
+        "suggestion": "pass data in as arguments; move UI-dependent helpers next to the component that uses them"
+      },
+      {
+        "id": "ARCH-204",
+        "title": "hooks must not import components or pages: data logic does not depend on the UI",
+        "from": "^src/hooks/",
+        "to": "^src/(components|pages)/",
+        "suggestion": "return data or callbacks and let the component render them"
+      },
+      {
+        "id": "ARCH-205",
+        "title": "contexts and the Supabase integration must not import components, pages or hooks",
+        "from": "^src/(contexts|integrations)/",
+        "to": "^src/(components|pages|hooks)/",
+        "suggestion": "contexts expose state; hooks and components read it, never the reverse"
+      },
+      {
+        "id": "ARCH-206",
+        "title": "components and pages must not import the Supabase client: data access goes through hooks (or a context)",
+        "from": "^src/(components|pages)/",
+        "to": "^src/integrations/supabase/client\\.ts$",
+        "suggestion": "add or reuse a use*.ts hook in src/hooks/ that wraps the query and call that"
+      },
+      {
+        "id": "ARCH-207",
+        "title": "the browser app must not import edge-function code: they are separate deployables (Vite/browser vs Deno)",
+        "from": "^src/",
+        "to": "^supabase/functions/",
+        "suggestion": "share a contract (request/response types, the database), not code"
+      },
+      {
+        "id": "ARCH-208",
+        "title": "an edge function must not import the browser app: it runs in Deno on the server, with different libraries and secrets",
+        "from": "^supabase/functions/",
+        "to": "^src/",
+        "suggestion": "duplicate the few types you need, or call the database"
+      }
+    ],
+    "modules": []
+  },
+  "database": {
+    "migrations": "supabase/migrations"
+  },
+  "forbiddenPatterns": [
+    {
+      "id": "KDZ-001",
+      "regex": "\\.from\\(\\s*['\"](user_subscriptions|book_orders|invoices|plans|plan_features|coupons|user_roles|admin_audit_log)['\"]\\s*\\)\\s*\\.\\s*(insert|update|upsert|delete)\\(",
+      "files": "^src/",
+      "message": "the browser writes a billing, plan, coupon, role or audit table directly: money and permissions are decided on the server (an edge function with the service key, or an admin-only RLS policy), never trusted from the client",
+      "suggestion": "call the matching edge function (razorpay-*, validate-coupon, admin-*) instead of writing the table from the app"
+    },
+    {
+      "id": "KDZ-002",
+      "regex": "service_role|SERVICE_ROLE|SUPABASE_SERVICE",
+      "files": "^src/",
+      "message": "the service-role key (or its name) appears in code that ships to the browser: it bypasses all row-level security",
+      "suggestion": "keep it in an edge function (Deno.env) only; the app uses the anon/publishable key"
+    },
+    {
+      "id": "KDZ-003",
+      "regex": "rzp_live_[A-Za-z0-9]+",
+      "files": ".*",
+      "message": "a live Razorpay key id is written in the code",
+      "suggestion": "read it from the environment (Deno.env in functions; never in the browser bundle)"
+    },
+    {
+      "id": "KDZ-004",
+      "regex": "RAZORPAY_(KEY_)?SECRET|razorpay_secret|WEBHOOK_SECRET",
+      "files": "^src/",
+      "message": "a payment secret name appears in browser code: payment secrets must stay in the edge functions",
+      "suggestion": "verify payments in razorpay-verify-payment / razorpay-webhook, never in the app"
+    },
+    {
+      "id": "KDZ-005",
+      "regex": "localStorage\\.(setItem|getItem)\\(\\s*['\"][^'\"]*(token|secret|password|api[_-]?key)[^'\"]*['\"]",
+      "files": "^src/",
+      "message": "a token, secret or password is stored in localStorage, readable by any script on the page (XSS)",
+      "suggestion": "let the Supabase client manage the session; never store credentials yourself"
+    }
+  ]
+}

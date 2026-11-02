@@ -1,0 +1,24 @@
+{
+  "_note": "Existing ESLint errors that may not grow. Edited only by an admin via run-lint.mjs --update-baseline, reviewed in a pull request.",
+  "generatedAt": "2026-11-02",
+  "errors": {
+    "src/components/ProtectedRoute.tsx|@typescript-eslint/no-explicit-any": 1,
+    "src/components/books/editor/EditorElements.tsx|no-case-declarations": 7,
+    "src/components/ui/command.tsx|@typescript-eslint/no-empty-object-type": 1,
+    "src/components/ui/textarea.tsx|@typescript-eslint/no-empty-object-type": 1,
+    "src/hooks/useEntitlements.ts|@typescript-eslint/no-explicit-any": 3,
+    "src/hooks/useUserRole.ts|@typescript-eslint/no-explicit-any": 1,
+    "src/lib/razorpay.ts|@typescript-eslint/no-explicit-any": 1,
+    "src/pages/Auth.tsx|@typescript-eslint/no-explicit-any": 1,
+    "src/pages/Billing.tsx|@typescript-eslint/no-explicit-any": 5,
+    "src/pages/Grow.tsx|@typescript-eslint/no-explicit-any": 1,
+    "src/pages/MockCheckout.tsx|@typescript-eslint/no-explicit-any": 7,
+    "src/pages/Records.tsx|@typescript-eslint/no-explicit-any": 1,
+    "src/pages/Settings.tsx|@typescript-eslint/no-explicit-any": 3,
+    "src/pages/admin/AdminPanel.tsx|@typescript-eslint/no-explicit-any": 36,
+    "src/pages/books/BookCheckout.tsx|@typescript-eslint/no-explicit-any": 2,
+    "supabase/functions/admin-sync-razorpay-plans/index.ts|@typescript-eslint/no-explicit-any": 1,
+    "supabase/functions/razorpay-create-subscription/index.ts|@typescript-eslint/no-explicit-any": 1,
+    "tailwind.config.ts|@typescript-eslint/no-require-imports": 1
+  }
+}
