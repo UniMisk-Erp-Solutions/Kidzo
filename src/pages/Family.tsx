@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLeaveSharedChild } from "@/hooks/useChildren";
 import { useInvites, useShares } from "@/hooks/useShares";
 import { useFeatureGuard, isPlanLockedError } from "@/hooks/useFeatureGuard";
+import { useInviteDelivery } from "@/hooks/useInviteDelivery";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const Family = () => {
   const { data: invites = [] } = useInvites(child?.id);
   const leaveShare = useLeaveSharedChild();
   const guard = useFeatureGuard();
+  const deliverInvite = useInviteDelivery();
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"viewer" | "editor">("viewer");
@@ -66,24 +68,8 @@ const Family = () => {
     }
     setEmail("");
     qc.invalidateQueries({ queryKey: ["invites"] });
-    const link = `${window.location.origin}/share/${token}`;
-    const copied = await navigator.clipboard.writeText(link).then(() => true, () => false);
-    // With an email address, the invite is also emailed to them.
-    const emailed = inviteEmail ? await emailInvite(created.id) : null;
+    await deliverInvite({ inviteId: created.id, token, email: inviteEmail, fresh: false });
     setCreating(false);
-    if (emailed === true) toast.success(`Invite emailed to ${inviteEmail}${copied ? " — link copied too" : ""}`);
-    else if (emailed === false) toast.warning(`Invite created, but the email couldn't be sent${copied ? " — the link is copied, share it yourself" : ""}`);
-    else toast.success(copied ? "Invite link copied to clipboard" : "Invite created");
-  };
-
-  /** Asks the server to email an invite to the address stored on it. Returns whether it was sent. */
-  const emailInvite = async (inviteId: string): Promise<boolean> => {
-    const { data, error } = await supabase.functions.invoke("send-family-invite", { body: { invite_id: inviteId } });
-    if (error || !data?.ok) {
-      console.error("send-family-invite failed:", error ?? data);
-      return false;
-    }
-    return true;
   };
 
   const copyLink = async (token: string) => {
@@ -134,13 +120,8 @@ const Family = () => {
       return;
     }
     qc.invalidateQueries({ queryKey: ["invites"] });
-    const link = `${window.location.origin}/share/${newToken}`;
-    const copied = await navigator.clipboard.writeText(link).then(() => true, () => false);
-    const emailed = invite.email ? await emailInvite(fresh.id) : null;
+    await deliverInvite({ inviteId: fresh.id, token: newToken, email: invite.email, fresh: true });
     setResendingId(null);
-    if (emailed === true) toast.success(`Fresh invite emailed to ${invite.email}`);
-    else if (emailed === false) toast.warning(`Fresh invite created, but the email couldn't be sent${copied ? " — the link is copied, share it yourself" : ""}`);
-    else toast.success(copied ? "Fresh link copied to clipboard" : "Fresh invite created");
   };
 
   const removeShare = async (id: string) => {

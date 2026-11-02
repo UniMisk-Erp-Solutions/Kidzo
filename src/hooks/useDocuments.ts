@@ -57,55 +57,59 @@ export type UploadDocumentResult =
   | { ok: false; reason: "locked" }
   | { ok: false; reason: "error"; message: string };
 
-/** Vault operations (upload / open / download / delete), so pages never talk to the database directly. */
-export const useDocumentActions = () => {
-  const upload = async ({ userId, childId, category, title, notes, file }: UploadDocumentInput): Promise<UploadDocumentResult> => {
-    const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
-    // Random name: the original file name (which often contains the child's name / ID number) is never stored.
-    const path = `${userId}/${childId}/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { contentType: file.type });
-    if (upErr) return { ok: false, reason: "upload" };
-    const { error } = await supabase.from("documents").insert({
-      user_id: userId,
-      child_id: childId,
-      category,
-      title: title.trim(),
-      file_path: path,
-      notes: notes.trim() || null,
-    });
-    if (error) {
-      await supabase.storage.from(DOCS_BUCKET).remove([path]); // don't leave an orphan file behind
-      return error.message.includes("plan_feature_locked")
-        ? { ok: false, reason: "locked" }
-        : { ok: false, reason: "error", message: error.message };
-    }
-    return { ok: true };
-  };
+const docExtension = (file: File) =>
+  (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  /** Fetches the file once through a short-lived signed link. Throws if it can't be opened. */
-  const fetchBlob = async (filePath: string): Promise<Blob> => {
-    const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(filePath, 60);
-    if (error || !data) throw error ?? new Error("no url");
-    const res = await fetch(data.signedUrl);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.blob();
-  };
-
-  /** A short-lived link that downloads the file, or null if it can't be made. */
-  const downloadUrl = async (filePath: string): Promise<string | null> => {
-    const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(filePath, 60, { download: true });
-    return error || !data ? null : data.signedUrl;
-  };
-
-  /** Removes the file and its record. Returns an error message, or null on success. */
-  const remove = async (doc: { id: string; file_path: string }): Promise<string | null> => {
-    await supabase.storage.from(DOCS_BUCKET).remove([doc.file_path]);
-    const { error } = await supabase.from("documents").delete().eq("id", doc.id);
-    return error ? error.message : null;
-  };
-
-  return { upload, fetchBlob, downloadUrl, remove };
+const uploadDocument = async ({ userId, childId, category, title, notes, file }: UploadDocumentInput): Promise<UploadDocumentResult> => {
+  // Random name: the original file name (which often contains the child's name / ID number) is never stored.
+  const path = `${userId}/${childId}/${crypto.randomUUID()}.${docExtension(file)}`;
+  const { error: upErr } = await supabase.storage.from(DOCS_BUCKET).upload(path, file, { contentType: file.type });
+  if (upErr) return { ok: false, reason: "upload" };
+  const { error } = await supabase.from("documents").insert({
+    user_id: userId,
+    child_id: childId,
+    category,
+    title: title.trim(),
+    file_path: path,
+    notes: notes.trim() || null,
+  });
+  if (!error) return { ok: true };
+  await supabase.storage.from(DOCS_BUCKET).remove([path]); // don't leave an orphan file behind
+  if (error.message.includes("plan_feature_locked")) return { ok: false, reason: "locked" };
+  return { ok: false, reason: "error", message: error.message };
 };
+
+/** Fetches the file once through a short-lived signed link. Throws if it can't be opened. */
+const fetchDocumentBlob = async (filePath: string): Promise<Blob> => {
+  const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(filePath, 60);
+  if (error || !data) throw error ?? new Error("no url");
+  const res = await fetch(data.signedUrl);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.blob();
+};
+
+/** A short-lived link that downloads the file, or null if it can't be made. */
+const documentDownloadUrl = async (filePath: string): Promise<string | null> => {
+  const { data, error } = await supabase.storage.from(DOCS_BUCKET).createSignedUrl(filePath, 60, { download: true });
+  return error || !data ? null : data.signedUrl;
+};
+
+/** Removes the file and its record. Returns an error message, or null on success. */
+const removeDocument = async (doc: { id: string; file_path: string }): Promise<string | null> => {
+  await supabase.storage.from(DOCS_BUCKET).remove([doc.file_path]);
+  const { error } = await supabase.from("documents").delete().eq("id", doc.id);
+  return error ? error.message : null;
+};
+
+const DOCUMENT_ACTIONS = {
+  upload: uploadDocument,
+  fetchBlob: fetchDocumentBlob,
+  downloadUrl: documentDownloadUrl,
+  remove: removeDocument,
+};
+
+/** Vault operations (upload / open / download / delete), so pages never talk to the database directly. */
+export const useDocumentActions = () => DOCUMENT_ACTIONS;
 
 export const useGuidanceProgress = (childId?: string) => {
   const { user } = useAuth();

@@ -38,6 +38,14 @@ export function nudgeHandwritingText(root: HTMLElement) {
   });
 }
 
+/** Google font families used by text the user styled in the editor. */
+function customFontFamilies(customPages?: CustomPagesMap): string[] {
+  const families = Object.values(customPages ?? {}).flatMap((raw) =>
+    readPageData(raw).elements.map((el) => (el.type === "text" ? el.fontFamily : undefined)),
+  );
+  return families.filter((f): f is string => !!f);
+}
+
 export type PdfProgressPhase =
   | "preparing"
   | "fonts"
@@ -110,10 +118,7 @@ export async function exportBookPdf(opts: {
     }
 
     // Library fonts chosen in the editor must be loaded before pages are captured.
-    const customFonts = Object.values(customPages ?? {}).flatMap((raw) =>
-      readPageData(raw).elements.flatMap((el) => (el.type === "text" && el.fontFamily ? [el.fontFamily] : [])),
-    );
-    if (customFonts.length > 0) await loadFonts(customFonts);
+    await loadFonts(customFontFamilies(customPages));
 
     root = createRoot(host);
 

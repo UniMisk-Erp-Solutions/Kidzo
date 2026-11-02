@@ -17,6 +17,7 @@ import { useChildren } from "@/hooks/useChildren";
 import { useMemories, type Memory } from "@/hooks/useMemories";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
+import { ViewToggle } from "@/components/childbook/ViewToggle";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { MemoryDetail } from "@/components/childbook/MemoryDetail";
 import { MemoryTimeline } from "@/components/childbook/MemoryTimeline";
@@ -39,6 +40,9 @@ const tagStyles: Record<string, string> = {
   Adventure: "bg-success/25 text-success",
   Family: "bg-warning/25 text-warning-foreground",
 };
+
+const momentsSubtitle = (count: number) =>
+  count > 0 ? `${count} ${count === 1 ? "memory" : "memories"} captured ✨` : "Capture the little moments that matter.";
 
 const Moments = () => {
   const navigate = useNavigate();
@@ -95,41 +99,10 @@ const Moments = () => {
         <PageHero
           icon={ImageIcon}
           title="Moments"
-          subtitle={
-            memories.length > 0
-              ? `${memories.length} ${memories.length === 1 ? "memory" : "memories"} captured ✨`
-              : "Capture the little moments that matter."
-          }
+          subtitle={momentsSubtitle(memories.length)}
           actions={
             <>
-              <div className="flex items-center rounded-full border border-white/60 bg-white/85 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setView("grid")}
-                  aria-pressed={view === "grid"}
-                  aria-label="Grid view"
-                  className={cn(
-                    "flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors",
-                    view === "grid" ? "bg-primary/25 text-primary-deep" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Grid</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setView("timeline")}
-                  aria-pressed={view === "timeline"}
-                  aria-label="Timeline view"
-                  className={cn(
-                    "flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors",
-                    view === "timeline" ? "bg-primary/25 text-primary-deep" : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <GitCommitVertical className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Timeline</span>
-                </button>
-              </div>
+              <ViewToggle view={view} onChange={setView} />
               {canEdit && (
                 <Button variant="outline" size="sm" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => navigate("/moments/new")}>
                   <Plus className="h-4 w-4" /> New

@@ -46,6 +46,9 @@ const TYPES: { id: AchievementType | "all"; label: string; icon: any; tone: stri
   { id: "certifications", label: "Certifications", icon: Award, tone: "bg-success/25 text-success" },
 ];
 
+const growSubtitle = (count: number) =>
+  count > 0 ? `${count} achievement${count === 1 ? "" : "s"} this year ✨` : "Celebrate every milestone, big or small.";
+
 const Grow = () => {
   const { user } = useAuth();
   const { data: child } = useActiveChild();
@@ -152,11 +155,7 @@ const Grow = () => {
         <PageHero
           icon={Award}
           title="Grow"
-          subtitle={
-            yearCount > 0
-              ? `${yearCount} achievement${yearCount === 1 ? "" : "s"} this year ✨`
-              : "Celebrate every milestone, big or small."
-          }
+          subtitle={growSubtitle(yearCount)}
           actions={
             canEdit && (
               <Button variant="outline" size="sm" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => setOpen(true)}>

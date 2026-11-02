@@ -66,15 +66,116 @@ const formatFeature = (f: Feature) => {
   return FEATURE_LABEL[f.key] ?? f.key;
 };
 
+type Cycle = "monthly" | "yearly";
+
+const featureRank = (k: string) => (FEATURE_ORDER.indexOf(k) === -1 ? 99 : FEATURE_ORDER.indexOf(k));
+
+/** The features to list on a plan card, in display order. */
+const visibleFeatures = (features: Feature[], planId: string) =>
+  features
+    .filter((f) => f.plan_id === planId)
+    // Numeric limits with no value are not shown (we never advertise "unlimited").
+    .filter((f) => !HIDDEN_FEATURES.includes(f.key))
+    .filter((f) => !(["max_children", "max_storage_mb"].includes(f.key) && f.value_int === null))
+    .sort((a, b) => featureRank(a.key) - featureRank(b.key));
+
+/** The signed-in user's plan (no subscription row = Free). Null while loading or signed out. */
+const currentPlanSlug = (signedIn: boolean, loading: boolean, planSlug: string | null) =>
+  signedIn && !loading ? planSlug ?? "free" : null;
+
+const FeatureItem = ({ f }: { f: Feature }) => {
+  const enabled = f.value_bool !== false || f.value_int !== null;
+  const Icon = enabled ? Check : X;
+  return (
+    <li className="flex items-start gap-2">
+      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${enabled ? "text-primary" : "text-muted-foreground/40"}`} />
+      <span className={enabled ? "text-foreground" : "text-muted-foreground/60 line-through"}>{formatFeature(f)}</span>
+    </li>
+  );
+};
+
+interface CtaProps {
+  plan: Plan;
+  isPopular: boolean;
+  isCurrent: boolean;
+  onChoose: () => void;
+}
+
+const PlanCta = ({ plan, isPopular, isCurrent, onChoose }: CtaProps) =>
+  isCurrent ? (
+    <Button variant="outline" size="lg" className="w-full cursor-default border-primary-deep text-primary-deep" disabled>
+      <Check className="h-4 w-4" /> Current plan
+    </Button>
+  ) : (
+    <Button variant={isPopular ? "warm" : "outline"} size="lg" className="w-full" onClick={onChoose}>
+      {plan.slug === "free" ? "Start free" : `Choose ${plan.name}`}
+    </Button>
+  );
+
+interface CardProps {
+  plan: Plan;
+  features: Feature[];
+  cycle: Cycle;
+  isCurrent: boolean;
+  onChoose: () => void;
+}
+
+const PlanCard = ({ plan, features, cycle, isCurrent, onChoose }: CardProps) => {
+  const isPopular = plan.slug === "family";
+  const price = cycle === "monthly" ? plan.price_monthly : plan.price_yearly;
+  const highlight = isPopular || isCurrent ? "border-primary shadow-lift" : "";
+  return (
+    <Card className={`relative flex flex-col p-6 ${highlight} ${isCurrent ? "ring-2 ring-primary/40" : ""}`}>
+      {isPopular && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+          Most popular
+        </span>
+      )}
+      <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+      <div className="mt-5 flex items-baseline gap-1">
+        <span className="text-4xl font-bold text-foreground">
+          {plan.currency === "INR" ? "₹" : "$"}
+          {price}
+        </span>
+        <span className="text-sm text-muted-foreground">/{cycle === "monthly" ? "mo" : "yr"}</span>
+      </div>
+      <ul className="mt-6 space-y-2.5 text-sm">
+        {features.map((f) => (
+          <FeatureItem key={f.key} f={f} />
+        ))}
+      </ul>
+      <div className="mt-6 flex-1" />
+      <PlanCta plan={plan} isPopular={isPopular} isCurrent={isCurrent} onChoose={onChoose} />
+    </Card>
+  );
+};
+
+const CycleToggle = ({ cycle, onChange }: { cycle: Cycle; onChange: (c: Cycle) => void }) => {
+  const tab = (value: Cycle, label: string) => (
+    <button
+      onClick={() => onChange(value)}
+      className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${cycle === value ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className="mt-6 inline-flex rounded-xl border border-border bg-card p-1">
+      {tab("monthly", "Monthly")}
+      {tab("yearly", "Yearly · save 2 months")}
+    </div>
+  );
+};
+
 const Pricing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
-  const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
-  // The signed-in user's plan (no subscription row = Free). Null while loading or signed out.
+  const [cycle, setCycle] = useState<Cycle>("monthly");
   const { planSlug, loading: entLoading } = useEntitlements();
-  const currentSlug = user && !entLoading ? planSlug ?? "free" : null;
+  const currentSlug = currentPlanSlug(!!user, entLoading, planSlug);
 
   useEffect(() => {
     (async () => {
@@ -104,88 +205,20 @@ const Pricing = () => {
         <div className="mb-10 text-center">
           <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">Pick the plan for your family</h1>
           <p className="mt-3 text-muted-foreground">Start free. Upgrade anytime to unlock more children and features.</p>
-          <div className="mt-6 inline-flex rounded-xl border border-border bg-card p-1">
-            <button
-              onClick={() => setCycle("monthly")}
-              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${cycle === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setCycle("yearly")}
-              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${cycle === "yearly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              Yearly · save 2 months
-            </button>
-          </div>
+          <CycleToggle cycle={cycle} onChange={setCycle} />
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {plans.map((plan) => {
-            const rank = (k: string) => (FEATURE_ORDER.indexOf(k) === -1 ? 99 : FEATURE_ORDER.indexOf(k));
-            const planFeats = features
-              .filter((f) => f.plan_id === plan.id)
-              // Numeric limits with no value are not shown (we never advertise "unlimited").
-              .filter((f) => !HIDDEN_FEATURES.includes(f.key))
-              .filter((f) => !(["max_children", "max_storage_mb"].includes(f.key) && f.value_int === null))
-              .sort((a, b) => rank(a.key) - rank(b.key));
-            const price = cycle === "monthly" ? plan.price_monthly : plan.price_yearly;
-            const isPopular = plan.slug === "family";
-            const isCurrent = currentSlug === plan.slug;
-            return (
-              <Card
-                key={plan.id}
-                className={`relative flex flex-col p-6 ${isPopular || isCurrent ? "border-primary shadow-lift" : ""} ${isCurrent ? "ring-2 ring-primary/40" : ""}`}
-              >
-                {isPopular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
-                    Most popular
-                  </span>
-                )}
-                <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-foreground">
-                    {plan.currency === "INR" ? "₹" : "$"}
-                    {price}
-                  </span>
-                  <span className="text-sm text-muted-foreground">/{cycle === "monthly" ? "mo" : "yr"}</span>
-                </div>
-                <ul className="mt-6 space-y-2.5 text-sm">
-                  {planFeats.map((f) => {
-                    const enabled = f.value_bool !== false || f.value_int !== null;
-                    return (
-                      <li key={f.key} className="flex items-start gap-2">
-                        {enabled ? (
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        ) : (
-                          <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/40" />
-                        )}
-                        <span className={enabled ? "text-foreground" : "text-muted-foreground/60 line-through"}>
-                          {formatFeature(f)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <div className="mt-6 flex-1" />
-                {isCurrent ? (
-                  <Button variant="outline" size="lg" className="w-full cursor-default border-primary-deep text-primary-deep" disabled>
-                    <Check className="h-4 w-4" /> Current plan
-                  </Button>
-                ) : (
-                  <Button
-                    variant={isPopular ? "warm" : "outline"}
-                    size="lg"
-                    className="w-full"
-                    onClick={() => handleChoose(plan)}
-                  >
-                    {plan.slug === "free" ? "Start free" : `Choose ${plan.name}`}
-                  </Button>
-                )}
-              </Card>
-            );
-          })}
+          {plans.map((plan) => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              features={visibleFeatures(features, plan.id)}
+              cycle={cycle}
+              isCurrent={currentSlug === plan.slug}
+              onChoose={() => handleChoose(plan)}
+            />
+          ))}
         </div>
 
         <div className="mt-10 text-center">

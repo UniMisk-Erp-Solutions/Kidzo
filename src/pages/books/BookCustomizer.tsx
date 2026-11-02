@@ -22,6 +22,9 @@ const PRESETS: { name: string; colors: BookTemplateColors }[] = [
 
 const COLOR_KEYS: (keyof BookTemplateColors)[] = ["primary", "accent", "gold", "coral", "text"];
 
+/** A colour the native picker accepts (#rrggbb); templates can leave a colour empty. */
+const safeHex = (v?: string) => (/^#[0-9a-f]{6}$/i.test(v ?? "") ? (v as string) : "#000000");
+
 const BookCustomizer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -254,7 +257,7 @@ const BookCustomizer = () => {
                     <label className="w-16 text-[12px] capitalize text-muted-foreground">{key}</label>
                     <input
                       type="color"
-                      value={/^#[0-9a-f]{6}$/i.test(colors[key] ?? "") ? colors[key] : "#000000"}
+                      value={safeHex(colors[key])}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
                       className="h-9 w-12 cursor-pointer rounded-lg border bg-transparent"
                     />

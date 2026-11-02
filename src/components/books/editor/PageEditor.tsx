@@ -22,9 +22,6 @@ import {
   EyeOff,
   ChevronUp,
   ChevronDown,
-  Type,
-  Tag,
-  ImagePlus,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -33,14 +30,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
-import { Switch } from "@/components/ui/switch";
 import { MemoryPhotoPicker } from "./MemoryPhotoPicker";
-import { applyTextOverrides, getPageTextFields, type TextOverrides } from "./pageText";
+import { applyTextOverrides, getPageTextFields, withFieldText, type TextOverrides } from "./pageText";
+import { PageTextSection } from "./PageTextSection";
+import { QuickAddSection } from "./QuickAddSection";
+import { inkOf, newLibraryImage, newTextBox } from "./elementFactories";
 import { ElementsPanel } from "./ElementsPanel";
 import { FontPicker } from "./FontPicker";
 import { Label } from "@/components/ui/label";
@@ -201,7 +199,7 @@ export function PageEditor({
   initialElements,
   initialHideNative,
   initialNativeEditable,
-  initialTextOverrides,
+  initialTextOverrides = {},
   colors,
   bookId,
   onSave,
@@ -211,10 +209,11 @@ export function PageEditor({
   /* state */
   const [elements, setElements] = useState<EditorElement[]>(initialElements);
   // The user's rewrites of the page's built-in text (title / story / names).
-  const [textOverrides, setTextOverrides] = useState<TextOverrides>(initialTextOverrides ?? {});
+  const [textOverrides, setTextOverrides] = useState<TextOverrides>(initialTextOverrides);
   const pageFields = useMemo(() => getPageTextFields(page), [page]);
   // The page as the user has edited it — what the original design is drawn from.
   const effectivePage = useMemo(() => applyTextOverrides(page, textOverrides), [page, textOverrides]);
+  const inkColor = inkOf(colors);
   // Keep the native design visible by default — every editable element is
   // layered on top in the same position, so the page LOOKS identical to the
   // original (preserving tapes, torn-paper edges, doodles, sticky-note shapes
@@ -775,55 +774,16 @@ export function PageEditor({
       align: "center",
     });
 
-  /** Rewrite one of the page's built-in texts (stored per page; the original memory is untouched). */
-  const setFieldText = (key: string, original: string, value: string) =>
-    setTextOverrides((prev) => {
-      const next = { ...prev };
-      if (value === original) delete next[key];
-      else next[key] = value;
-      return next;
-    });
-
   /** Move a built-in text into a free text box so it can be styled (font, size, colour, bold…). */
   const styleFieldAsTextBox = (key: string, current: string) => {
-    if (!current.trim()) return;
     setTextOverrides((prev) => ({ ...prev, [key]: "" })); // blank the original so it isn't shown twice
-    addElement({
-      id: uid(),
-      type: "text",
-      x: EDITOR_CANVAS_W / 2,
-      y: EDITOR_CANVAS_H / 2,
-      w: 320,
-      h: 90,
-      rotation: 0,
-      z: nextZ,
-      text: current,
-      font: "handwritten",
-      size: 28,
-      color: colors.ink ?? colors.text ?? "#3E3E42",
-      align: "center",
-    });
+    addElement(newTextBox(current, nextZ, inkColor));
   };
 
   /** Drops a library image (web sticker / scrapbook kit piece) on the page. Stays on the Elements tab so
    *  several can be added in a row; each lands a little offset from the last so they don't hide each other. */
   const addLibraryImage = (src: string, w: number, h: number) => {
-    const n = elements.length % 6;
-    const el: EditorElement = {
-      id: uid(),
-      type: "photo",
-      x: EDITOR_CANVAS_W / 2 + n * 18,
-      y: EDITOR_CANVAS_H / 2 + n * 18,
-      w,
-      h,
-      rotation: 0,
-      z: nextZ,
-      src,
-      frame: "plain",
-      borderWidth: 0,
-      borderColor: "transparent",
-      shadow: false,
-    };
+    const el = newLibraryImage(src, w, h, nextZ, elements.length % 6);
     commit((prev) => [...prev, el]);
     setSelectedIds([el.id]);
   };
@@ -1435,7 +1395,7 @@ export function PageEditor({
           {/* ── ELEMENTS TAB (Canva-style library: web stickers + scrapbook kit) ── */}
           <TabsContent value="elements" className="mt-3 min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-2">
-              <ElementsPanel onAdd={addLibraryImage} outlineColor={colors.ink ?? colors.text ?? "#3E3E42"} />
+              <ElementsPanel onAdd={addLibraryImage} outlineColor={inkColor} />
             </ScrollArea>
           </TabsContent>
 
@@ -1443,88 +1403,19 @@ export function PageEditor({
           <TabsContent value="add" className="mt-3 min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-2">
               <div className="space-y-4">
-                {/* Quick add — the two things people most want to do on a page */}
-                <section className="rounded-md border bg-muted/30 p-2">
-                  <div className="mb-2 text-xs font-bold uppercase tracking-wide">Add to this page</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button size="sm" variant="default" className="px-2" onClick={addText}>
-                      <Type className="h-3.5 w-3.5 shrink-0" /> Text
-                    </Button>
-                    <Button size="sm" variant="default" className="px-2" onClick={addBadge}>
-                      <Tag className="h-3.5 w-3.5 shrink-0" /> Badge
-                    </Button>
-                    <Button size="sm" variant="default" className="px-2" onClick={() => setPhotoPickerOpen(true)}>
-                      <ImagePlus className="h-3.5 w-3.5 shrink-0" /> Image
-                    </Button>
-                  </div>
-                  {/* Only shown for pages saved earlier with the original design hidden, so it can be brought back. */}
-                  {hideNative && (
-                    <div className="mt-2 flex items-center justify-between rounded-md bg-background/50 px-2 py-1.5">
-                      <span className="text-[11px] text-muted-foreground">Show original design behind</span>
-                      <Switch checked={!hideNative} onCheckedChange={(v) => setHideNative(!v)} />
-                    </div>
-                  )}
-                </section>
-
-                {/* The page's own words — rewrite them, or move one into a styled text box */}
-                {pageFields.length > 0 && (
-                  <section className="rounded-md border bg-muted/30 p-2">
-                    <div className="mb-2 text-xs font-bold uppercase tracking-wide">Page text</div>
-                    <p className="mb-2 text-[11px] text-muted-foreground">
-                      Change the words that are already on this page. Use “Style” to change the font, size and colour.
-                    </p>
-                    <div className="space-y-3">
-                      {pageFields.map((f, i) => {
-                        const value = f.key in textOverrides ? textOverrides[f.key] : f.original;
-                        const showGroup = f.group !== undefined && f.group !== pageFields[i - 1]?.group;
-                        // A blank story means "no note on the page"; there is nothing to edit until text is typed back.
-                        return (
-                          <div key={f.key}>
-                            {showGroup && (
-                              <div className="mb-1 truncate text-[11px] font-semibold text-foreground">{f.group}</div>
-                            )}
-                            <div className="mb-1 flex items-center justify-between">
-                              <Label className="text-[11px] text-muted-foreground">{f.label}</Label>
-                              <div className="flex items-center gap-2">
-                                {f.key in textOverrides && (
-                                  <button
-                                    type="button"
-                                    className="text-[11px] text-muted-foreground hover:text-foreground"
-                                    onClick={() => setFieldText(f.key, f.original, f.original)}
-                                  >
-                                    Reset
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  disabled={!value.trim()}
-                                  className="text-[11px] font-medium text-primary-deep hover:underline disabled:opacity-40"
-                                  onClick={() => styleFieldAsTextBox(f.key, value)}
-                                >
-                                  Style
-                                </button>
-                              </div>
-                            </div>
-                            {f.multiline ? (
-                              <Textarea
-                                value={value}
-                                rows={3}
-                                onChange={(e) => setFieldText(f.key, f.original, e.target.value)}
-                                className="text-[13px]"
-                              />
-                            ) : (
-                              <Input
-                                value={value}
-                                onChange={(e) => setFieldText(f.key, f.original, e.target.value)}
-                                className="h-9 text-[13px]"
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
+                <QuickAddSection
+                  onText={addText}
+                  onBadge={addBadge}
+                  onImage={() => setPhotoPickerOpen(true)}
+                  canShowOriginal={hideNative}
+                  onShowOriginal={() => setHideNative(false)}
+                />
+                <PageTextSection
+                  fields={pageFields}
+                  overrides={textOverrides}
+                  onChange={(key, original, value) => setTextOverrides((prev) => withFieldText(prev, key, original, value))}
+                  onStyle={styleFieldAsTextBox}
+                />
 
                 {/* Theme presets */}
                 <ThemePresetsSection

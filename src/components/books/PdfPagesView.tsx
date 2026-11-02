@@ -5,6 +5,19 @@ import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
+/** Draws one PDF page onto a new canvas. */
+async function renderPageToCanvas(page: pdfjs.PDFPageProxy, scale: number): Promise<HTMLCanvasElement> {
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  canvas.className = "mx-auto mb-3 w-full max-w-[560px] rounded-md border border-border bg-white shadow-sm";
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas is not available");
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  return canvas;
+}
+
 /**
  * Renders each page of a PDF blob to a canvas (no PDF viewer, so no toolbar, download or print
  * button) and lets the parent append content — e.g. a locked panel — right after the last page.
@@ -28,14 +41,7 @@ export const PdfPagesView = ({ blob, children }: { blob: Blob; children?: React.
         for (let i = 1; i <= doc.numPages; i++) {
           const page = await doc.getPage(i);
           if (cancelled) return;
-          const viewport = page.getViewport({ scale });
-          const canvas = document.createElement("canvas");
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          canvas.className = "mx-auto mb-3 w-full max-w-[560px] rounded-md border border-border bg-white shadow-sm";
-          const ctx = canvas.getContext("2d");
-          if (!ctx) throw new Error("Canvas is not available");
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          const canvas = await renderPageToCanvas(page, scale);
           if (cancelled) return;
           host.appendChild(canvas);
         }

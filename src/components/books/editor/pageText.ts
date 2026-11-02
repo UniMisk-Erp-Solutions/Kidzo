@@ -52,37 +52,44 @@ export function getPageTextFields(page: BookPage): PageTextField[] {
   }
 }
 
+/** The user's edit for a field, or the original when there is none. */
+const pick = (overrides: TextOverrides, key: string, original: string): string =>
+  Object.prototype.hasOwnProperty.call(overrides, key) ? overrides[key] : original;
+
+type WithText = { id: string; title: string; story: string | null };
+const withMemoryEdits = <T extends WithText>(m: T, o: TextOverrides): T => ({
+  ...m,
+  title: pick(o, `${m.id}:title`, m.title),
+  story: pick(o, `${m.id}:story`, m.story ?? ""),
+});
+
 /** Returns the page with the user's text edits applied (the input page is not modified). */
 export function applyTextOverrides(page: BookPage, overrides?: TextOverrides): BookPage {
   if (!overrides || Object.keys(overrides).length === 0) return page;
-  const has = (k: string) => Object.prototype.hasOwnProperty.call(overrides, k);
-  const mem = <T extends { id: string; title: string; story: string | null }>(m: T): T => ({
-    ...m,
-    title: has(`${m.id}:title`) ? overrides[`${m.id}:title`] : m.title,
-    story: has(`${m.id}:story`) ? overrides[`${m.id}:story`] : m.story,
-  });
+  const title = (v: string) => pick(overrides, "page:title", v);
+  const subtitle = (v: string) => pick(overrides, "page:subtitle", v);
+  const name = (v: string) => pick(overrides, "page:childName", v);
 
   switch (page.kind) {
     case "cover":
-      return {
-        ...page,
-        title: has("page:title") ? overrides["page:title"] : page.title,
-        subtitle: has("page:subtitle") ? overrides["page:subtitle"] : page.subtitle,
-        childName: has("page:childName") ? overrides["page:childName"] : page.childName,
-      };
+      return { ...page, title: title(page.title), subtitle: page.subtitle ? subtitle(page.subtitle) : page.subtitle, childName: name(page.childName) };
     case "intro":
-      return { ...page, title: has("page:title") ? overrides["page:title"] : page.title };
+      return { ...page, title: title(page.title) };
     case "chapter":
-      return {
-        ...page,
-        title: has("page:title") ? overrides["page:title"] : page.title,
-        subtitle: has("page:subtitle") ? overrides["page:subtitle"] : page.subtitle,
-      };
+      return { ...page, title: title(page.title), subtitle: subtitle(page.subtitle) };
     case "memory":
-      return { ...page, memory: mem(page.memory) };
+      return { ...page, memory: withMemoryEdits(page.memory, overrides) };
     case "memory-spread":
-      return { ...page, memories: page.memories.map(mem) };
+      return { ...page, memories: page.memories.map((m) => withMemoryEdits(m, overrides)) };
     case "back":
-      return { ...page, childName: has("page:childName") ? overrides["page:childName"] : page.childName };
+      return { ...page, childName: name(page.childName) };
   }
+}
+
+/** The overrides after setting one field; setting it back to the original removes the override. */
+export function withFieldText(overrides: TextOverrides, key: string, original: string, value: string): TextOverrides {
+  const next = { ...overrides };
+  if (value === original) delete next[key];
+  else next[key] = value;
+  return next;
 }

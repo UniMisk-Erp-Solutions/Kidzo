@@ -29,7 +29,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useUserBook, useUpdateUserBook } from "@/hooks/useUserBooks";
@@ -38,7 +37,7 @@ import { useMemories, type Memory } from "@/hooks/useMemories";
 import { useChildren } from "@/hooks/useChildren";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { MemoryCalendar } from "@/components/books/MemoryCalendar";
-import { SelectedMemoriesList } from "@/components/books/SelectedMemoriesList";
+import { MobileSelection, NextButton, SelectionPanel } from "@/components/books/SelectionPanel";
 import { smartPickMemories, balancedPickMemories } from "@/lib/smartPickMemories";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +65,6 @@ const MemorySelection = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [hasHydrated, setHasHydrated] = useState(false);
-  const [selectionOpen, setSelectionOpen] = useState(false);
 
   // Hydrate from book — and smart-pick on first entry if nothing is selected.
   useEffect(() => {
@@ -166,27 +164,6 @@ const MemorySelection = () => {
 
   const progressPct = Math.min(100, Math.round((selected.length / target) * 100));
   const allSelected = selected.length === memories.length && memories.length > 0;
-
-  const selectionPanel = (
-    <>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[14px] font-semibold">Your selection</h2>
-        {selected.length > 0 && (
-          <button onClick={clearAll} className="text-[12px] text-muted-foreground hover:text-destructive">
-            Clear all
-          </button>
-        )}
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        <SelectedMemoriesList
-          selectedIds={selected}
-          memoriesById={memoriesById}
-          onReorder={setSelected}
-          onRemove={(rid) => setSelected((prev) => prev.filter((x) => x !== rid))}
-        />
-      </div>
-    </>
-  );
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background pb-44 md:pb-44">
@@ -351,7 +328,9 @@ const MemorySelection = () => {
               />
             )}
             {/* Desktop only: on mobile the selection opens from the footer button instead. */}
-            <div className="hidden min-h-0 flex-1 flex-col lg:flex">{selectionPanel}</div>
+            <div className="hidden min-h-0 flex-1 flex-col lg:flex">
+              <SelectionPanel selected={selected} memoriesById={memoriesById} onChange={setSelected} />
+            </div>
           </div>
 
           {/* Right: memory browser */}
@@ -490,17 +469,7 @@ const MemorySelection = () => {
       {/* Sticky footer */}
       <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 md:px-6">
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-w-0 shrink gap-1.5 lg:hidden"
-            onClick={() => setSelectionOpen(true)}
-          >
-            <List className="h-4 w-4 shrink-0" />
-            <span className="truncate">
-              Selection <span className="font-bold">{selected.length}</span>/{target}
-            </span>
-          </Button>
+          <MobileSelection target={target} selected={selected} memoriesById={memoriesById} onChange={setSelected} />
           <div className="hidden text-[13px] text-muted-foreground lg:block">
             <span className="font-semibold text-foreground">{selected.length}</span> of {target} selected
           </div>
@@ -508,36 +477,15 @@ const MemorySelection = () => {
             <Button variant="outline" size="sm" className="md:h-10 md:px-4" onClick={() => navigate("/books")}>
               Back
             </Button>
-            <Button
-              size="sm"
-              className="md:h-10 md:px-4"
-              onClick={handleContinue}
-              variant={!entLoading && !canBuild ? "warm" : "default"}
+            <NextButton
+              pending={update.isPending}
+              needsUpgrade={!entLoading && !canBuild}
               disabled={selected.length === 0 || update.isPending || entLoading}
-            >
-              {update.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : !entLoading && !canBuild ? (
-                <>
-                  <Lock className="h-4 w-4" /> Upgrade to continue
-                </>
-              ) : (
-                <>
-                  Next <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
+              onClick={handleContinue}
+            />
           </div>
         </div>
       </div>
-
-      {/* Mobile: the selected memories live in a bottom sheet */}
-      <Sheet open={selectionOpen} onOpenChange={setSelectionOpen}>
-        <SheetContent side="bottom" className="flex max-h-[80vh] flex-col rounded-t-2xl px-4 pb-6 lg:hidden">
-          <SheetTitle className="sr-only">Your selection</SheetTitle>
-          <div className="flex min-h-0 flex-1 flex-col pt-4">{selectionPanel}</div>
-        </SheetContent>
-      </Sheet>
 
       <BottomNav />
     </div>

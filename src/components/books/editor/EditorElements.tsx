@@ -125,6 +125,11 @@ function fontFamilyFor(font: string) {
   }
 }
 
+/** A library font when one was picked, otherwise the book's built-in style. */
+function textFontFamily(t: { font: string; fontFamily?: string }) {
+  return t.fontFamily ? fontStack(t.fontFamily) : fontFamilyFor(t.font);
+}
+
 function tapeBackground(pattern: TapeElement["pattern"]) {
   if (pattern === "stripes")
     return "repeating-linear-gradient(45deg, transparent 0 6px, rgba(255,255,255,0.32) 6px 8px)";
@@ -161,7 +166,7 @@ export function renderElement(el: EditorElement) {
         <div
           style={{
             ...baseStyle,
-            fontFamily: t.fontFamily ? fontStack(t.fontFamily) : fontFamilyFor(t.font),
+            fontFamily: textFontFamily(t),
             fontSize: t.size,
             fontWeight: t.bold ? 700 : 400,
             fontStyle: t.italic ? "italic" : "normal",

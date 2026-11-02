@@ -39,7 +39,7 @@ const STEPS: Step[] = [
 export const FeatureTour = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const markSeen = useMarkFeatureTourSeen();
+  const markSeen = useMarkFeatureTourSeen(TOUR_KEY);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
@@ -62,10 +62,7 @@ export const FeatureTour = () => {
   }, [user, loading]);
 
   const finish = () => {
-    if (user) {
-      localStorage.setItem(`${TOUR_KEY}:${user.id}`, "1");
-      markSeen();
-    }
+    if (user) markSeen(user.id);
     setOpen(false);
     setStep(0);
   };

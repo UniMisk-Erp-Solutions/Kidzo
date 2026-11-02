@@ -21,6 +21,36 @@ import { isPageLocked, FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
 import { LockedBookPage } from "@/components/books/LockedBookPage";
 import { ScreenshotShield } from "@/components/books/ScreenshotShield";
 
+interface OrderButtonProps {
+  planLoading: boolean;
+  fullAccess: boolean;
+  onContinue: () => void;
+  onUpgrade: () => void;
+}
+
+/** Continue to order / Upgrade. While the plan is loading it stays neutral, so paying users never see "Upgrade". */
+const OrderButton = ({ planLoading, fullAccess, onContinue, onUpgrade }: OrderButtonProps) => {
+  if (planLoading) {
+    return (
+      <Button size="sm" disabled>
+        <Loader2 className="h-4 w-4 animate-spin" /> Continue to order
+      </Button>
+    );
+  }
+  if (!fullAccess) {
+    return (
+      <Button size="sm" variant="warm" onClick={onUpgrade}>
+        <Lock className="h-4 w-4" /> Upgrade to export
+      </Button>
+    );
+  }
+  return (
+    <Button size="sm" onClick={onContinue}>
+      Continue to order <ArrowRight className="h-4 w-4" />
+    </Button>
+  );
+};
+
 const BookPreview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -85,12 +115,7 @@ const BookPreview = () => {
     setPageIndex(0);
   }, [book?.id]);
 
-  const handleSavePageEdits = async (
-    els: EditorElement[],
-    hideNative: boolean,
-    nativeEditable: boolean,
-    textOverrides: TextOverrides,
-  ) => {
+  const handleSavePageEdits = async (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides) => {
     if (!book || !pages[pageIndex]) return;
     const key = pageKeyFor(pages[pageIndex] as { kind: string; memory?: { id: string }; number?: number; spreadKey?: string });
     const next: CustomPagesMap = { ...customPages, [key]: { elements: els, hideNative, nativeEditable, textOverrides } };
@@ -171,9 +196,6 @@ const BookPreview = () => {
   const currentOverlay = currentData.elements;
   const currentHideNative = currentData.hideNative;
   const currentNativeEditable = currentData.nativeEditable;
-  const currentTextOverrides = currentData.textOverrides ?? {};
-  // The page as shown to the reader, with the user's text edits applied.
-  const shownPage = current ? applyTextOverrides(current, currentTextOverrides) : current;
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-background">
@@ -232,7 +254,7 @@ const BookPreview = () => {
                   (currentLocked ? (
                     <LockedBookPage colors={colors} pageNumber={pageIndex + 1} />
                   ) : (
-                    <BookPageFrame page={shownPage ?? current} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
+                    <BookPageFrame page={applyTextOverrides(current, currentData.textOverrides)} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
                   ))}
               </ScreenshotShield>
             </div>
@@ -316,20 +338,12 @@ const BookPreview = () => {
                   <span className="hidden sm:inline">Edit page</span>
                 </Button>
               </div>
-              {entLoading ? (
-                // Plan not known yet: don't flash "Upgrade" at paying users.
-                <Button size="sm" disabled>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Continue to order
-                </Button>
-              ) : fullAccess ? (
-                <Button size="sm" onClick={() => navigate(`/books/${book.id}/checkout`)}>
-                  Continue to order <ArrowRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button size="sm" variant="warm" onClick={() => navigate("/pricing-plans")}>
-                  <Lock className="h-4 w-4" /> Upgrade to export
-                </Button>
-              )}
+              <OrderButton
+                planLoading={entLoading}
+                fullAccess={fullAccess}
+                onContinue={() => navigate(`/books/${book.id}/checkout`)}
+                onUpgrade={() => navigate("/pricing-plans")}
+              />
             </div>
           </div>
         </div>
@@ -349,7 +363,7 @@ const BookPreview = () => {
         initialElements={currentOverlay}
         initialHideNative={currentHideNative}
         initialNativeEditable={currentNativeEditable}
-        initialTextOverrides={currentTextOverrides}
+        initialTextOverrides={currentData.textOverrides}
         bookId={book?.id}
         saving={updateBook.isPending}
         onSave={handleSavePageEdits}
