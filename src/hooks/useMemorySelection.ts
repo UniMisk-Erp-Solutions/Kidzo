@@ -66,6 +66,5 @@ export function useHydrateSelection({ book, memories, target, childName, setSele
       }
     }
     setHasHydrated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book, memories, target, hasHydrated, childName]);
+  }, [book, memories, target, hasHydrated, childName, setSelected]);
 }
