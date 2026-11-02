@@ -14,7 +14,7 @@
  *  here equal the rendered visual centers there. */
 
 import { format } from "date-fns";
-import type { BookPage } from "../BookPages";
+import type { BookPage } from "../pageTypes";
 import type { BookTemplateColors } from "@/hooks/useBookTemplates";
 import {
   EDITOR_CANVAS_W,

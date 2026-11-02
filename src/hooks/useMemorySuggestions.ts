@@ -16,7 +16,7 @@ function bump(counts: Counts, raw: string | null) {
 function tally(memories: Memory[], field: "who_was_there" | "tags"): string[] {
   const counts: Counts = new Map();
   for (const m of memories) {
-    const values = (m as unknown as Record<string, string[] | null>)[field] ?? [];
+    const values = m[field] ?? [];
     values.forEach((raw) => bump(counts, raw));
   }
   return [...counts.values()].sort((a, b) => b.count - a.count).map((x) => x.label);

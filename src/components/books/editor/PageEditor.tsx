@@ -63,10 +63,14 @@ import {
   type PhotoElement,
   type EmojiElement,
 } from "./types";
-import { parseClipboardHtml, fetchImageAsDataUrl, loadImageDims } from "./clipboardParser";
 import { PhotoCropDialog } from "./PhotoCropDialog";
 import { ColorPicker } from "./ColorPicker";
-import type { BookPage } from "../BookPages";
+import type { DesignBox, DragSession, GuideLine } from "./dragSession";
+import { HISTORY_LIMIT } from "./dragHandlers";
+import { useEditorDrag } from "./useEditorDrag";
+import { useEditorShortcuts } from "./useEditorShortcuts";
+import { useEditorPaste } from "./useEditorPaste";
+import type { BookPage } from "../pageTypes";
 import type { BookTemplateColors } from "@/hooks/useBookTemplates";
 
 /* ─────────────────── constants ─────────────────── */
@@ -89,7 +93,6 @@ const EMOJI_LIBRARY: { group: string; items: string[] }[] = [
 const SNAP_TOLERANCE = 6; // design pixels at 100% zoom
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
-const HISTORY_LIMIT = 50;
 
 type Tool = "select" | "pan";
 
@@ -137,59 +140,6 @@ interface PageEditorProps {
   onCancel: () => void;
   saving?: boolean;
 }
-
-type GuideLine = { axis: "v" | "h"; pos: number };
-
-type DesignBox = { x: number; y: number; w: number; h: number };
-
-type DragSession =
-  | null
-  | {
-      kind: "move";
-      ids: string[];
-      startClient: { x: number; y: number };
-      startEls: Record<string, EditorElement>;
-      startBox: DesignBox;
-    }
-  | {
-      kind: "resize";
-      id: string;
-      startClient: { x: number; y: number };
-      startEl: EditorElement;
-    }
-  | {
-      kind: "rotate";
-      id: string;
-      startEl: EditorElement;
-    }
-  | {
-      kind: "group-resize";
-      ids: string[];
-      startEls: Record<string, EditorElement>;
-      startW: number;
-      startH: number;
-      anchor: { x: number; y: number };
-      startBox: DesignBox;
-    }
-  | {
-      kind: "group-rotate";
-      ids: string[];
-      startEls: Record<string, EditorElement>;
-      center: { x: number; y: number };
-      startAngle: number;
-    }
-  | {
-      kind: "marquee";
-      startClient: { x: number; y: number };
-      startDesign: { x: number; y: number };
-      additive: boolean;
-      previousIds: string[];
-    }
-  | {
-      kind: "pan";
-      startClient: { x: number; y: number };
-      startPan: { x: number; y: number };
-    };
 
 /* ─────────────────── component ─────────────────── */
 
@@ -580,169 +530,25 @@ export function PageEditor({
   };
 
   /* global pointer move/up */
-  useEffect(() => {
-    function onMove(e: PointerEvent) {
-      lastClientRef.current = { x: e.clientX, y: e.clientY };
-      const d = dragRef.current;
-      if (!d) return;
-
-      if (d.kind === "pan") {
-        const dx = e.clientX - d.startClient.x;
-        const dy = e.clientY - d.startClient.y;
-        setPan({ x: d.startPan.x + dx, y: d.startPan.y + dy });
-        return;
-      }
-
-      if (d.kind === "marquee") {
-        const cur = screenToDesign(e.clientX, e.clientY);
-        const x = Math.min(d.startDesign.x, cur.x);
-        const y = Math.min(d.startDesign.y, cur.y);
-        const w = Math.abs(cur.x - d.startDesign.x);
-        const h = Math.abs(cur.y - d.startDesign.y);
-        setMarquee({ x, y, w, h });
-        const hit = elements
-          .filter((el) => !el.locked && !el.hidden && el.x >= x && el.x <= x + w && el.y >= y && el.y <= y + h)
-          .map((el) => el.id);
-        const next = d.additive ? Array.from(new Set([...d.previousIds, ...hit])) : hit;
-        setSelectedIds(next);
-        return;
-      }
-
-      if (d.kind === "move") {
-        const dx = (e.clientX - d.startClient.x) / zoom;
-        const dy = (e.clientY - d.startClient.y) / zoom;
-        const snapped = applySnapToBox(d.startBox, dx, dy, e.ctrlKey || e.metaKey);
-        setGuides(snapped.guides);
-        setElements((cur) =>
-          cur.map((el) => {
-            const start = d.startEls[el.id];
-            if (!start) return el;
-            return {
-              ...el,
-              x: clamp(start.x + snapped.dx, 0, EDITOR_CANVAS_W),
-              y: clamp(start.y + snapped.dy, 0, EDITOR_CANVAS_H),
-            };
-          }),
-        );
-        return;
-      }
-
-      if (d.kind === "resize") {
-        const cur = screenToDesign(e.clientX, e.clientY);
-        const start = d.startEl;
-        const rad = (-start.rotation * Math.PI) / 180;
-        const lx = (cur.x - start.x) * Math.cos(rad) - (cur.y - start.y) * Math.sin(rad);
-        const ly = (cur.x - start.x) * Math.sin(rad) + (cur.y - start.y) * Math.cos(rad);
-        let newW = Math.max(20, Math.abs(lx) * 2);
-        let newH = Math.max(16, Math.abs(ly) * 2);
-        if (e.shiftKey) {
-          const ratio = start.w / Math.max(1, start.h);
-          if (newW / start.w >= newH / start.h) newH = Math.max(16, newW / ratio);
-          else newW = Math.max(20, newH * ratio);
-        }
-        setElements((cur2) => cur2.map((el) => (el.id === d.id ? { ...el, w: newW, h: newH } : el)));
-        return;
-      }
-
-      if (d.kind === "rotate") {
-        const cur = screenToDesign(e.clientX, e.clientY);
-        const start = d.startEl;
-        const angle = (Math.atan2(cur.y - start.y, cur.x - start.x) * 180) / Math.PI;
-        let rot = Math.round(angle + 90);
-        if (e.shiftKey) rot = Math.round(rot / 15) * 15;
-        setElements((cur2) => cur2.map((el) => (el.id === d.id ? { ...el, rotation: rot } : el)));
-        return;
-      }
-
-      if (d.kind === "group-resize") {
-        const cur = screenToDesign(e.clientX, e.clientY);
-        const newW = Math.max(20, cur.x - d.anchor.x);
-        const newH = Math.max(20, cur.y - d.anchor.y);
-        const sx = newW / d.startW;
-        const sy = newH / d.startH;
-        const s = Math.min(sx, sy);
-        setElements((cur2) =>
-          cur2.map((el) => {
-            const start = d.startEls[el.id];
-            if (!start) return el;
-            const offX = start.x - d.anchor.x;
-            const offY = start.y - d.anchor.y;
-            return {
-              ...el,
-              x: d.anchor.x + offX * (e.shiftKey ? s : sx),
-              y: d.anchor.y + offY * (e.shiftKey ? s : sy),
-              w: Math.max(10, start.w * (e.shiftKey ? s : sx)),
-              h: Math.max(10, start.h * (e.shiftKey ? s : sy)),
-            };
-          }),
-        );
-        return;
-      }
-
-      if (d.kind === "group-rotate") {
-        const cur = screenToDesign(e.clientX, e.clientY);
-        const angle = Math.atan2(cur.y - d.center.y, cur.x - d.center.x);
-        let delta = ((angle - d.startAngle) * 180) / Math.PI;
-        if (e.shiftKey) delta = Math.round(delta / 15) * 15;
-        const cos = Math.cos((delta * Math.PI) / 180);
-        const sin = Math.sin((delta * Math.PI) / 180);
-        setElements((cur2) =>
-          cur2.map((el) => {
-            const start = d.startEls[el.id];
-            if (!start) return el;
-            const offX = start.x - d.center.x;
-            const offY = start.y - d.center.y;
-            return {
-              ...el,
-              x: d.center.x + offX * cos - offY * sin,
-              y: d.center.y + offX * sin + offY * cos,
-              rotation: start.rotation + delta,
-            };
-          }),
-        );
-        return;
-      }
-    }
-
-    function onUp() {
-      const d = dragRef.current;
-      if (
-        d &&
-        (d.kind === "move" ||
-          d.kind === "resize" ||
-          d.kind === "rotate" ||
-          d.kind === "group-resize" ||
-          d.kind === "group-rotate")
-      ) {
-        // Push pre-drag state to history
-        setElements((cur) => {
-          let snapshot: EditorElement[];
-          if (d.kind === "move" || d.kind === "group-resize" || d.kind === "group-rotate") {
-            snapshot = cur.map((el) => d.startEls[el.id] ?? el);
-          } else {
-            snapshot = cur.map((el) => (el.id === d.id ? d.startEl : el));
-          }
-          historyRef.current.past.push(snapshot);
-          if (historyRef.current.past.length > HISTORY_LIMIT) historyRef.current.past.shift();
-          historyRef.current.future = [];
-          setHistoryTick((t) => t + 1);
-          return cur;
-        });
-      }
-      dragRef.current = null;
-      setMarquee(null);
-      setGuides([]);
-    }
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-  }, [zoom, elements, screenToDesign, snapEnabled, snapTargetsX, snapTargetsY]);
+  useEditorDrag({
+    ctx: {
+      zoom,
+      elements,
+      screenToDesign,
+      snapBox: applySnapToBox,
+      setPan,
+      setMarquee,
+      setSelectedIds,
+      setGuides,
+      setElements,
+      history: historyRef,
+      bumpHistory: () => setHistoryTick((t) => t + 1),
+    },
+    dragRef,
+    lastClientRef,
+    setMarquee,
+    setGuides,
+  });
 
   /* ─────────────────── element factories ─────────────────── */
 
@@ -911,161 +717,38 @@ export function PageEditor({
   }, [selectedEls]);
 
   /* ─────────────────── keyboard shortcuts ─────────────────── */
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
-
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
-        e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "y") {
-        e.preventDefault();
-        redo();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        duplicateSelected();
-        return;
-      }
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedIds.length > 0) {
-        e.preventDefault();
-        removeSelected();
-        return;
-      }
-      if (selectedIds.length > 0 && (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown")) {
-        e.preventDefault();
-        const step = e.shiftKey ? 10 : 1;
-        const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
-        const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-        commit((cur) =>
-          cur.map((el) =>
-            selectedIds.includes(el.id)
-              ? { ...el, x: clamp(el.x + dx, 0, EDITOR_CANVAS_W), y: clamp(el.y + dy, 0, EDITOR_CANVAS_H) }
-              : el,
-          ),
-        );
-        return;
-      }
-      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
-        e.preventDefault();
-        setShortcutsOpen((o) => !o);
-        return;
-      }
-      if (e.key === "Escape") {
-        setSelectedIds([]);
-      }
-      // Hold "\" to peek at the original design (release to return).
-      if (e.key === "\\" && !e.repeat) {
-        e.preventDefault();
-        setCompareMode(true);
-      }
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "\\") setCompareMode(false);
-    };
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("keyup", onKeyUp);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("keyup", onKeyUp);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds, undo, redo, commit]);
+  const nudgeSelected = (dx: number, dy: number) =>
+    commit((cur) =>
+      cur.map((el) =>
+        selectedIds.includes(el.id)
+          ? { ...el, x: clamp(el.x + dx, 0, EDITOR_CANVAS_W), y: clamp(el.y + dy, 0, EDITOR_CANVAS_H) }
+          : el,
+      ),
+    );
+  useEditorShortcuts({
+    hasSelection: selectedIds.length > 0,
+    undo,
+    redo,
+    duplicate: () => duplicateSelected(),
+    remove: removeSelected,
+    nudge: nudgeSelected,
+    toggleHelp: () => setShortcutsOpen((o) => !o),
+    clearSelection: () => setSelectedIds([]),
+    peek: setCompareMode,
+  });
 
   /* ─────────────────── smart paste (images + text from Canva, browsers, etc.) ─────────────────── */
-  useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
-      if (!e.clipboardData) return;
-
-      // 1. Direct image file in clipboard (e.g. screenshot, copied image)
-      for (const item of Array.from(e.clipboardData.items)) {
-        if (item.kind === "file" && item.type.startsWith("image/")) {
-          const file = item.getAsFile();
-          if (file) {
-            e.preventDefault();
-            const r = new FileReader();
-            r.onload = () => addPhotoFromDataUrl(String(r.result));
-            r.readAsDataURL(file);
-            return;
-          }
-        }
-      }
-
-      // 2. Smart paste: parse HTML clipboard (Canva, Google Docs, web pages)
-      const html = e.clipboardData.getData("text/html");
-      if (html && html.trim().length > 0) {
-        const parsed = parseClipboardHtml(html, {
-          z: nextZ,
-          defaultColor: colors.ink ?? colors.text ?? "#3E3E42",
-          centerX: EDITOR_CANVAS_W / 2,
-          centerY: EDITOR_CANVAS_H / 2,
-        });
-        if (parsed.length > 0) {
-          e.preventDefault();
-          // Load images asynchronously so we can size them properly
-          (async () => {
-            const finalEls: EditorElement[] = [];
-            for (const el of parsed) {
-              if (el.type === "photo") {
-                try {
-                  const dataUrl = await fetchImageAsDataUrl(el.src);
-                  const dims = await loadImageDims(dataUrl);
-                  const scale = Math.min(280 / dims.w, 280 / dims.h, 1);
-                  finalEls.push({
-                    ...el,
-                    src: dataUrl,
-                    w: Math.max(60, dims.w * scale),
-                    h: Math.max(60, dims.h * scale),
-                  });
-                } catch {
-                  // skip broken image
-                }
-              } else {
-                finalEls.push(el);
-              }
-            }
-            if (finalEls.length > 0) {
-              commit((prev) => [...prev, ...finalEls]);
-              setSelectedIds(finalEls.map((el) => el.id));
-              setActiveTab("props");
-            }
-          })();
-          return;
-        }
-      }
-
-      // 3. Plain text fallback — single text element
-      const text = e.clipboardData.getData("text/plain");
-      if (text && text.length > 0) {
-        e.preventDefault();
-        addElement({
-          id: uid(),
-          type: "text",
-          x: EDITOR_CANVAS_W / 2,
-          y: EDITOR_CANVAS_H / 2,
-          w: Math.min(480, Math.max(120, text.length * 12)),
-          h: 60,
-          rotation: 0,
-          z: nextZ,
-          text: text.slice(0, 500),
-          font: "handwritten",
-          size: 28,
-          color: colors.ink ?? colors.text ?? "#3E3E42",
-          align: "center",
-        });
-      }
-    };
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextZ, addPhotoFromDataUrl, colors.ink, colors.text]);
+  useEditorPaste({
+    nextZ,
+    ink: inkColor,
+    addPhoto: addPhotoFromDataUrl,
+    addElement,
+    addMany: (els) => {
+      commit((prev) => [...prev, ...els]);
+      setSelectedIds(els.map((el) => el.id));
+      setActiveTab("props");
+    },
+  });
 
   /* wheel zoom */
   const onWheel = (e: React.WheelEvent) => {

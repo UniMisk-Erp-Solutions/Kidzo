@@ -1,4 +1,4 @@
-import type { BookPage } from "../BookPages";
+import type { BookPage } from "../pageTypes";
 import {
   ARROW,
   BubbleTitle,

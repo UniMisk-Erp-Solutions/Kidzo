@@ -1,6 +1,6 @@
 /** Editor element model — elements are positioned on the 600×800 design canvas. */
 
-import { BOOK_PAGE_H, BOOK_PAGE_W } from "../BookPages";
+import { BOOK_PAGE_H, BOOK_PAGE_W } from "../pageTypes";
 
 export const EDITOR_CANVAS_W = BOOK_PAGE_W;
 export const EDITOR_CANVAS_H = BOOK_PAGE_H;

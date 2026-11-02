@@ -34,10 +34,15 @@ type BookOrder = {
   book_order_id: string;
 };
 
+/** What Razorpay hands back when the payment goes through. */
+type RazorpaySuccess = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
+/** What Razorpay hands back when the payment fails. */
+type RazorpayFailure = { error?: { description?: string } };
+
 type CheckoutCallbacks = {
-  onPaid: (resp: any) => Promise<void>;
+  onPaid: (resp: RazorpaySuccess) => Promise<void>;
   onDismiss: () => void;
-  onFailed: (r: any) => void;
+  onFailed: (r: RazorpayFailure) => void;
 };
 
 /** On a non-2xx the real reason is in the response body, not error.message. */
@@ -69,7 +74,7 @@ async function createBookOrder(input: PayInput): Promise<BookOrder | null> {
 }
 
 /** The signature is verified server-side after Razorpay reports success. */
-async function verifyPayment(resp: any, bookOrderId: string): Promise<boolean> {
+async function verifyPayment(resp: RazorpaySuccess, bookOrderId: string): Promise<boolean> {
   const { data: verify, error } = await supabase.functions.invoke("razorpay-verify-book-payment", {
     body: {
       razorpay_order_id: resp.razorpay_order_id,
@@ -104,7 +109,7 @@ export function useBookPayment() {
   const update = useUpdateUserBook();
   const [placing, setPlacing] = useState(false);
 
-  const onPaid = (input: PayInput, order: BookOrder) => async (resp: any) => {
+  const onPaid = (input: PayInput, order: BookOrder) => async (resp: RazorpaySuccess) => {
     if (!(await verifyPayment(resp, order.book_order_id))) {
       toast.error(
         "We couldn't confirm your payment yet. If money was deducted, your order will be confirmed automatically within a minute — or write to us and we'll sort it out.",

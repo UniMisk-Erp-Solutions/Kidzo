@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import type { Memory } from "@/hooks/useMemories";
+import { BOOK_PAGE_H, BOOK_PAGE_W, type BookPage, type MemoryLayout, type MemorySpreadLayout, type ScrapbookFlavor } from "./pageTypes";
 import type { BookTemplate, BookTemplateColors } from "@/hooks/useBookTemplates";
 import { ElementsOverlay } from "./editor/EditorElements";
 import type { EditorElement } from "./editor/types";
@@ -19,12 +20,6 @@ import {
 } from "./pages/memoryLayouts";
 import { GridCollageSpread, MagazineMosaicSpread, PolaroidMosaicSpread, RoadTrailSpread } from "./pages/spreadLayouts";
 
-/** Fixed canvas size every book page is designed against. Used for both
- *  on-screen preview (scaled with CSS transform to fit any container)
- *  and PDF export (rendered at this exact size into html2canvas). */
-export const BOOK_PAGE_W = 600;
-export const BOOK_PAGE_H = 800;
-
 /**
  * Scrapbook-style book pages — true collage energy.
  *
@@ -36,20 +31,8 @@ export const BOOK_PAGE_H = 800;
  * plus template-flavored cover, intro, chapter and back pages.
  */
 
-export type ScrapbookFlavor = "timeline" | "first-year" | "birthday" | "holiday" | "everyday" | "mosaic" | "collage-zine" | "pocket-album" | "road-trail" | "kraft" | "filmroll" | "newsprint";
-
-export type MemoryLayout = "collage" | "polaroid-stack" | "magazine" | "journal" | "pocket";
-
-/** Dense layouts that pack multiple memories on a single page. */
-export type MemorySpreadLayout = "grid-collage" | "polaroid-mosaic" | "magazine-mosaic" | "road-trail" | "kraft-collage" | "film-strip" | "newsprint-collage";
-
-export type BookPage =
-  | { kind: "cover"; title: string; subtitle?: string | null; childName: string; templateName: string; flavor: ScrapbookFlavor }
-  | { kind: "intro"; title: string; childName: string; dateRange: string; pageCount: number; flavor: ScrapbookFlavor }
-  | { kind: "chapter"; title: string; subtitle: string; number: number; flavor: ScrapbookFlavor }
-  | { kind: "memory"; memory: Memory; index: number; total: number; layout: MemoryLayout; flavor: ScrapbookFlavor }
-  | { kind: "memory-spread"; memories: Memory[]; index: number; total: number; layout: MemorySpreadLayout; flavor: ScrapbookFlavor; spreadKey: string }
-  | { kind: "back"; childName: string; flavor: ScrapbookFlavor };
+export { BOOK_PAGE_W, BOOK_PAGE_H };
+export type { ScrapbookFlavor, MemoryLayout, MemorySpreadLayout, BookPage };
 
 function flavorFromTemplate(t: BookTemplate): ScrapbookFlavor {
   if (t.slug?.includes("kraft")) return "kraft";

@@ -5,7 +5,7 @@
  *  `textOverrides` ({ fieldKey: text }) and applied to the page object just before it is rendered.
  *  An empty-string override blanks the field (e.g. a blank story removes the sticky note that holds it). */
 
-import type { BookPage } from "../BookPages";
+import type { BookPage } from "../pageTypes";
 
 export type TextOverrides = Record<string, string>;
 

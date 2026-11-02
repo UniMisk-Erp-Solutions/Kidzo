@@ -1,5 +1,5 @@
 import type { BookTemplateColors } from "@/hooks/useBookTemplates";
-import type { ScrapbookFlavor } from "../BookPages";
+import type { ScrapbookFlavor } from "../pageTypes";
 
 /** Decorative building blocks shared by every book page layout (washi tape, doodles, stickers, photo frames). */
 
