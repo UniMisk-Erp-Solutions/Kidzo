@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Download, Loader2, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2, Lock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
@@ -9,8 +9,6 @@ import { useBookTemplates, type BookTemplateColors } from "@/hooks/useBookTempla
 import { useMemories } from "@/hooks/useMemories";
 import { useChildren } from "@/hooks/useChildren";
 import { BookPageFrame, buildPages } from "@/components/books/BookPages";
-import { exportBookPdf, type PdfProgress } from "@/lib/exportBookPdf";
-import { PdfExportDialog } from "@/components/books/PdfExportDialog";
 import { PageEditorDialog } from "@/components/books/PageEditorDialog";
 import { pageKeyFor, readPageData, type CustomPagesMap, type EditorElement } from "@/components/books/editor/types";
 import { applyTextOverrides, type TextOverrides } from "@/components/books/editor/pageText";
@@ -67,11 +65,6 @@ const BookPreview = () => {
 
   const [pageIndex, setPageIndex] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [pdfState, setPdfState] = useState<{ open: boolean; progress: PdfProgress | null; error: string | null }>({
-    open: false,
-    progress: null,
-    error: null,
-  });
 
   const child = children?.find((c) => c.id === book?.child_id);
   const template = templates?.find((t) => t.id === book?.template_id);
@@ -142,42 +135,6 @@ const BookPreview = () => {
       }),
     [book?.book_size, book?.paper_quality, book?.binding_type, book?.quantity],
   );
-
-  const promptUpgrade = () =>
-    toast.error("Upgrade to export", {
-      description: "The free plan previews the first 2 pages. Family and Premium unlock the full book.",
-      action: { label: "See plans", onClick: () => navigate("/pricing-plans") },
-    });
-
-  const handleDownload = async () => {
-    if (!book || !template || !colors || !child) return;
-    if (!fullAccess) return promptUpgrade();
-    setPdfState({ open: true, progress: { phase: "preparing", current: 0, total: pages.length }, error: null });
-    try {
-      await exportBookPdf({
-        title: book.title,
-        subtitle: book.subtitle,
-        childName: child.name,
-        childDob: child.dob,
-        template,
-        colors,
-        memories: orderedMemories,
-        customPages,
-        withTextEdits: applyTextOverrides,
-        filename: `${child.name.replace(/\s+/g, "_")}_${template.slug}.pdf`,
-        onProgress: (p) => setPdfState((s) => ({ ...s, progress: p })),
-      });
-      setPdfState((s) => ({ ...s, progress: { phase: "done", current: pages.length, total: pages.length } }));
-      toast.success("PDF downloaded");
-      // auto-close after a brief moment so user sees "done"
-      setTimeout(() => setPdfState({ open: false, progress: null, error: null }), 1200);
-    } catch (e) {
-      console.error(e);
-      const msg = e instanceof Error ? e.message : "Could not generate PDF";
-      setPdfState((s) => ({ ...s, error: msg }));
-      toast.error("Could not generate PDF");
-    }
-  };
 
   if (isLoading || !book || !template || !colors || !child) {
     return (
@@ -330,10 +287,6 @@ const BookPreview = () => {
           <div className="border-t">
             <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 px-3 py-2.5 md:px-6">
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={handleDownload}>
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">Download PDF</span>
-                </Button>
                 <Button size="sm" variant="secondary" disabled={currentLocked} onClick={() => setEditorOpen(true)}>
                   <Pencil className="h-4 w-4" />
                   <span className="hidden sm:inline">Edit page</span>
@@ -349,13 +302,6 @@ const BookPreview = () => {
           </div>
         </div>
       </main>
-
-      <PdfExportDialog
-        open={pdfState.open}
-        progress={pdfState.progress}
-        error={pdfState.error}
-        onClose={() => setPdfState({ open: false, progress: null, error: null })}
-      />
 
       <PageEditorDialog
         open={editorOpen}
