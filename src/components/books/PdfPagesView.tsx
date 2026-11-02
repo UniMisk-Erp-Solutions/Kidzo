@@ -18,6 +18,19 @@ async function renderPageToCanvas(page: pdfjs.PDFPageProxy, scale: number): Prom
   return canvas;
 }
 
+/** Draws every page of the PDF into `host`, stopping quietly if `isCancelled()` turns true. */
+async function renderAllPages(host: HTMLElement, blob: Blob, isCancelled: () => boolean) {
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
+  const scale = Math.min(2, (window.devicePixelRatio || 1) * 1.25);
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    if (isCancelled()) return;
+    const canvas = await renderPageToCanvas(page, scale);
+    if (isCancelled()) return;
+    host.appendChild(canvas);
+  }
+}
+
 /**
  * Renders each page of a PDF blob to a canvas (no PDF viewer, so no toolbar, download or print
  * button) and lets the parent append content — e.g. a locked panel — right after the last page.
@@ -28,29 +41,19 @@ export const PdfPagesView = ({ blob, children }: { blob: Blob; children?: React.
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
     const host = hostRef.current;
     if (!host) return;
+    let cancelled = false;
     host.replaceChildren();
     setLoading(true);
     setError(false);
-    (async () => {
-      try {
-        const doc = await pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
-        const scale = Math.min(2, (window.devicePixelRatio || 1) * 1.25);
-        for (let i = 1; i <= doc.numPages; i++) {
-          const page = await doc.getPage(i);
-          if (cancelled) return;
-          const canvas = await renderPageToCanvas(page, scale);
-          if (cancelled) return;
-          host.appendChild(canvas);
-        }
-      } catch {
+    renderAllPages(host, blob, () => cancelled)
+      .catch(() => {
         if (!cancelled) setError(true);
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };

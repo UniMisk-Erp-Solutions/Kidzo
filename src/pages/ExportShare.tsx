@@ -17,7 +17,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useActiveChild } from "@/hooks/useActiveChild";
@@ -26,13 +25,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useScreenGuard } from "@/lib/screenGuard";
 import { FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
-import { ScreenshotShield } from "@/components/books/ScreenshotShield";
+import { ExportPreviewDialog } from "@/components/books/ExportPreviewDialog";
 import { ExportYearGroup } from "@/components/books/ExportYearGroup";
 import { ExportActionBar } from "@/components/books/ExportActionBar";
 import { useYearGroups } from "@/hooks/useYearGroups";
 import { shareOrEmail } from "@/lib/shareLink";
-import { PdfPagesView } from "@/components/books/PdfPagesView";
-import { LockedBookPage } from "@/components/books/LockedBookPage";
 import { supabase } from "@/integrations/supabase/client";
 import type { LayoutStyle } from "@/lib/exportShareBook";
 import { clearOpenRequest, startExport, useExportJob } from "@/lib/exportJobStore";
@@ -47,7 +44,9 @@ const LAYOUTS: { id: LayoutStyle; title: string; desc: string; swatches?: string
   { id: "timeline", title: "Timeline-first", desc: "Dark date rail down the left with story alongside." },
 ];
 
-const LOCKED_COLORS = { primary: "#fcfaf7", accent: "#a8c5ba", gold: "#e8c98a", coral: "#e9b4a0", mint: "#a8c5ba" };
+/** The finished PDF, only if it was built for this child. */
+const blobForChild = (job: { childId: string | null; blob: Blob | null }, childId?: string) =>
+  childId && job.childId === childId ? job.blob : null;
 
 const ExportShare = () => {
   const navigate = useNavigate();
@@ -67,7 +66,7 @@ const ExportShare = () => {
   const busy = job.busy || sharing;
   const [previewOpen, setPreviewOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const lastBlob = child && job.childId === child.id ? job.blob : null;
+  const lastBlob = blobForChild(job, child?.id);
   const lastFilename = job.filename;
   const previewUrl = previewOpen && lastBlob ? "open" : null;
   const onPageRef = useRef(true);
@@ -377,45 +376,18 @@ const ExportShare = () => {
         onShare={shareFromBar}
       />
 
-      <Dialog
+      <ExportPreviewDialog
         open={!!previewUrl}
-        onOpenChange={(o) => {
-          if (!o) setPreviewOpen(false);
-        }}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Preview — {lastFilename}</DialogTitle>
-          </DialogHeader>
-          {previewUrl && lastBlob && (
-            <div className="h-[70vh] overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
-              <ScreenshotShield>
-                <PdfPagesView blob={lastBlob}>
-                  {!entLoading && !canDownload && (
-                    <div className="mx-auto aspect-[3/4] w-full max-w-[560px] overflow-hidden rounded-md border border-border">
-                      <LockedBookPage colors={LOCKED_COLORS} pageNumber={FREE_PREVIEW_PAGES + 1} />
-                    </div>
-                  )}
-                </PdfPagesView>
-              </ScreenshotShield>
-            </div>
-          )}
-          <div className="flex justify-end gap-2">
-            {canDownload ? (
-              <Button variant="outline" onClick={downloadCurrent}>
-                <Download className="h-4 w-4" /> Download
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={goUpgrade}>
-                <Lock className="h-4 w-4" /> Upgrade to download
-              </Button>
-            )}
-            <Button variant="warm" onClick={createShareLink} disabled={busy}>
-              <Link2 className="h-4 w-4" /> Share link
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        filename={lastFilename}
+        blob={lastBlob}
+        canDownload={canDownload}
+        locked={!entLoading && !canDownload}
+        busy={busy}
+        onClose={() => setPreviewOpen(false)}
+        onDownload={downloadCurrent}
+        onUpgrade={goUpgrade}
+        onShare={createShareLink}
+      />
 
       <BottomNav />
     </div>

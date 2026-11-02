@@ -247,124 +247,131 @@ const SpreadFooter = ({ label, ink }: { label: string; ink: string }) => (
   </div>
 );
 
-export const ScrapbookSpreadView = ({
-  kind, items, colors, index, total,
-}: { kind: ScrapbookSpreadKind; items: Memory[]; colors: BookTemplateColors; index: number; total: number }) => {
-  const ink = colors.ink ?? colors.text ?? "#3E3E42";
-  const paper = colors.paper ?? colors.primary;
-  const mint = colors.mint ?? colors.accent;
+/** Everything a spread layout needs, worked out once by ScrapbookSpreadView. */
+type SpreadProps = {
+  items: Memory[];
+  colors: BookTemplateColors;
+  index: number;
+  footer: string;
+  ink: string;
+  paper: string;
+  tones: { bg: string; ink: string }[];
+  frame: { ink: string; paper: string; tapeColor: string };
+};
+
+/* ─── KRAFT: kraft paper + torn coloured panels + camera + gingham ─── */
+const KraftSpread = ({ items, colors, index, footer, ink, paper, tones, frame }: SpreadProps) => {
   const [a, b, c, d] = items;
-  const footer = `spread ${index} / ${total}`;
-  const tapeA = colors.accent;
-  const tapeB = colors.gold;
-  const tones = [
-    { bg: "#fff", ink: ink },
-    { bg: colors.coral, ink: "#fff" },
-    { bg: colors.gold, ink: ink },
-    { bg: ink, ink: "#fff" },
-    { bg: mint, ink: ink },
-  ];
-  const frame = { ink, paper, tapeColor: tapeA };
-
-  /* ─── KRAFT: kraft paper + torn coloured panels + camera + gingham ─── */
-  if (kind === "kraft-collage") {
-    const phrase = PHRASES[(index - 1) % PHRASES.length];
-    return (
-      <div className="relative h-full w-full overflow-hidden" style={{ color: ink }}>
-        <KraftBg base={paper} />
-        <TornPanel x={14} y={28} w={274} h={372} color={colors.coral} seed={index * 3 + 1} rot={-1} />
-        <TornPanel x={316} y={400} w={270} h={356} color={colors.coral} seed={index * 3 + 2} rot={1} />
-        {/* gingham strip */}
+  const phrase = PHRASES[(index - 1) % PHRASES.length];
+  return (
+    <div className="relative h-full w-full overflow-hidden" style={{ color: ink }}>
+      <KraftBg base={paper} />
+      <TornPanel x={14} y={28} w={274} h={372} color={colors.coral} seed={index * 3 + 1} rot={-1} />
+      <TornPanel x={316} y={400} w={270} h={356} color={colors.coral} seed={index * 3 + 2} rot={1} />
+      {/* gingham strip */}
+      <div
+        className="absolute"
+        style={{
+          left: 24, top: 688, width: 290, height: 74, transform: "rotate(-3deg)", backgroundColor: "#f7efe0",
+          backgroundImage: `repeating-linear-gradient(0deg, ${colors.coral}88 0 14px, transparent 14px 28px), repeating-linear-gradient(90deg, ${colors.coral}88 0 14px, transparent 14px 28px)`,
+          boxShadow: "0 2px 5px rgba(0,0,0,0.25)",
+        }}
+        aria-hidden
+      />
+      <Ransom text={phrase} x={34} y={48} size={25} rot={-3} tones={tones} seed={index} maxWidth={236} />
+      {a && (
         <div
-          className="absolute"
-          style={{
-            left: 24, top: 688, width: 290, height: 74, transform: "rotate(-3deg)", backgroundColor: "#f7efe0",
-            backgroundImage: `repeating-linear-gradient(0deg, ${colors.coral}88 0 14px, transparent 14px 28px), repeating-linear-gradient(90deg, ${colors.coral}88 0 14px, transparent 14px 28px)`,
-            boxShadow: "0 2px 5px rgba(0,0,0,0.25)",
-          }}
-          aria-hidden
-        />
-        <Ransom text={phrase} x={34} y={48} size={25} rot={-3} tones={tones} seed={index} maxWidth={236} />
-        {a && (
-          <div
-            className="absolute px-3 py-2.5 font-handwritten text-[19px] leading-snug"
-            style={{ left: 330, top: 262, width: 200, backgroundColor: "#fbf4e3", color: ink, transform: "rotate(3deg)", boxShadow: "0 3px 7px rgba(0,0,0,0.28)" }}
-          >
-            <Tape x={70} y={-16} rot={-4} w={64} color={tapeB} />
-            “{a.story ? clip(a.story, 64) : clip(a.title, 40)}”
-            <div className="mt-1 font-marker text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
-              {format(new Date(a.happened_at), "MMMM yyyy")}
-            </div>
+          className="absolute px-3 py-2.5 font-handwritten text-[19px] leading-snug"
+          style={{ left: 330, top: 262, width: 200, backgroundColor: "#fbf4e3", color: ink, transform: "rotate(3deg)", boxShadow: "0 3px 7px rgba(0,0,0,0.28)" }}
+        >
+          <Tape x={70} y={-16} rot={-4} w={64} color={colors.gold} />
+          “{a.story ? clip(a.story, 64) : clip(a.title, 40)}”
+          <div className="mt-1 font-marker text-[10px] uppercase tracking-widest" style={{ opacity: 0.6 }}>
+            {format(new Date(a.happened_at), "MMMM yyyy")}
           </div>
-        )}
-        <Frame m={a} x={46} y={146} w={206} h={196} rot={-5} tape tapeRot={-8} {...frame} />
-        <Camera m={b} x={322} y={46} w={254} ink={ink} paper={paper} />
-        <Frame m={c} x={38} y={440} w={246} h={190} rot={3} tape tapeRot={5} {...frame} />
-        <Frame m={d} x={342} y={436} w={226} h={236} rot={-3} tape tapeRot={-5} {...frame} />
-        <Star x={298} y={236} size={26} color={colors.gold} rot={-10} />
-        <Star x={560} y={372} size={20} color={colors.coral} rot={14} />
-        <Star x={296} y={680} size={20} color={colors.gold} />
-        <SpreadFooter label={footer} ink={ink} />
-      </div>
-    );
-  }
+        </div>
+      )}
+      <Frame m={a} x={46} y={146} w={206} h={196} rot={-5} tape tapeRot={-8} {...frame} />
+      <Camera m={b} x={322} y={46} w={254} ink={ink} paper={paper} />
+      <Frame m={c} x={38} y={440} w={246} h={190} rot={3} tape tapeRot={5} {...frame} />
+      <Frame m={d} x={342} y={436} w={226} h={236} rot={-3} tape tapeRot={-5} {...frame} />
+      <Star x={298} y={236} size={26} color={colors.gold} rot={-10} />
+      <Star x={560} y={372} size={20} color={colors.coral} rot={14} />
+      <Star x={296} y={680} size={20} color={colors.gold} />
+      <SpreadFooter label={footer} ink={ink} />
+    </div>
+  );
+};
 
-  /* ─── FILM STRIP: big hero photo + film roll across the page ─── */
-  if (kind === "film-strip") {
-    const filmW = 640;
-    const frameW = 184;
-    const holes = Array.from({ length: 27 }, (_, i) => i);
-    const stripFrames = [b, c, d];
-    return (
-      <div className="relative h-full w-full overflow-hidden" style={{ color: ink }}>
-        <NewsprintBg base={paper} strength={0.17} />
-        {/* marker scribble */}
-        <svg className="absolute" style={{ left: 300, top: 8 }} width="290" height="40" viewBox="0 0 290 40" aria-hidden>
-          <path d="M4 26 C 50 6, 90 40, 140 18 S 230 4, 286 22" fill="none" stroke={colors.gold} strokeWidth="7" strokeLinecap="round" opacity="0.9" />
-        </svg>
-        <Frame m={a} x={30} y={40} w={540} h={322} rot={-1.2} border={10} tape tapeRot={-5} label={false} {...frame} />
-        {a && (
-          <div className="absolute" style={{ left: 54, top: 346, transform: "rotate(-1.5deg)" }}>
-            <div className="inline-block bg-white/90 px-3 py-1 font-handwritten text-[22px] font-bold" style={{ color: ink, boxShadow: "0 2px 4px rgba(0,0,0,0.25)" }}>
-              {clip(a.title, 30)} · {format(new Date(a.happened_at), "MMM d")}
-            </div>
+/** One photo frame on the film roll. */
+const FilmFrame = ({ m, left, frameW, paper, ink }: { m?: Memory; left: number; frameW: number; paper: string; ink: string }) => {
+  const photo = m ? photoOf(m) : null;
+  return (
+    <div
+      className="absolute overflow-hidden"
+      style={{ left, top: 28, width: frameW, height: 126, border: "2px solid #34343a", backgroundColor: "#2a2a2e" }}
+    >
+      {photo && <img src={photo} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />}
+      {m && !photo && (
+        <div className="flex h-full w-full items-center justify-center font-printed text-[11px] uppercase" style={{ backgroundColor: paper, color: ink }}>photo</div>
+      )}
+    </div>
+  );
+};
+
+/** The black film roll with sprocket holes and up to three frames. */
+const FilmRoll = ({ frames, paper, ink }: { frames: (Memory | undefined)[]; paper: string; ink: string }) => {
+  const holes = Array.from({ length: 27 }, (_, i) => i);
+  const frameW = 184;
+  const hole = (key: string, i: number, pos: { top: number } | { bottom: number }) => (
+    <span key={key} className="absolute rounded-[2px]" style={{ left: 8 + i * 23.5, ...pos, width: 13, height: 9, backgroundColor: "#f1ece0" }} />
+  );
+  return (
+    <div className="absolute" style={{ left: -20, top: 428, width: 640, height: 182, transform: "rotate(-3deg)", backgroundColor: "#16161a", boxShadow: "0 6px 10px rgba(0,0,0,0.4)" }}>
+      {holes.map((i) => hole(`t${i}`, i, { top: 8 }))}
+      {holes.map((i) => hole(`b${i}`, i, { bottom: 8 }))}
+      {frames.map((m, i) => (
+        <FilmFrame key={i} m={m} left={34 + i * (frameW + 14)} frameW={frameW} paper={paper} ink={ink} />
+      ))}
+    </div>
+  );
+};
+
+/* ─── FILM STRIP: big hero photo + film roll across the page ─── */
+const FilmSpread = ({ items, colors, index, footer, ink, paper, tones, frame }: SpreadProps) => {
+  const [a, b, c, d] = items;
+  const stripFrames = [b, c, d];
+  return (
+    <div className="relative h-full w-full overflow-hidden" style={{ color: ink }}>
+      <NewsprintBg base={paper} strength={0.17} />
+      {/* marker scribble */}
+      <svg className="absolute" style={{ left: 300, top: 8 }} width="290" height="40" viewBox="0 0 290 40" aria-hidden>
+        <path d="M4 26 C 50 6, 90 40, 140 18 S 230 4, 286 22" fill="none" stroke={colors.gold} strokeWidth="7" strokeLinecap="round" opacity="0.9" />
+      </svg>
+      <Frame m={a} x={30} y={40} w={540} h={322} rot={-1.2} border={10} tape tapeRot={-5} label={false} {...frame} />
+      {a && (
+        <div className="absolute" style={{ left: 54, top: 346, transform: "rotate(-1.5deg)" }}>
+          <div className="inline-block bg-white/90 px-3 py-1 font-handwritten text-[22px] font-bold" style={{ color: ink, boxShadow: "0 2px 4px rgba(0,0,0,0.25)" }}>
+            {clip(a.title, 30)} · {format(new Date(a.happened_at), "MMM d")}
           </div>
-        )}
-        {/* film roll */}
-        <div className="absolute" style={{ left: -20, top: 428, width: filmW, height: 182, transform: "rotate(-3deg)", backgroundColor: "#16161a", boxShadow: "0 6px 10px rgba(0,0,0,0.4)" }}>
-          {holes.map((i) => (
-            <span key={`t${i}`} className="absolute rounded-[2px]" style={{ left: 8 + i * 23.5, top: 8, width: 13, height: 9, backgroundColor: "#f1ece0" }} />
-          ))}
-          {holes.map((i) => (
-            <span key={`b${i}`} className="absolute rounded-[2px]" style={{ left: 8 + i * 23.5, bottom: 8, width: 13, height: 9, backgroundColor: "#f1ece0" }} />
-          ))}
-          {stripFrames.map((m, i) => (
-            <div
-              key={i}
-              className="absolute overflow-hidden"
-              style={{ left: 34 + i * (frameW + 14), top: 28, width: frameW, height: 126, border: "2px solid #34343a", backgroundColor: "#2a2a2e" }}
-            >
-              {m && photoOf(m) ? (
-                <img src={photoOf(m)!} alt="" crossOrigin="anonymous" className="h-full w-full object-cover" />
-              ) : m ? (
-                <div className="flex h-full w-full items-center justify-center font-printed text-[11px] uppercase" style={{ backgroundColor: paper, color: ink }}>photo</div>
-              ) : null}
-            </div>
-          ))}
         </div>
-        <div className="absolute left-8 right-8 text-center font-handwritten text-[19px]" style={{ top: 628, color: ink }}>
-          {stripFrames.filter(Boolean).map((m) => clip((m as Memory).title, 16)).join("  ·  ")}
-        </div>
-        <Ransom text={(a ? clip(a.title, 14) : "memories").toUpperCase()} x={34} y={672} size={30} rot={-2} tones={tones} seed={index + 4} />
-        <Star x={500} y={676} size={28} color={colors.gold} rot={10} />
-        <Star x={540} y={718} size={18} color={colors.coral} rot={-12} />
-        <Tape x={470} y={30} rot={8} w={96} color={tapeB} />
-        <SpreadFooter label={footer} ink={ink} />
+      )}
+      <FilmRoll frames={stripFrames} paper={paper} ink={ink} />
+      <div className="absolute left-8 right-8 text-center font-handwritten text-[19px]" style={{ top: 628, color: ink }}>
+        {stripFrames.filter(Boolean).map((m) => clip((m as Memory).title, 16)).join("  ·  ")}
       </div>
-    );
-  }
+      <Ransom text={(a ? clip(a.title, 14) : "memories").toUpperCase()} x={34} y={672} size={30} rot={-2} tones={tones} seed={index + 4} />
+      <Star x={500} y={676} size={28} color={colors.gold} rot={10} />
+      <Star x={540} y={718} size={18} color={colors.coral} rot={-12} />
+      <Tape x={470} y={30} rot={8} w={96} color={colors.gold} />
+      <SpreadFooter label={footer} ink={ink} />
+    </div>
+  );
+};
 
-  /* ─── NEWSPRINT: tilted taped photos over newsprint, ransom title ─── */
+/* ─── NEWSPRINT: tilted taped photos over newsprint, ransom title ─── */
+const NewsprintSpread = ({ items, colors, index, footer, ink, paper, tones, frame }: SpreadProps) => {
+  const [a, b, c, d] = items;
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ color: ink }}>
       <NewsprintBg base={paper} strength={0.22} />
@@ -382,8 +389,42 @@ export const ScrapbookSpreadView = ({
       <Star x={24} y={20} size={24} color={colors.gold} rot={-8} />
       <Star x={540} y={26} size={20} color={colors.coral} rot={10} />
       <Star x={548} y={640} size={26} color={colors.gold} rot={14} />
-      <Tape x={236} y={36} rot={-10} w={100} color={tapeB} />
+      <Tape x={236} y={36} rot={-10} w={100} color={colors.gold} />
       <SpreadFooter label={footer} ink={ink} />
     </div>
+  );
+};
+
+const SPREAD_LAYOUTS: Record<ScrapbookSpreadKind, (p: SpreadProps) => JSX.Element> = {
+  "kraft-collage": KraftSpread,
+  "film-strip": FilmSpread,
+  "newsprint-collage": NewsprintSpread,
+};
+
+export const ScrapbookSpreadView = ({
+  kind, items, colors, index, total,
+}: { kind: ScrapbookSpreadKind; items: Memory[]; colors: BookTemplateColors; index: number; total: number }) => {
+  const ink = colors.ink ?? colors.text ?? "#3E3E42";
+  const paper = colors.paper ?? colors.primary;
+  const mint = colors.mint ?? colors.accent;
+  const tones = [
+    { bg: "#fff", ink: ink },
+    { bg: colors.coral, ink: "#fff" },
+    { bg: colors.gold, ink: ink },
+    { bg: ink, ink: "#fff" },
+    { bg: mint, ink: ink },
+  ];
+  const Layout = SPREAD_LAYOUTS[kind] ?? NewsprintSpread;
+  return (
+    <Layout
+      items={items}
+      colors={colors}
+      index={index}
+      footer={`spread ${index} / ${total}`}
+      ink={ink}
+      paper={paper}
+      tones={tones}
+      frame={{ ink, paper, tapeColor: colors.accent }}
+    />
   );
 };

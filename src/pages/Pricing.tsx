@@ -42,27 +42,30 @@ const HIDDEN_FEATURES = ["ai_suggestions"];
 
 const formatStorage = (mb: number) => (mb >= 1024 ? `${+(mb / 1024).toFixed(1)} GB` : `${mb} MB`);
 
+/** Document folder limits stored as JSON, e.g. {"marksheet":20,"school":7}; unreadable text means unlimited. */
+const parseDocumentLimits = (text?: string | null): Record<string, number | null> => {
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    return {};
+  }
+};
+
+const describeDocumentLimits = (text?: string | null) => {
+  const limits = parseDocumentLimits(text);
+  if (!Object.values(limits).some((n) => typeof n === "number")) {
+    return "Unlimited documents in every folder, incl. achievement certificates";
+  }
+  const m = limits.marksheet ?? 0;
+  const s = limits.school ?? 0;
+  if (m > 0 || s > 0) return `Document folders — up to ${m} marksheets & ${s} school certificates`;
+  return "Birth certificate vault (1 document)";
+};
+
 const formatFeature = (f: Feature) => {
-  if (f.key === "max_children") {
-    return `${f.value_int} child${f.value_int === 1 ? "" : "ren"}`;
-  }
-  if (f.key === "max_storage_mb") {
-    return `${formatStorage(f.value_int ?? 0)} storage`;
-  }
-  if (f.key === "document_limits") {
-    let limits: Record<string, number | null> = {};
-    try {
-      limits = f.value_text ? JSON.parse(f.value_text) : {};
-    } catch {
-      /* treat as unlimited */
-    }
-    const entries = Object.entries(limits).filter(([, n]) => typeof n === "number");
-    if (entries.length === 0) return "Unlimited documents in every folder, incl. achievement certificates";
-    const m = limits.marksheet ?? 0;
-    const s = limits.school ?? 0;
-    if (m > 0 || s > 0) return `Document folders — up to ${m} marksheets & ${s} school certificates`;
-    return "Birth certificate vault (1 document)";
-  }
+  if (f.key === "max_children") return `${f.value_int} child${f.value_int === 1 ? "" : "ren"}`;
+  if (f.key === "max_storage_mb") return `${formatStorage(f.value_int ?? 0)} storage`;
+  if (f.key === "document_limits") return describeDocumentLimits(f.value_text);
   return FEATURE_LABEL[f.key] ?? f.key;
 };
 

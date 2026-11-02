@@ -12,17 +12,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { AvatarCropDialog } from "./AvatarCropDialog";
+import { RemovePhotoDialog } from "./RemovePhotoDialog";
 
 interface AgeHeroProps {
   childId: string;
@@ -228,23 +219,13 @@ export const AgeHero = ({ childId, childName, dob, avatarUrl, canEdit = true }: 
         saving={uploading}
       />
 
-      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove {childName}'s photo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              We'll go back to the default illustration. You can upload a new photo any time.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={uploading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemove} disabled={uploading}>
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <RemovePhotoDialog
+        open={confirmRemove}
+        onOpenChange={setConfirmRemove}
+        childName={childName}
+        busy={uploading}
+        onConfirm={handleRemove}
+      />
     </section>
   );
 };

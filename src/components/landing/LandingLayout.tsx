@@ -18,6 +18,36 @@ const NAV = [
   { to: "/contact", label: "Contact" },
 ];
 
+/** Footer column listing every legal document (not hidden behind a hub page) plus the company's contact details. */
+const LegalColumn = () => (
+    <div className="lg:col-span-2">
+      <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Legal</h3>
+      <ul className="mt-3 grid gap-x-8 gap-y-2 text-[14px] text-muted-foreground sm:grid-cols-2">
+        {LEGAL_DOCS.map((d) => (
+          <li key={d.slug}>
+            <Link to={d.slug} className="hover:text-foreground">{d.title}</Link>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+        <Mail className="h-4 w-4 shrink-0" />
+        <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
+      </p>
+      {LEGAL.phone && (
+        <p className="mt-2 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+          <Phone className="h-4 w-4 shrink-0" />
+          <a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a>
+        </p>
+      )}
+      {LEGAL.registeredAddress && (
+        <p className="mt-2 flex items-start gap-2 text-[13.5px] leading-relaxed text-muted-foreground">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{LEGAL.entity}, {LEGAL.registeredAddress}</span>
+        </p>
+      )}
+    </div>
+);
+
 export const LandingLayout = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -163,33 +193,7 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
               </ul>
             </div>
 
-            {/* Every legal document, listed on its own — not hidden behind a hub page */}
-            <div className="lg:col-span-2">
-              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Legal</h3>
-              <ul className="mt-3 grid gap-x-8 gap-y-2 text-[14px] text-muted-foreground sm:grid-cols-2">
-                {LEGAL_DOCS.map((d) => (
-                  <li key={d.slug}>
-                    <Link to={d.slug} className="hover:text-foreground">{d.title}</Link>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-4 flex items-center gap-2 text-[13.5px] text-muted-foreground">
-                <Mail className="h-4 w-4 shrink-0" />
-                <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
-              </p>
-              {LEGAL.phone && (
-                <p className="mt-2 flex items-center gap-2 text-[13.5px] text-muted-foreground">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a>
-                </p>
-              )}
-              {LEGAL.registeredAddress && (
-                <p className="mt-2 flex items-start gap-2 text-[13.5px] leading-relaxed text-muted-foreground">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{LEGAL.entity}, {LEGAL.registeredAddress}</span>
-                </p>
-              )}
-            </div>
+            <LegalColumn />
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-muted-foreground sm:flex-row">

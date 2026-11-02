@@ -1,19 +1,18 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopBar } from "@/components/childbook/TopBar";
+import { FilterPills, TemplateGrid } from "@/components/books/TemplateBrowser";
 import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
-import { TemplateCard } from "@/components/books/TemplateCard";
 import { TemplatePreviewModal } from "@/components/books/TemplatePreviewModal";
 import { useBookTemplates, type BookTemplate } from "@/hooks/useBookTemplates";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useCreateUserBook } from "@/hooks/useUserBooks";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 const FILTERS: { id: string; label: string; match: (t: BookTemplate) => boolean }[] = [
   { id: "all", label: "All", match: () => true },
@@ -25,6 +24,12 @@ const FILTERS: { id: string; label: string; match: (t: BookTemplate) => boolean 
   { id: "collage", label: "Collage", match: (t) => /scrapbook-(kraft|filmroll|newsprint)/.test(t.slug) },
   { id: "premium", label: "Premium ✨", match: (t) => t.is_premium },
 ];
+
+const matchesQuery = (t: BookTemplate, q: string) =>
+  !q ||
+  t.name.toLowerCase().includes(q) ||
+  t.description.toLowerCase().includes(q) ||
+  (t.suggested_age_range ?? "").toLowerCase().includes(q);
 
 const TemplateSelector = () => {
   const navigate = useNavigate();
@@ -42,15 +47,7 @@ const TemplateSelector = () => {
   const visible = useMemo(() => {
     const f = FILTERS.find((x) => x.id === filter)!;
     const q = search.trim().toLowerCase();
-    return templates
-      .filter(f.match)
-      .filter(
-        (t) =>
-          !q ||
-          t.name.toLowerCase().includes(q) ||
-          t.description.toLowerCase().includes(q) ||
-          (t.suggested_age_range ?? "").toLowerCase().includes(q),
-      );
+    return templates.filter(f.match).filter((t) => matchesQuery(t, q));
   }, [templates, filter, search]);
 
   const handleSelect = async (t: BookTemplate) => {
@@ -108,52 +105,15 @@ const TemplateSelector = () => {
           />
         </div>
 
-        {/* Filter pills */}
-        <div className="-mx-6 mb-6 overflow-x-auto px-6 scrollbar-hide">
-          <div className="flex w-max gap-2">
-            {FILTERS.map((f) => {
-              const isActive = filter === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFilter(f.id)}
-                  className={cn(
-                    "min-h-[36px] whitespace-nowrap rounded-full border px-4 text-[13px] font-medium transition-all",
-                    isActive
-                      ? "border-primary-deep bg-primary-deep text-primary-foreground shadow-soft"
-                      : "border-border bg-card text-foreground hover:border-primary/40",
-                  )}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <FilterPills filters={FILTERS} active={filter} onChange={setFilter} />
 
-        {/* Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20 text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading templates…
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-10 text-center">
-            <p className="text-muted-foreground">No templates match your search.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((t) => (
-              <TemplateCard
-                key={t.id}
-                template={t}
-                locked={isLocked(t)}
-                onSelect={handleSelect}
-                onPreview={setPreviewing}
-              />
-            ))}
-          </div>
-        )}
+        <TemplateGrid
+          loading={isLoading}
+          templates={visible}
+          isLocked={isLocked}
+          onSelect={handleSelect}
+          onPreview={setPreviewing}
+        />
       </main>
 
       <TemplatePreviewModal

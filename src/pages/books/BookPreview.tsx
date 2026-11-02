@@ -163,6 +163,7 @@ const BookPreview = () => {
         colors,
         memories: orderedMemories,
         customPages,
+        withTextEdits: applyTextOverrides,
         filename: `${child.name.replace(/\s+/g, "_")}_${template.slug}.pdf`,
         onProgress: (p) => setPdfState((s) => ({ ...s, progress: p })),
       });

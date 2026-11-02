@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BookTemplate } from "@/hooks/useBookTemplates";
 import type { Memory } from "@/hooks/useMemories";
-import { BookPageFrame, buildPages } from "./BookPages";
+import { BookPageFrame, buildPages, type BookPage } from "./BookPages";
 
 const CATEGORY_LABEL: Record<string, string> = {
   timeline: "Timeline",
@@ -137,6 +137,93 @@ function buildMockMemories(template: BookTemplate): Memory[] {
   ];
 }
 
+interface CarouselProps {
+  template: BookTemplate;
+  pages: BookPage[];
+  slide: number;
+  onPreview: () => void;
+  onPrev: (e: React.MouseEvent) => void;
+  onNext: (e: React.MouseEvent) => void;
+}
+
+const arrowClass =
+  "absolute top-1/2 -translate-y-1/2 rounded-full bg-card/95 p-1 shadow-soft opacity-0 transition group-hover:opacity-100";
+
+/** Prev / next arrows and the page dots of the sample carousel. */
+const CarouselControls = ({ count, slide, onPrev, onNext }: { count: number; slide: number } & Pick<CarouselProps, "onPrev" | "onNext">) => (
+  <>
+    <button type="button" onClick={onPrev} className={`${arrowClass} left-1.5`} aria-label="Previous sample page">
+      <ChevronLeft className="h-4 w-4" />
+    </button>
+    <button type="button" onClick={onNext} className={`${arrowClass} right-1.5`} aria-label="Next sample page">
+      <ChevronRight className="h-4 w-4" />
+    </button>
+    <div className="pointer-events-none absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
+      {Array.from({ length: count }, (_, idx) => (
+        <span
+          key={idx}
+          className={cn("h-1.5 rounded-full transition-all", idx === slide ? "w-4 bg-foreground/80" : "w-1.5 bg-foreground/30")}
+          aria-hidden
+        />
+      ))}
+    </div>
+  </>
+);
+
+/** The live sample-page preview (pages fade between each other) with its badges and controls. */
+const SampleCarousel = ({ template, pages, slide, onPreview, onPrev, onNext }: CarouselProps) => (
+  <div className="relative block aspect-[4/3] w-full overflow-hidden" style={{ backgroundColor: template.color_scheme.primary }}>
+    {pages.map((page, idx) => (
+      <div
+        key={idx}
+        className="absolute inset-0 transition-opacity duration-500"
+        style={{ opacity: idx === slide ? 1 : 0, pointerEvents: idx === slide ? "auto" : "none" }}
+      >
+        <BookPageFrame page={page} colors={template.color_scheme} className="h-full w-full" />
+      </div>
+    ))}
+
+    {/* Full-area preview target (a sibling of the controls so buttons are never nested) */}
+    <button type="button" onClick={onPreview} className="absolute inset-0" aria-label={`Preview ${template.name}`} />
+
+    {pages.length > 1 && <CarouselControls count={pages.length} slide={slide} onPrev={onPrev} onNext={onNext} />}
+
+    {template.is_premium && (
+      <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground shadow-soft">
+        <Sparkles className="h-3 w-3" />
+        Premium
+      </span>
+    )}
+
+    <span
+      className="pointer-events-none absolute left-2 top-2 rounded-full bg-card/95 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground shadow-soft"
+      aria-hidden
+    >
+      {slide === 0 ? "Cover" : `Spread ${slide}`}
+    </span>
+  </div>
+);
+
+/** Colour swatches and the Select / Upgrade button. */
+const CardFooter = ({ swatches, locked, onSelect }: { swatches: string[]; locked: boolean; onSelect: () => void }) => (
+  <div className="mt-auto flex items-center justify-between gap-3">
+    <div className="flex items-center -space-x-1.5">
+      {swatches.map((sw, i) => (
+        <span key={i} className="h-5 w-5 rounded-full border-2 border-card" style={{ backgroundColor: sw }} aria-hidden />
+      ))}
+    </div>
+    <Button size="sm" variant={locked ? "outline" : "warm"} onClick={onSelect}>
+      {locked ? (
+        <>
+          <Lock className="h-3.5 w-3.5" /> Upgrade
+        </>
+      ) : (
+        "Select"
+      )}
+    </Button>
+  </div>
+);
+
 /**
  * Scrapbook-style template card with a swipeable 3-page sample carousel
  * (cover → memory spread 1 → memory spread 2). Uses the same BookPageView
@@ -195,78 +282,14 @@ export const TemplateCard = ({ template, locked = false, onSelect, onPreview }: 
       onMouseEnter={() => setAutoplay(false)}
       onMouseLeave={() => setAutoplay(true)}
     >
-      {/* Live carousel preview using BookPageFrame */}
-      <div className="relative block aspect-[4/3] w-full overflow-hidden" style={{ backgroundColor: c.primary }}>
-        {/* Stack each page absolutely; fade between them */}
-        {samplePages.map((page, idx) => (
-          <div
-            key={idx}
-            className="absolute inset-0 transition-opacity duration-500"
-            style={{ opacity: idx === slide ? 1 : 0, pointerEvents: idx === slide ? "auto" : "none" }}
-          >
-            <BookPageFrame page={page} colors={c} className="h-full w-full" />
-          </div>
-        ))}
-
-        {/* Full-area preview target (a sibling of the controls so buttons are never nested) */}
-        <button
-          type="button"
-          onClick={() => onPreview(template)}
-          className="absolute inset-0"
-          aria-label={`Preview ${template.name}`}
-        />
-
-        {/* Carousel controls */}
-        {samplePages.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={goPrev}
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 rounded-full bg-card/95 p-1 shadow-soft opacity-0 transition group-hover:opacity-100"
-              aria-label="Previous sample page"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-card/95 p-1 shadow-soft opacity-0 transition group-hover:opacity-100"
-              aria-label="Next sample page"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-
-            {/* Dots */}
-            <div className="pointer-events-none absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1">
-              {samplePages.map((_, idx) => (
-                <span
-                  key={idx}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all",
-                    idx === slide ? "w-4 bg-foreground/80" : "w-1.5 bg-foreground/30",
-                  )}
-                  aria-hidden
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {template.is_premium && (
-          <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-accent-foreground shadow-soft">
-            <Sparkles className="h-3 w-3" />
-            Premium
-          </span>
-        )}
-
-        {/* Sample-page label */}
-        <span
-          className="pointer-events-none absolute left-2 top-2 rounded-full bg-card/95 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground shadow-soft"
-          aria-hidden
-        >
-          {slide === 0 ? "Cover" : `Spread ${slide}`}
-        </span>
-      </div>
+      <SampleCarousel
+        template={template}
+        pages={samplePages}
+        slide={slide}
+        onPreview={() => onPreview(template)}
+        onPrev={goPrev}
+        onNext={goNext}
+      />
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-3 p-4">
@@ -281,28 +304,7 @@ export const TemplateCard = ({ template, locked = false, onSelect, onPreview }: 
           {template.description}
         </p>
 
-        <div className="mt-auto flex items-center justify-between gap-3">
-          <div className="flex items-center -space-x-1.5">
-            {swatches.map((sw, i) => (
-              <span
-                key={i}
-                className="h-5 w-5 rounded-full border-2 border-card"
-                style={{ backgroundColor: sw }}
-                aria-hidden
-              />
-            ))}
-          </div>
-
-          <Button size="sm" variant={locked ? "outline" : "warm"} onClick={() => onSelect(template)}>
-            {locked ? (
-              <>
-                <Lock className="h-3.5 w-3.5" /> Upgrade
-              </>
-            ) : (
-              "Select"
-            )}
-          </Button>
-        </div>
+        <CardFooter swatches={swatches} locked={locked} onSelect={() => onSelect(template)} />
       </div>
     </article>
   );
