@@ -42,21 +42,22 @@ export const TopBar = ({ childName }: { childName: string }) => {
 
   return (
     <header ref={headerRef} className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-6 py-3 md:max-w-[88rem] md:px-10">
-        {/* Never squeeze the child's name — it is the point of the header. */}
-        <div className="flex shrink-0 items-center gap-2.5">
-          <Link to="/home" aria-label="Kidzopedia home">
-            <BrandLogo className="h-9 w-9" />
+      <div className="mx-auto flex max-w-2xl items-center justify-between gap-2 px-3 py-2.5 sm:px-6 sm:py-3 md:max-w-[88rem] md:px-10">
+        {/* The child's name is the point of the header: it gets all the spare width and
+            only ellipsizes on very narrow phones, so the icons are never pushed off-screen. */}
+        <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+          <Link to="/home" aria-label="Kidzopedia home" className="shrink-0">
+            <BrandLogo className="h-8 w-8 sm:h-9 sm:w-9" />
           </Link>
-          <div className="leading-tight">
-            <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Kidzopedia</div>
+          <div className="min-w-0 leading-tight">
+            <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:text-[11px]">Kidzopedia</div>
             <ChildSwitcher childName={childName} />
           </div>
         </div>
 
         <PrimaryNav inline />
 
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0 sm:gap-1">
           <ThemeMenu />
           <NotificationsBell />
 
@@ -64,7 +65,7 @@ export const TopBar = ({ childName }: { childName: string }) => {
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="Help & legal"
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground sm:h-10 sm:w-10"
             >
               <HelpCircle className="h-[18px] w-[18px]" strokeWidth={2} />
             </DropdownMenuTrigger>
@@ -101,14 +102,15 @@ export const TopBar = ({ childName }: { childName: string }) => {
           <button
             aria-label="Settings"
             onClick={() => navigate("/settings")}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-10 sm:w-10"
           >
             <Settings className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>
           <button
             aria-label="Sign out"
             onClick={handleSignOut}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            // Phones: Sign out lives in Settings, which keeps the header from overflowing.
+            className="hidden h-10 w-10 items-center justify-center rounded-xl sm:flex text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <LogOut className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>

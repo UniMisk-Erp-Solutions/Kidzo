@@ -8,7 +8,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
-import { DevStatusBanner } from "@/components/DevStatusBanner";
 import { CookieBanner } from "@/components/CookieBanner";
 import { AdminRoute } from "@/components/AdminRoute";
 import PricingPage from "./pages/Pricing.tsx";
@@ -66,7 +65,6 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner position="top-center" />
-      <DevStatusBanner />
 
       <BrowserRouter>
         <AuthProvider>

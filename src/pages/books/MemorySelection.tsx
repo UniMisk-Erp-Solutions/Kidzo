@@ -29,6 +29,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useUserBook, useUpdateUserBook } from "@/hooks/useUserBooks";
@@ -65,6 +66,7 @@ const MemorySelection = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [selectionOpen, setSelectionOpen] = useState(false);
 
   // Hydrate from book — and smart-pick on first entry if nothing is selected.
   useEffect(() => {
@@ -165,8 +167,29 @@ const MemorySelection = () => {
   const progressPct = Math.min(100, Math.round((selected.length / target) * 100));
   const allSelected = selected.length === memories.length && memories.length > 0;
 
+  const selectionPanel = (
+    <>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-[14px] font-semibold">Your selection</h2>
+        {selected.length > 0 && (
+          <button onClick={clearAll} className="text-[12px] text-muted-foreground hover:text-destructive">
+            Clear all
+          </button>
+        )}
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <SelectedMemoriesList
+          selectedIds={selected}
+          memoriesById={memoriesById}
+          onReorder={setSelected}
+          onRemove={(rid) => setSelected((prev) => prev.filter((x) => x !== rid))}
+        />
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-background pb-44 md:pb-44">
+    <div className="min-h-screen overflow-x-hidden bg-background pb-44 md:pb-44">
       <TopBar childName={child?.name ?? ""} />
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
         <Button variant="ghost" size="sm" onClick={() => navigate("/books")} className="-ml-3 mb-3">
@@ -201,7 +224,7 @@ const MemorySelection = () => {
         </div>
 
         {/* Bulk action bar */}
-        <div className="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-4">
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-4">
           <Button size="sm" variant="default" onClick={smartPick} className="gap-1.5" title="Spread evenly across the timeline">
             <Wand2 className="h-3.5 w-3.5" /> Smart pick {target}
           </Button>
@@ -314,9 +337,10 @@ const MemorySelection = () => {
           )}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[360px_1fr] lg:gap-10">
-          {/* Left: calendar (in calendar mode) + selected list */}
-          <div className="space-y-6">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[340px_minmax(0,1fr)] lg:gap-8">
+          {/* Left: calendar (in calendar mode) + selected list. Sticky, with its own scroll,
+              so the selection stays in view while browsing memories on the right. */}
+          <div className="flex flex-col gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-11rem)] lg:self-start">
             {viewMode === "calendar" && (
               <MemoryCalendar
                 memories={memories}
@@ -326,30 +350,13 @@ const MemorySelection = () => {
                 onSelectDate={setSelectedDate}
               />
             )}
-            <div>
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-[14px] font-semibold">Your selection</h2>
-                {selected.length > 0 && (
-                  <button
-                    onClick={clearAll}
-                    className="text-[12px] text-muted-foreground hover:text-destructive"
-                  >
-                    Clear all
-                  </button>
-                )}
-              </div>
-              <SelectedMemoriesList
-                selectedIds={selected}
-                memoriesById={memoriesById}
-                onReorder={setSelected}
-                onRemove={(rid) => setSelected((prev) => prev.filter((x) => x !== rid))}
-              />
-            </div>
+            {/* Desktop only: on mobile the selection opens from the footer button instead. */}
+            <div className="hidden min-h-0 flex-1 flex-col lg:flex">{selectionPanel}</div>
           </div>
 
           {/* Right: memory browser */}
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card px-5 py-4">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3">
               <div className="flex items-center gap-3">
                 {/* View toggle */}
                 <div className="flex rounded-lg border bg-muted/30 p-0.5">
@@ -465,7 +472,7 @@ const MemorySelection = () => {
                 }}
               />
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
                 {visible.map((m) => (
                   <MemoryRow
                     key={m.id}
@@ -482,15 +489,28 @@ const MemorySelection = () => {
 
       {/* Sticky footer */}
       <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <div className="text-[13px] text-muted-foreground">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 md:px-6">
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-w-0 shrink gap-1.5 lg:hidden"
+            onClick={() => setSelectionOpen(true)}
+          >
+            <List className="h-4 w-4 shrink-0" />
+            <span className="truncate">
+              Selection <span className="font-bold">{selected.length}</span>/{target}
+            </span>
+          </Button>
+          <div className="hidden text-[13px] text-muted-foreground lg:block">
             <span className="font-semibold text-foreground">{selected.length}</span> of {target} selected
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate("/books")}>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button variant="outline" size="sm" className="md:h-10 md:px-4" onClick={() => navigate("/books")}>
               Back
             </Button>
             <Button
+              size="sm"
+              className="md:h-10 md:px-4"
               onClick={handleContinue}
               variant={!entLoading && !canBuild ? "warm" : "default"}
               disabled={selected.length === 0 || update.isPending || entLoading}
@@ -511,6 +531,14 @@ const MemorySelection = () => {
         </div>
       </div>
 
+      {/* Mobile: the selected memories live in a bottom sheet */}
+      <Sheet open={selectionOpen} onOpenChange={setSelectionOpen}>
+        <SheetContent side="bottom" className="flex max-h-[80vh] flex-col rounded-t-2xl px-4 pb-6 lg:hidden">
+          <SheetTitle className="sr-only">Your selection</SheetTitle>
+          <div className="flex min-h-0 flex-1 flex-col pt-4">{selectionPanel}</div>
+        </SheetContent>
+      </Sheet>
+
       <BottomNav />
     </div>
   );
@@ -525,16 +553,25 @@ const MemoryRow = ({
   checked: boolean;
   onToggle: () => void;
 }) => (
-  <button
-    type="button"
+  // A div, not a <button>: the Checkbox inside renders its own <button>, and nesting them is invalid DOM.
+  <div
+    role="checkbox"
+    aria-checked={checked}
+    tabIndex={0}
     onClick={onToggle}
+    onKeyDown={(e) => {
+      if (e.key === " " || e.key === "Enter") {
+        e.preventDefault();
+        onToggle();
+      }
+    }}
     className={cn(
-      "group flex items-center gap-4 rounded-2xl border bg-card p-4 text-left transition hover:border-primary",
+      "group flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border bg-card p-2.5 text-left transition hover:border-primary",
       checked && "border-primary bg-primary/5",
     )}
   >
-    <Checkbox checked={checked} className="pointer-events-none" />
-    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-muted">
+    <Checkbox checked={checked} className="pointer-events-none shrink-0" />
+    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
       {memory.photo_url ? (
         <img
           src={memory.photo_url}
@@ -550,11 +587,11 @@ const MemoryRow = ({
     </div>
     <div className="min-w-0 flex-1">
       <div className="truncate text-[14px] font-medium">{memory.title}</div>
-      <div className="text-[11px] text-muted-foreground">
-        {format(new Date(memory.happened_at), "PP")} · {memory.category}
+      <div className="truncate text-[11px] capitalize text-muted-foreground">
+        {format(new Date(memory.happened_at), "MMM d, yyyy")} · {memory.category}
       </div>
     </div>
-  </button>
+  </div>
 );
 
 const YearGroupedList = ({
@@ -575,7 +612,7 @@ const YearGroupedList = ({
     [...memories]
       .sort((a, b) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime())
       .forEach((m) => {
-        const key = format(new Date(m.happened_at), "yyyy-MM");
+        const key = format(new Date(m.happened_at), "yyyy");
         if (!map.has(key)) map.set(key, []);
         map.get(key)!.push(m);
       });
@@ -583,14 +620,14 @@ const YearGroupedList = ({
   }, [memories]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {grouped.map(([key, items]) => {
         const ids = items.map((m) => m.id);
         const allChecked = ids.every((i) => selected.includes(i));
-        const label = format(new Date(key + "-01"), "MMMM yyyy");
+        const label = key;
         return (
           <div key={key} className="overflow-hidden rounded-2xl border bg-card shadow-soft">
-            <div className="flex items-center justify-between border-b px-5 py-3.5">
+            <div className="flex items-center justify-between border-b px-4 py-2.5">
               <div className="flex items-center gap-2">
                 <h3 className="text-[13px] font-semibold">{label}</h3>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -604,7 +641,7 @@ const YearGroupedList = ({
                 {allChecked ? "Deselect all" : "Select all"}
               </button>
             </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <div className="grid gap-2.5 p-3 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((m) => (
                 <MemoryRow
                   key={m.id}

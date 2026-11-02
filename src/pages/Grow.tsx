@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,21 +149,22 @@ const Grow = () => {
       <TopBar childName={child?.name ?? "Your child"} />
 
       <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">
-        <header className="flex items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Grow</h1>
-            <p className="mt-1 text-[14px] text-muted-foreground">
-              {yearCount > 0
-                ? `${yearCount} achievement${yearCount === 1 ? "" : "s"} this year ✨`
-                : "Celebrate every milestone, big or small."}
-            </p>
-          </div>
-          {canEdit && (
-            <Button variant="warm" size="sm" onClick={() => setOpen(true)}>
-              <Plus className="h-4 w-4" /> Add
-            </Button>
-          )}
-        </header>
+        <PageHero
+          icon={Award}
+          title="Grow"
+          subtitle={
+            yearCount > 0
+              ? `${yearCount} achievement${yearCount === 1 ? "" : "s"} this year ✨`
+              : "Celebrate every milestone, big or small."
+          }
+          actions={
+            canEdit && (
+              <Button variant="outline" size="sm" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => setOpen(true)}>
+                <Plus className="h-4 w-4" /> Add
+              </Button>
+            )
+          }
+        />
 
         {/* Type filter chips */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-6 px-6 pb-1">

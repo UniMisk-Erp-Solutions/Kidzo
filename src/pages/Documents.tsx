@@ -20,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,10 +37,10 @@ import {
   ALLOWED_DOC_CATEGORIES,
   isAllowedCategory,
   useDocuments,
+  useDocumentActions,
   type AllowedDocCategory,
   type ChildDocument,
 } from "@/hooks/useDocuments";
-import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,7 @@ const Documents = () => {
   const { data: documents = [], isLoading } = useDocuments(child?.id);
   const { planSlug, documentLimit, loading: entLoading } = useEntitlements();
   const qc = useQueryClient();
+  const docActions = useDocumentActions();
 
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<AllowedDocCategory>("birth_certificate");
@@ -146,31 +148,16 @@ const Documents = () => {
     if (!user || !child || !file) return toast.error("Please choose a file to upload.");
     if (!title.trim()) return toast.error("Give this document a title.");
     setSaving(true);
-    const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
-    // Random name: the original file name (which often contains the child's name / ID number) is never stored.
-    const path = `${user.id}/${child.id}/${crypto.randomUUID()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("child-documents").upload(path, file, { contentType: file.type });
-    if (upErr) {
-      setSaving(false);
-      return toast.error("Couldn't upload that file.");
-    }
-    const { error } = await supabase.from("documents").insert({
-      user_id: user.id,
-      child_id: child.id,
-      category,
-      title: title.trim(),
-      file_path: path,
-      notes: notes.trim() || null,
-    });
+    const result = await docActions.upload({ userId: user.id, childId: child.id, category, title, notes, file });
     setSaving(false);
-    if (error) {
-      await supabase.storage.from("child-documents").remove([path]); // don't leave an orphan file behind
-      if (error.message.includes("plan_feature_locked")) {
+    if (result.ok === false) {
+      if (result.reason === "upload") return toast.error("Couldn't upload that file.");
+      if (result.reason === "locked") {
         toast.error("This folder is full or locked on your plan.", {
           action: { label: "See plans", onClick: goUpgrade },
         });
       } else {
-        toast.error(error.message);
+        toast.error(result.message);
       }
       return;
     }
@@ -194,11 +181,7 @@ const Documents = () => {
   const handleView = async (doc: ChildDocument) => {
     setPreviewLoading(true);
     try {
-      const { data, error } = await supabase.storage.from("child-documents").createSignedUrl(doc.file_path, 60);
-      if (error || !data) throw error ?? new Error("no url");
-      const res = await fetch(data.signedUrl);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
+      const blob = await docActions.fetchBlob(doc.file_path);
       const isPdf = doc.file_path.toLowerCase().endsWith(".pdf") || blob.type === "application/pdf";
       setPreviewFailed(false);
       setPreview({ doc, isPdf, url: URL.createObjectURL(isPdf ? new Blob([blob], { type: "application/pdf" }) : blob) });
@@ -210,16 +193,15 @@ const Documents = () => {
   };
 
   const handleDownload = async (doc: ChildDocument) => {
-    const { data, error } = await supabase.storage.from("child-documents").createSignedUrl(doc.file_path, 60, { download: true });
-    if (error || !data) return toast.error("Couldn't download that document.");
-    window.location.href = data.signedUrl;
+    const url = await docActions.downloadUrl(doc.file_path);
+    if (!url) return toast.error("Couldn't download that document.");
+    window.location.href = url;
   };
 
   const handleDelete = async (doc: ChildDocument) => {
     if (!confirm(`Delete "${doc.title}"? This can't be undone.`)) return;
-    await supabase.storage.from("child-documents").remove([doc.file_path]);
-    const { error } = await supabase.from("documents").delete().eq("id", doc.id);
-    if (error) return toast.error(error.message);
+    const failure = await docActions.remove(doc);
+    if (failure) return toast.error(failure);
     qc.invalidateQueries({ queryKey: ["documents"] });
     toast.success("Removed.");
   };
@@ -252,18 +234,11 @@ const Documents = () => {
 
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-6">
         {/* Header */}
-        <header className="flex items-start gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/30 text-primary-deep">
-            <FolderLock className="h-6 w-6" />
-          </span>
-          <div>
-            <h1 className="font-display text-2xl font-bold leading-tight text-foreground sm:text-3xl">Documents</h1>
-            <p className="mt-1 inline-flex items-center gap-1.5 text-[14px] text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 text-success" />
-              Private vault for {child?.name ?? "your child"} — only you can open these.
-            </p>
-          </div>
-        </header>
+        <PageHero
+          icon={FolderLock}
+          title="Documents"
+          subtitle={`Private vault for ${child?.name ?? "your child"} — only you can open these.`}
+        />
 
         {/* Plan usage */}
         <section className="rounded-2xl border border-border bg-card p-5 shadow-soft">

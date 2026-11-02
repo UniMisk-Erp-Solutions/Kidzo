@@ -262,7 +262,7 @@ const BookCheckout = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* LEFT: Specs */}
           <div className="space-y-5">
             <section className="rounded-2xl border bg-card p-4 md:p-5">
@@ -421,16 +421,17 @@ const BookCheckout = () => {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <div className="text-[13px]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 md:px-6">
+          {/* Phones: the amount is already on the Pay button, so the separate total is hidden. */}
+          <div className="hidden text-[13px] sm:block">
             <span className="text-muted-foreground">Total</span>{" "}
             <span className="font-bold">{formatCurrency(price.total)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate(`/books/${book.id}/preview`)}>
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none">
+            <Button variant="outline" size="sm" className="shrink-0 md:h-10 md:px-4" onClick={() => navigate(`/books/${book.id}/preview`)}>
               Edit book
             </Button>
-            <Button onClick={handlePlaceOrder} disabled={placing}>
+            <Button size="sm" className="min-w-0 flex-1 md:h-10 md:flex-none md:px-4" onClick={handlePlaceOrder} disabled={placing}>
               {placing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

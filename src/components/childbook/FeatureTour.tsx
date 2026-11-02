@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useMarkFeatureTourSeen } from "@/hooks/useFeatureTourSeen";
 
 const TOUR_KEY = "childbook:featureTour:v1";
 
@@ -39,6 +39,7 @@ const STEPS: Step[] = [
 export const FeatureTour = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const markSeen = useMarkFeatureTourSeen();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
@@ -63,7 +64,7 @@ export const FeatureTour = () => {
   const finish = () => {
     if (user) {
       localStorage.setItem(`${TOUR_KEY}:${user.id}`, "1");
-      supabase.auth.updateUser({ data: { feature_tour_seen: true } }).catch(() => {});
+      markSeen();
     }
     setOpen(false);
     setStep(0);

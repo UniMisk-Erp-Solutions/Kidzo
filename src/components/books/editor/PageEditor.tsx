@@ -22,7 +22,9 @@ import {
   EyeOff,
   ChevronUp,
   ChevronDown,
-  Sparkles,
+  Type,
+  Tag,
+  ImagePlus,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -31,11 +33,16 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import { Switch } from "@/components/ui/switch";
+import { MemoryPhotoPicker } from "./MemoryPhotoPicker";
+import { applyTextOverrides, getPageTextFields, type TextOverrides } from "./pageText";
+import { ElementsPanel } from "./ElementsPanel";
+import { FontPicker } from "./FontPicker";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -58,7 +65,6 @@ import {
   type PhotoElement,
   type EmojiElement,
 } from "./types";
-import { seedElementsFromPage } from "./seedFromPage";
 import { parseClipboardHtml, fetchImageAsDataUrl, loadImageDims } from "./clipboardParser";
 import { PhotoCropDialog } from "./PhotoCropDialog";
 import { ColorPicker } from "./ColorPicker";
@@ -119,14 +125,17 @@ function boundsForElements(els: EditorElement[]): DesignBox {
 
 interface PageEditorProps {
   page: BookPage;
-  renderBackground: () => React.ReactNode;
+  /** Renders the original page design; receives the page with the user's text edits applied. */
+  renderBackground: (page?: BookPage) => React.ReactNode;
   initialElements: EditorElement[];
   initialHideNative: boolean;
   initialNativeEditable: boolean;
+  /** Saved edits to the page's built-in text (see pageText.ts). */
+  initialTextOverrides?: TextOverrides;
   colors: BookTemplateColors;
   /** Stable id used to scope recents & saved swatches. */
   bookId?: string;
-  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean) => void;
+  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides) => void;
   onCancel: () => void;
   saving?: boolean;
 }
@@ -192,6 +201,7 @@ export function PageEditor({
   initialElements,
   initialHideNative,
   initialNativeEditable,
+  initialTextOverrides,
   colors,
   bookId,
   onSave,
@@ -200,6 +210,11 @@ export function PageEditor({
 }: PageEditorProps) {
   /* state */
   const [elements, setElements] = useState<EditorElement[]>(initialElements);
+  // The user's rewrites of the page's built-in text (title / story / names).
+  const [textOverrides, setTextOverrides] = useState<TextOverrides>(initialTextOverrides ?? {});
+  const pageFields = useMemo(() => getPageTextFields(page), [page]);
+  // The page as the user has edited it — what the original design is drawn from.
+  const effectivePage = useMemo(() => applyTextOverrides(page, textOverrides), [page, textOverrides]);
   // Keep the native design visible by default — every editable element is
   // layered on top in the same position, so the page LOOKS identical to the
   // original (preserving tapes, torn-paper edges, doodles, sticky-note shapes
@@ -214,8 +229,9 @@ export function PageEditor({
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const [activeTab, setActiveTab] = useState<"add" | "props" | "layers">("add");
+  const [activeTab, setActiveTab] = useState<"add" | "elements" | "props" | "layers">("add");
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [cropPhotoId, setCropPhotoId] = useState<string | null>(null);
   /** While true, editable layers fade and the original native design is
    *  spotlighted so the user can compare what's missing or misaligned.
@@ -759,6 +775,59 @@ export function PageEditor({
       align: "center",
     });
 
+  /** Rewrite one of the page's built-in texts (stored per page; the original memory is untouched). */
+  const setFieldText = (key: string, original: string, value: string) =>
+    setTextOverrides((prev) => {
+      const next = { ...prev };
+      if (value === original) delete next[key];
+      else next[key] = value;
+      return next;
+    });
+
+  /** Move a built-in text into a free text box so it can be styled (font, size, colour, bold…). */
+  const styleFieldAsTextBox = (key: string, current: string) => {
+    if (!current.trim()) return;
+    setTextOverrides((prev) => ({ ...prev, [key]: "" })); // blank the original so it isn't shown twice
+    addElement({
+      id: uid(),
+      type: "text",
+      x: EDITOR_CANVAS_W / 2,
+      y: EDITOR_CANVAS_H / 2,
+      w: 320,
+      h: 90,
+      rotation: 0,
+      z: nextZ,
+      text: current,
+      font: "handwritten",
+      size: 28,
+      color: colors.ink ?? colors.text ?? "#3E3E42",
+      align: "center",
+    });
+  };
+
+  /** Drops a library image (web sticker / scrapbook kit piece) on the page. Stays on the Elements tab so
+   *  several can be added in a row; each lands a little offset from the last so they don't hide each other. */
+  const addLibraryImage = (src: string, w: number, h: number) => {
+    const n = elements.length % 6;
+    const el: EditorElement = {
+      id: uid(),
+      type: "photo",
+      x: EDITOR_CANVAS_W / 2 + n * 18,
+      y: EDITOR_CANVAS_H / 2 + n * 18,
+      w,
+      h,
+      rotation: 0,
+      z: nextZ,
+      src,
+      frame: "plain",
+      borderWidth: 0,
+      borderColor: "transparent",
+      shadow: false,
+    };
+    commit((prev) => [...prev, el]);
+    setSelectedIds([el.id]);
+  };
+
   const addSticker = (shape: StickerShape) =>
     addElement({
       id: uid(),
@@ -832,12 +901,6 @@ export function PageEditor({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nextZ]);
-
-  const onPhotoUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => addPhotoFromDataUrl(String(reader.result));
-    reader.readAsDataURL(file);
-  };
 
   /* ─────────────────── selection ops ─────────────────── */
 
@@ -1054,31 +1117,10 @@ export function PageEditor({
     setZoom(next);
   };
 
-  /* import native — adds editable copies of the page's title/photo/story/etc.
-   * positioned to match the original layout. We do NOT hide the native design;
-   * the editable elements simply layer on top, so the page still looks the
-   * same. The user can toggle "Hide original page" from the switch above if
-   * they want a blank canvas. */
-  const importNative = useCallback(() => {
-    const seeds = seedElementsFromPage(page, colors).map((el, i) => ({
-      ...el,
-      z: nextZ + i,
-    }));
-    commit((prev) => [...prev.filter((el) => el.source !== "native"), ...seeds]);
-    setSelectedIds(seeds.map((s) => s.id));
-    setNativeEditable(true);
-    // Hide the original so we don't render the title / photos / badges twice.
-    // The user can re-enable "Show original design behind" if they want it back.
-    setHideNative(true);
-    setActiveTab("props");
-  }, [page, colors, nextZ, commit]);
-
   /* No auto-seed: the native design (washi tapes, torn-paper edges, doodles,
    * sticky-note shapes, decorative stickers, paper texture and ALL the page
    * art) stays fully visible underneath the editor. The user adds editable
-   * elements on top via the Add tab, or clicks "Convert original to editable
-   * layers" to seed editable copies of the title / photos / story / badges
-   * (which then hides the originals so they don't visually duplicate). */
+   * elements on top via the Add tab. */
   const autoSeededRef = useRef(false);
   useEffect(() => {
     autoSeededRef.current = true;
@@ -1088,11 +1130,11 @@ export function PageEditor({
   /* ─────────────────── render ─────────────────── */
 
   return (
-    <div className="flex h-full w-full flex-col gap-3 md:flex-row md:gap-4">
-      {/* ─── Left: stage ─── */}
-      <div className="flex min-h-0 flex-1 flex-col rounded-xl border bg-muted/40">
-        {/* Top toolbar */}
-        <div className="flex flex-wrap items-center gap-1 border-b bg-card px-2 py-1.5">
+    <div className="flex h-full min-h-0 w-full flex-col gap-2 md:flex-row md:gap-4">
+      {/* ─── Left: stage ─── (phones: a fixed share of the height; the panel below scrolls) */}
+      <div className="flex h-[38%] min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border bg-muted/40 md:h-auto md:flex-1 md:shrink">
+        {/* Top toolbar — one scrollable row on phones instead of wrapping over the canvas */}
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b bg-card px-2 py-1.5 scrollbar-hide md:flex-wrap [&>*]:shrink-0">
           <Button size="sm" variant="ghost" onClick={undo} disabled={!canUndo} title="Undo (Ctrl/Cmd+Z)">
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -1176,27 +1218,7 @@ export function PageEditor({
           className="relative min-h-0 flex-1 overflow-hidden"
           onWheel={onWheel}
           style={{ cursor: tool === "pan" ? "grab" : "default", touchAction: "none" }}
-          onPointerDown={onViewportPointerDown}
-        >
-          {/* One-click "make everything editable" CTA — only shown while no
-           *  native fields have been converted yet (so the user discovers it
-           *  without it cluttering the canvas later). */}
-          {elements.filter((e) => e.source === "native").length === 0 && (
-            <div className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  importNative();
-                }}
-                className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground shadow-lift ring-2 ring-background transition hover:scale-[1.03]"
-                title="Convert title, photos, story & badges into editable layers"
-              >
-                <Sparkles className="h-4 w-4" />
-                Make everything editable
-              </button>
-            </div>
-          )}
+          onPointerDown={onViewportPointerDown}        >
           <div
             ref={stageRef}
             style={{
@@ -1217,7 +1239,7 @@ export function PageEditor({
              *  we always show the original underneath so the user can see what
              *  the editable layers look like vs the source design. */}
             {(!hideNative || compareMode) && (
-              <div className="pointer-events-none absolute inset-0">{renderBackground()}</div>
+              <div className="pointer-events-none absolute inset-0">{renderBackground(effectivePage)}</div>
             )}
 
             {/* Compare-mode banner */}
@@ -1401,34 +1423,108 @@ export function PageEditor({
       </div>
 
       {/* ─── Right: side panel ─── */}
-      <div className="flex w-full shrink-0 flex-col gap-3 rounded-xl border bg-card p-3 md:w-96">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-3 rounded-xl border bg-card p-3 md:w-96 md:flex-none md:shrink-0">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="flex min-h-0 flex-1 flex-col">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="add">Add</TabsTrigger>
-            <TabsTrigger value="props">Properties</TabsTrigger>
+            <TabsTrigger value="elements">Elements</TabsTrigger>
+            <TabsTrigger value="props">Style</TabsTrigger>
             <TabsTrigger value="layers">Layers</TabsTrigger>
           </TabsList>
 
+          {/* ── ELEMENTS TAB (Canva-style library: web stickers + scrapbook kit) ── */}
+          <TabsContent value="elements" className="mt-3 min-h-0 flex-1 overflow-hidden">
+            <ScrollArea className="h-full pr-2">
+              <ElementsPanel onAdd={addLibraryImage} outlineColor={colors.ink ?? colors.text ?? "#3E3E42"} />
+            </ScrollArea>
+          </TabsContent>
+
           {/* ── ADD TAB ── */}
-          <TabsContent value="add" className="mt-3 flex-1 overflow-hidden">
+          <TabsContent value="add" className="mt-3 min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-2">
               <div className="space-y-4">
-                {/* Native page */}
+                {/* Quick add — the two things people most want to do on a page */}
                 <section className="rounded-md border bg-muted/30 p-2">
-                  <div className="mb-2">
-                    <div className="text-xs font-bold uppercase tracking-wide">Original page</div>
-                    <p className="text-[11px] text-muted-foreground">
-                      The full page design — washi tapes, torn-paper edges, doodles, stickers &amp; texture — is shown behind. Add new layers from below, or convert the title / photos / story into editable layers.
-                    </p>
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wide">Add to this page</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button size="sm" variant="default" className="px-2" onClick={addText}>
+                      <Type className="h-3.5 w-3.5 shrink-0" /> Text
+                    </Button>
+                    <Button size="sm" variant="default" className="px-2" onClick={addBadge}>
+                      <Tag className="h-3.5 w-3.5 shrink-0" /> Badge
+                    </Button>
+                    <Button size="sm" variant="default" className="px-2" onClick={() => setPhotoPickerOpen(true)}>
+                      <ImagePlus className="h-3.5 w-3.5 shrink-0" /> Image
+                    </Button>
                   </div>
-                  <Button size="sm" variant="default" className="w-full" onClick={importNative}>
-                    <Sparkles className="h-3.5 w-3.5" /> Make everything editable
-                  </Button>
-                  <div className="mt-2 flex items-center justify-between rounded-md bg-background/50 px-2 py-1.5">
-                    <span className="text-[11px] text-muted-foreground">Show original design behind</span>
-                    <Switch checked={!hideNative} onCheckedChange={(v) => setHideNative(!v)} />
-                  </div>
+                  {/* Only shown for pages saved earlier with the original design hidden, so it can be brought back. */}
+                  {hideNative && (
+                    <div className="mt-2 flex items-center justify-between rounded-md bg-background/50 px-2 py-1.5">
+                      <span className="text-[11px] text-muted-foreground">Show original design behind</span>
+                      <Switch checked={!hideNative} onCheckedChange={(v) => setHideNative(!v)} />
+                    </div>
+                  )}
                 </section>
+
+                {/* The page's own words — rewrite them, or move one into a styled text box */}
+                {pageFields.length > 0 && (
+                  <section className="rounded-md border bg-muted/30 p-2">
+                    <div className="mb-2 text-xs font-bold uppercase tracking-wide">Page text</div>
+                    <p className="mb-2 text-[11px] text-muted-foreground">
+                      Change the words that are already on this page. Use “Style” to change the font, size and colour.
+                    </p>
+                    <div className="space-y-3">
+                      {pageFields.map((f, i) => {
+                        const value = f.key in textOverrides ? textOverrides[f.key] : f.original;
+                        const showGroup = f.group !== undefined && f.group !== pageFields[i - 1]?.group;
+                        // A blank story means "no note on the page"; there is nothing to edit until text is typed back.
+                        return (
+                          <div key={f.key}>
+                            {showGroup && (
+                              <div className="mb-1 truncate text-[11px] font-semibold text-foreground">{f.group}</div>
+                            )}
+                            <div className="mb-1 flex items-center justify-between">
+                              <Label className="text-[11px] text-muted-foreground">{f.label}</Label>
+                              <div className="flex items-center gap-2">
+                                {f.key in textOverrides && (
+                                  <button
+                                    type="button"
+                                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                                    onClick={() => setFieldText(f.key, f.original, f.original)}
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  disabled={!value.trim()}
+                                  className="text-[11px] font-medium text-primary-deep hover:underline disabled:opacity-40"
+                                  onClick={() => styleFieldAsTextBox(f.key, value)}
+                                >
+                                  Style
+                                </button>
+                              </div>
+                            </div>
+                            {f.multiline ? (
+                              <Textarea
+                                value={value}
+                                rows={3}
+                                onChange={(e) => setFieldText(f.key, f.original, e.target.value)}
+                                className="text-[13px]"
+                              />
+                            ) : (
+                              <Input
+                                value={value}
+                                onChange={(e) => setFieldText(f.key, f.original, e.target.value)}
+                                className="h-9 text-[13px]"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
 
                 {/* Theme presets */}
                 <ThemePresetsSection
@@ -1454,16 +1550,6 @@ export function PageEditor({
                   }}
                   scope={bookId}
                 />
-
-                <section>
-                  <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Text</h4>
-                  <Button size="sm" variant="outline" className="w-full" onClick={addText}>
-                    + Add text
-                  </Button>
-                  <Button size="sm" variant="outline" className="mt-2 w-full" onClick={addBadge}>
-                    + Add badge
-                  </Button>
-                </section>
 
                 <section>
                   <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
@@ -1517,35 +1603,23 @@ export function PageEditor({
                   </div>
                 </section>
 
-                <section>
-                  <h4 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Photo</h4>
-                  <label className="flex w-full cursor-pointer items-center justify-center rounded-md border border-dashed py-3 text-xs hover:bg-accent">
-                    Upload image
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) onPhotoUpload(f);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    Tip: copy from Canva (or any web page) and paste with Ctrl/Cmd+V — text & images convert into editable elements automatically.
-                  </p>
-                </section>
               </div>
             </ScrollArea>
           </TabsContent>
 
           {/* ── PROPS TAB ── */}
-          <TabsContent value="props" className="mt-3 flex-1 overflow-hidden">
+          <TabsContent value="props" className="mt-3 min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-2">
               {!singleSelected && selectedIds.length === 0 && (
-                <div className="text-sm text-muted-foreground">
-                  Select an element to edit its properties.
+                <div className="space-y-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground">Nothing selected</p>
+                  <p>
+                    Tap something you've added on the page to change its size, colour, font and more. To change the
+                    words already on the page, use <b>Page text</b> in the Add tab.
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => setActiveTab("add")}>
+                    Go to Add
+                  </Button>
                 </div>
               )}
               {!singleSelected && selectedIds.length > 1 && (
@@ -1667,11 +1741,17 @@ export function PageEditor({
           </TabsContent>
 
           {/* ── LAYERS TAB ── */}
-          <TabsContent value="layers" className="mt-3 flex-1 overflow-hidden">
+          <TabsContent value="layers" className="mt-3 min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full pr-2">
               <div className="space-y-1">
                 {sortedEls.length === 0 && (
-                  <p className="text-sm text-muted-foreground">No elements yet.</p>
+                  <div className="space-y-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">Nothing added yet</p>
+                    <p>Text, images and stickers you add to this page show up here, so you can reorder, hide or lock them.</p>
+                    <Button size="sm" variant="outline" onClick={() => setActiveTab("add")}>
+                      Go to Add
+                    </Button>
+                  </div>
                 )}
                 {[...sortedEls].reverse().map((el) => {
                   const isSel = selectedIds.includes(el.id);
@@ -1744,15 +1824,23 @@ export function PageEditor({
           </TabsContent>
         </Tabs>
 
-        <div className="flex gap-2 border-t pt-3">
+        <div className="flex shrink-0 gap-2 border-t pt-3">
           <Button variant="ghost" className="flex-1" onClick={onCancel} disabled={saving}>
             Cancel
           </Button>
-          <Button className="flex-1" onClick={() => onSave(elements, hideNative, nativeEditable)} disabled={saving}>
+          <Button className="flex-1" onClick={() => onSave(elements, hideNative, nativeEditable, textOverrides)} disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </Button>
         </div>
       </div>
+
+      {/* Add image: pick from photos already uploaded to the child's memories */}
+      <MemoryPhotoPicker
+        open={photoPickerOpen}
+        onOpenChange={setPhotoPickerOpen}
+        bookId={bookId}
+        onPick={addPhotoFromDataUrl}
+      />
 
       {/* Shortcuts dialog */}
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
@@ -1858,6 +1946,13 @@ function ColorRow({
   );
 }
 
+const BUILT_IN_FONTS = [
+  { value: "handwritten", label: "Handwritten" },
+  { value: "marker", label: "Marker" },
+  { value: "printed", label: "Typewriter" },
+  { value: "serif", label: "Serif" },
+];
+
 function TextProps({ el, update, scope }: { el: TextElement; update: (p: Partial<TextElement>) => void; scope?: string }) {
   return (
     <div className="space-y-2">
@@ -1873,16 +1968,13 @@ function TextProps({ el, update, scope }: { el: TextElement; update: (p: Partial
         <Slider value={[el.size]} min={10} max={120} step={1} onValueChange={(v) => update({ size: v[0] })} />
       </div>
       <Label className="text-xs text-muted-foreground">Font</Label>
-      <select
-        value={el.font}
-        onChange={(e) => update({ font: e.target.value as TextElement["font"] })}
-        className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-      >
-        <option value="handwritten">Handwritten</option>
-        <option value="marker">Marker</option>
-        <option value="printed">Typewriter</option>
-        <option value="serif">Serif</option>
-      </select>
+      <FontPicker
+        family={el.fontFamily}
+        builtInLabel={BUILT_IN_FONTS.find((b) => b.value === el.font)?.label ?? "Handwritten"}
+        onPick={(family) => update({ fontFamily: family })}
+        builtIns={BUILT_IN_FONTS}
+        onPickBuiltIn={(value) => update({ font: value as TextElement["font"], fontFamily: undefined })}
+      />
       <ColorRow label="Color" value={el.color} onChange={(v) => update({ color: v })} scope={scope} contrastAgainst={el.bg} />
       <ColorRow label="Background" value={el.bg ?? "#ffffff"} onChange={(v) => update({ bg: v })} scope={scope} contrastAgainst={el.color} allowGradient />
       <div className="flex items-center gap-2">

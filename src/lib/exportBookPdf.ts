@@ -12,6 +12,8 @@ import {
 } from "@/components/books/BookPages";
 import { ElementsOverlay } from "@/components/books/editor/EditorElements";
 import { pageKeyFor, readPageData, type CustomPagesMap } from "@/components/books/editor/types";
+import { applyTextOverrides } from "@/components/books/editor/pageText";
+import { loadFonts } from "@/components/books/editor/fonts";
 
 const HANDWRITING_FONTS = /Caveat|Kalam|Patrick Hand|Shadows Into Light/i;
 
@@ -107,6 +109,12 @@ export async function exportBookPdf(opts: {
       /* ignore */
     }
 
+    // Library fonts chosen in the editor must be loaded before pages are captured.
+    const customFonts = Object.values(customPages ?? {}).flatMap((raw) =>
+      readPageData(raw).elements.flatMap((el) => (el.type === "text" && el.fontFamily ? [el.fontFamily] : [])),
+    );
+    if (customFonts.length > 0) await loadFonts(customFonts);
+
     root = createRoot(host);
 
     const PAGE_W_MM = 210;
@@ -135,7 +143,7 @@ export async function exportBookPdf(opts: {
                 background: colors.paper ?? colors.primary ?? "#fff",
               },
             },
-            data.hideNative ? null : createElement(BookPageView, { page, colors }),
+            data.hideNative ? null : createElement(BookPageView, { page: applyTextOverrides(page, data.textOverrides), colors }),
             overlay.length > 0 ? createElement(ElementsOverlay, { elements: overlay }) : null,
           ),
         );

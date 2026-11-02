@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEntitlements } from "@/hooks/useEntitlements";
 
 type Plan = {
   id: string;
@@ -71,6 +72,9 @@ const Pricing = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [cycle, setCycle] = useState<"monthly" | "yearly">("monthly");
+  // The signed-in user's plan (no subscription row = Free). Null while loading or signed out.
+  const { planSlug, loading: entLoading } = useEntitlements();
+  const currentSlug = user && !entLoading ? planSlug ?? "free" : null;
 
   useEffect(() => {
     (async () => {
@@ -127,10 +131,11 @@ const Pricing = () => {
               .sort((a, b) => rank(a.key) - rank(b.key));
             const price = cycle === "monthly" ? plan.price_monthly : plan.price_yearly;
             const isPopular = plan.slug === "family";
+            const isCurrent = currentSlug === plan.slug;
             return (
               <Card
                 key={plan.id}
-                className={`relative flex flex-col p-6 ${isPopular ? "border-primary shadow-lift" : ""}`}
+                className={`relative flex flex-col p-6 ${isPopular || isCurrent ? "border-primary shadow-lift" : ""} ${isCurrent ? "ring-2 ring-primary/40" : ""}`}
               >
                 {isPopular && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
@@ -164,14 +169,20 @@ const Pricing = () => {
                   })}
                 </ul>
                 <div className="mt-6 flex-1" />
-                <Button
-                  variant={isPopular ? "warm" : "outline"}
-                  size="lg"
-                  className="w-full"
-                  onClick={() => handleChoose(plan)}
-                >
-                  {plan.slug === "free" ? "Start free" : `Choose ${plan.name}`}
-                </Button>
+                {isCurrent ? (
+                  <Button variant="outline" size="lg" className="w-full cursor-default border-primary-deep text-primary-deep" disabled>
+                    <Check className="h-4 w-4" /> Current plan
+                  </Button>
+                ) : (
+                  <Button
+                    variant={isPopular ? "warm" : "outline"}
+                    size="lg"
+                    className="w-full"
+                    onClick={() => handleChoose(plan)}
+                  >
+                    {plan.slug === "free" ? "Start free" : `Choose ${plan.name}`}
+                  </Button>
+                )}
               </Card>
             );
           })}

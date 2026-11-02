@@ -18,7 +18,7 @@ export const PdfPagesView = ({ blob, children }: { blob: Blob; children?: React.
     let cancelled = false;
     const host = hostRef.current;
     if (!host) return;
-    host.innerHTML = "";
+    host.replaceChildren();
     setLoading(true);
     setError(false);
     (async () => {
@@ -33,7 +33,9 @@ export const PdfPagesView = ({ blob, children }: { blob: Blob; children?: React.
           canvas.width = viewport.width;
           canvas.height = viewport.height;
           canvas.className = "mx-auto mb-3 w-full max-w-[560px] rounded-md border border-border bg-white shadow-sm";
-          await page.render({ canvasContext: canvas.getContext("2d")!, viewport }).promise;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas is not available");
+          await page.render({ canvasContext: ctx, viewport }).promise;
           if (cancelled) return;
           host.appendChild(canvas);
         }

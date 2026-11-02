@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
+  ChevronDown,
   Download,
   Eye,
   Link2,
@@ -107,12 +108,41 @@ const ExportShare = () => {
     [ordered, selected],
   );
 
-  const move = (idx: number, dir: -1 | 1) => {
+  // Swap two memories' positions in the global order (used to reorder within a year).
+  const swap = (a: number, b: number | undefined) => {
+    if (b === undefined || b < 0 || b >= order.length) return;
     const next = [...order];
-    const target = idx + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[idx], next[target]] = [next[target], next[idx]];
+    [next[a], next[b]] = [next[b], next[a]];
     setOrder(next);
+  };
+
+  // Memories grouped by year (newest year first), each keeping its position in the global order.
+  const yearGroups = useMemo(() => {
+    const map = new Map<number, { m: Memory; idx: number }[]>();
+    ordered.forEach((m, idx) => {
+      const y = new Date(m.happened_at).getFullYear();
+      if (!map.has(y)) map.set(y, []);
+      map.get(y)!.push({ m, idx });
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[0] - a[0])
+      .map(([year, items]) => ({ year, items }));
+  }, [ordered]);
+
+  // Only the newest year starts open, so a long timeline isn't one endless scroll on a phone.
+  const [openYearsState, setOpenYearsState] = useState<Set<number> | null>(null);
+  const openYears = openYearsState ?? new Set(yearGroups.length ? [yearGroups[0].year] : []);
+  const toggleYear = (year: number) => {
+    const next = new Set(openYears);
+    if (next.has(year)) next.delete(year);
+    else next.add(year);
+    setOpenYearsState(next);
+  };
+
+  const setYearSelected = (ids: string[], on: boolean) => {
+    const next = new Set(selected);
+    ids.forEach((id) => (on ? next.add(id) : next.delete(id)));
+    setSelected(next);
   };
 
   const toggleSelected = (id: string) => {
@@ -158,10 +188,10 @@ const ExportShare = () => {
     URL.revokeObjectURL(a.href);
   };
 
-  const createShareLink = async () => {
+  const createShareLink = async (): Promise<string | null> => {
     if (!lastBlob || !user || !child) {
       toast.error("Generate the PDF first.");
-      return;
+      return null;
     }
     setSharing(true);
     const t = toast.loading("Uploading your photo book…");
@@ -175,13 +205,27 @@ const ExportShare = () => {
       setShareUrl(data.publicUrl);
       await navigator.clipboard.writeText(data.publicUrl).catch(() => {});
       toast.success("Link ready & copied to clipboard 🔗", { id: t });
+      return data.publicUrl;
     } catch (e) {
       toast.error("Couldn't create share link", {
         id: t,
         description: e instanceof Error ? e.message : String(e),
       });
+      return null;
     } finally {
       setSharing(false);
+    }
+  };
+
+  // Phone bottom bar: make the link if needed, then hand it to the OS share sheet (email fallback).
+  const shareFromBar = async () => {
+    const url = shareUrl ?? (await createShareLink());
+    if (!url) return;
+    const title = `${child?.name ?? "Our"} keepsake photo book`;
+    if (navigator.share) {
+      await navigator.share({ title, url }).catch(() => {});
+    } else {
+      window.location.href = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`Here's our photo book of memories — enjoy!\n\n${url}\n\nWith love 💛`)}`;
     }
   };
 
@@ -206,7 +250,7 @@ const ExportShare = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-32 md:pb-28">
       <TopBar childName={child.name} />
       <main className="mx-auto max-w-3xl px-4 py-6 md:max-w-6xl md:py-10">
         <div className="mb-6 flex items-center gap-3">
@@ -221,25 +265,26 @@ const ExportShare = () => {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[1fr,320px]">
-          <div className="space-y-6">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,1fr),320px]">
+          <div className="min-w-0 space-y-6">
             {/* Layout */}
             <Card className="rounded-2xl p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 1. Choose a layout
               </h2>
-              <RadioGroup value={layout} onValueChange={(v) => setLayout(v as LayoutStyle)} className="grid gap-2 md:grid-cols-3">
+              {/* Phones: a compact 2-up grid showing just the name + colours (descriptions are md and up). */}
+              <RadioGroup value={layout} onValueChange={(v) => setLayout(v as LayoutStyle)} className="grid grid-cols-2 gap-2 md:grid-cols-3">
                 {LAYOUTS.map((l) => (
                   <Label
                     key={l.id}
                     htmlFor={`layout-${l.id}`}
-                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                    className={`flex min-w-0 cursor-pointer items-start gap-2 rounded-xl border p-3 transition-colors md:gap-3 md:p-4 ${
                       layout === l.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
                     }`}
                   >
-                    <RadioGroupItem value={l.id} id={`layout-${l.id}`} className="mt-1" />
-                    <div>
-                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    <RadioGroupItem value={l.id} id={`layout-${l.id}`} className="mt-0.5 shrink-0 md:mt-1" />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold leading-tight text-foreground md:text-sm">
                         {l.title}
                         {l.swatches && (
                           <span className="flex -space-x-1" aria-hidden>
@@ -249,7 +294,7 @@ const ExportShare = () => {
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{l.desc}</div>
+                      <div className="mt-1 hidden text-xs text-muted-foreground md:block">{l.desc}</div>
                     </div>
                   </Label>
                 ))}
@@ -271,32 +316,69 @@ const ExportShare = () => {
               {ordered.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No memories yet — add some first.</p>
               ) : (
-                <ul className="grid grid-cols-1 gap-5 min-[480px]:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-                  {ordered.map((m, idx) => {
-                    const photos = m.photo_urls?.length ? m.photo_urls : m.photo_url ? [m.photo_url] : [];
+                <div className="space-y-3">
+                  {yearGroups.map(({ year, items }) => {
+                    const isOpen = openYears.has(year);
+                    const pickedCount = items.filter(({ m }) => selected.has(m.id)).length;
+                    const allPicked = pickedCount === items.length;
                     return (
-                      <ExportMemoryCard
-                        key={m.id}
-                        title={m.title}
-                        date={m.happened_at}
-                        photos={photos}
-                        coverUrl={coverOverrides[m.id] ?? photos[0]}
-                        selected={selected.has(m.id)}
-                        onToggle={() => toggleSelected(m.id)}
-                        onCover={(url) => setCoverOverrides({ ...coverOverrides, [m.id]: url })}
-                        onMove={(dir) => move(idx, dir)}
-                        canPrev={idx > 0}
-                        canNext={idx < ordered.length - 1}
-                      />
+                      <section key={year} className="overflow-hidden rounded-xl border border-border">
+                        <div className="flex items-center gap-2 bg-muted/40 pr-3">
+                          <button
+                            type="button"
+                            onClick={() => toggleYear(year)}
+                            aria-expanded={isOpen}
+                            className="flex min-w-0 flex-1 items-center gap-2 px-3 py-3 text-left"
+                          >
+                            <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "" : "-rotate-90"}`} />
+                            <span className="font-display text-[15px] font-bold text-foreground">{year}</span>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {pickedCount} of {items.length} selected
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setYearSelected(items.map(({ m }) => m.id), !allPicked)}
+                            className="shrink-0 text-xs font-medium text-primary-deep hover:underline"
+                          >
+                            {allPicked ? "None" : "All"}
+                          </button>
+                        </div>
+                        {isOpen && (
+                          <ul className="grid grid-cols-1 gap-5 p-3 min-[480px]:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+                            {items.map(({ m, idx }, pos) => {
+                              const photos = m.photo_urls?.length ? m.photo_urls : m.photo_url ? [m.photo_url] : [];
+                              const prevIdx = items[pos - 1]?.idx;
+                              const nextIdx = items[pos + 1]?.idx;
+                              return (
+                                <ExportMemoryCard
+                                  key={m.id}
+                                  title={m.title}
+                                  date={m.happened_at}
+                                  photos={photos}
+                                  coverUrl={coverOverrides[m.id] ?? photos[0]}
+                                  selected={selected.has(m.id)}
+                                  onToggle={() => toggleSelected(m.id)}
+                                  onCover={(url) => setCoverOverrides({ ...coverOverrides, [m.id]: url })}
+                                  onMove={(dir) => swap(idx, dir < 0 ? prevIdx : nextIdx)}
+                                  canPrev={prevIdx !== undefined}
+                                  canNext={nextIdx !== undefined}
+                                />
+                              );
+                            })}
+                          </ul>
+                        )}
+                      </section>
                     );
                   })}
-                </ul>
+                </div>
               )}
             </Card>
           </div>
 
           {/* Right side: actions */}
-          <aside className="space-y-4 md:sticky md:top-6 md:self-start">
+          {/* Phones use the sticky bottom bar instead, so these don't sit at the end of a long page. */}
+          <aside className="hidden space-y-4 md:sticky md:top-6 md:block md:self-start">
             <Card className="rounded-2xl p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 3. Preview & generate
@@ -346,6 +428,42 @@ const ExportShare = () => {
           </aside>
         </div>
       </main>
+
+      {/* Phones: Preview / Download / Share are always one tap away. */}
+      <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <div className="px-3 pb-2.5 pt-2">
+          <div className="mb-1.5 text-[11px] text-muted-foreground">
+            <span className="font-semibold text-foreground">{includedMemories.length}</span> memor
+            {includedMemories.length === 1 ? "y" : "ies"} included
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="warm" className="min-w-0 flex-1" onClick={() => generate("preview")} disabled={busy}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+              Preview
+            </Button>
+            {!entLoading && !canDownload ? (
+              <Button size="sm" variant="outline" className="min-w-0 flex-1" onClick={goUpgrade}>
+                <Lock className="h-4 w-4" /> Upgrade
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="min-w-0 flex-1" onClick={() => generate("download")} disabled={busy || entLoading}>
+                <Download className="h-4 w-4" /> Download
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={shareFromBar}
+              disabled={busy || !lastBlob}
+              aria-label="Share"
+              title={lastBlob ? "Share" : "Generate a preview or download first to share"}
+            >
+              <Link2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <Dialog
         open={!!previewUrl}

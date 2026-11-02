@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { exportShareBook, type LayoutStyle } from "@/lib/exportShareBook";
-import type { Memory } from "@/hooks/useMemories";
+import type { Memory } from "@/lib/types/memory";
 
 /**
  * Lives outside React so a photo-book build keeps running (and its result is kept) when the user

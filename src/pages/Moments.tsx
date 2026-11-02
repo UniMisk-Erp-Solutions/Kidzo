@@ -16,6 +16,7 @@ import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useChildren } from "@/hooks/useChildren";
 import { useMemories, type Memory } from "@/hooks/useMemories";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { MemoryDetail } from "@/components/childbook/MemoryDetail";
 import { MemoryTimeline } from "@/components/childbook/MemoryTimeline";
@@ -89,13 +90,19 @@ const Moments = () => {
     <div className="min-h-screen bg-background pb-28">
       <TopBar childName={child?.name ?? "Your child"} />
 
-      {/* Sticky filter bar */}
-      <div className="sticky top-[var(--topbar-h,72px)] z-30 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto max-w-6xl space-y-3 px-6 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Moments</h1>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center rounded-full border border-border bg-card p-0.5">
+      {/* Header banner — same style as Grow */}
+      <div className="mx-auto max-w-6xl px-6 pt-6">
+        <PageHero
+          icon={ImageIcon}
+          title="Moments"
+          subtitle={
+            memories.length > 0
+              ? `${memories.length} ${memories.length === 1 ? "memory" : "memories"} captured ✨`
+              : "Capture the little moments that matter."
+          }
+          actions={
+            <>
+              <div className="flex items-center rounded-full border border-white/60 bg-white/85 p-0.5">
                 <button
                   type="button"
                   onClick={() => setView("grid")}
@@ -103,9 +110,7 @@ const Moments = () => {
                   aria-label="Grid view"
                   className={cn(
                     "flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors",
-                    view === "grid"
-                      ? "bg-primary/25 text-primary-deep"
-                      : "text-muted-foreground hover:text-foreground",
+                    view === "grid" ? "bg-primary/25 text-primary-deep" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <LayoutGrid className="h-3.5 w-3.5" />
@@ -118,9 +123,7 @@ const Moments = () => {
                   aria-label="Timeline view"
                   className={cn(
                     "flex h-8 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors",
-                    view === "timeline"
-                      ? "bg-primary/25 text-primary-deep"
-                      : "text-muted-foreground hover:text-foreground",
+                    view === "timeline" ? "bg-primary/25 text-primary-deep" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <GitCommitVertical className="h-3.5 w-3.5" />
@@ -128,12 +131,18 @@ const Moments = () => {
                 </button>
               </div>
               {canEdit && (
-                <Button variant="warm" size="sm" onClick={() => navigate("/moments/new")}>
+                <Button variant="outline" size="sm" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => navigate("/moments/new")}>
                   <Plus className="h-4 w-4" /> New
                 </Button>
               )}
-            </div>
-          </div>
+            </>
+          }
+        />
+      </div>
+
+      {/* Sticky filter bar */}
+      <div className="sticky top-[var(--topbar-h,72px)] z-30 mt-2 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto max-w-6xl space-y-3 px-6 py-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input

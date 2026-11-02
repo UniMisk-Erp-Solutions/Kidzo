@@ -4,6 +4,7 @@ import { ArrowLeft, BookOpen, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { TemplateCard } from "@/components/books/TemplateCard";
 import { TemplatePreviewModal } from "@/components/books/TemplatePreviewModal";
@@ -89,19 +90,11 @@ const TemplateSelector = () => {
           <Button variant="ghost" size="sm" onClick={() => navigate("/books")} className="-ml-3 mb-3">
             <ArrowLeft className="h-4 w-4" /> My books
           </Button>
-          <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/30 text-primary-foreground">
-              <BookOpen className="h-6 w-6" />
-            </span>
-            <div>
-              <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight md:text-3xl">
-                Create your memory book
-              </h1>
-              <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">
-                Choose from {templates.length}+ beautifully designed templates, then we'll print and ship it to you.
-              </p>
-            </div>
-          </div>
+          <PageHero
+            icon={BookOpen}
+            title="Create your memory book"
+            subtitle={`Choose from ${templates.length}+ beautifully designed templates, then we'll print and ship it to you.`}
+          />
         </div>
 
         {/* Search */}

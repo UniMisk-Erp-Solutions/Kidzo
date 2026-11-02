@@ -22,7 +22,7 @@ export const ThemeMenu = () => {
       <DropdownMenuTrigger
         aria-label={`Change theme (now ${current.name})`}
         title={`Theme: ${current.name}`}
-        className="relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
+        className="relative flex h-9 w-9 items-center sm:h-10 sm:w-10 justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
       >
         <Palette className="h-[18px] w-[18px]" strokeWidth={2} />
         {/* tiny swatch of the active theme */}

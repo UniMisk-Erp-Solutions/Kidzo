@@ -99,25 +99,15 @@
     --primary: 255 92% 76%; --primary-deep: 258 58% 52%; --ring: 258 58% 52%;
     --sec-1: 255 92% 76%; --sec-2: 205 85% 78%; --sec-3: 356 100% 82%; --sec-deep: 258 58% 52%;
   }
-  [data-section="moments"] {
-    --primary: 356 100% 75%; --primary-deep: 352 72% 48%; --ring: 352 72% 48%;
-    --sec-1: 356 100% 75%; --sec-2: 20 100% 80%; --sec-3: 330 90% 86%; --sec-deep: 352 72% 48%;
-  }
-  [data-section="grow"] {
-    --primary: 163 60% 62%; --primary-deep: 165 62% 30%; --ring: 165 62% 30%;
-    --sec-1: 163 60% 66%; --sec-2: 140 55% 74%; --sec-3: 195 70% 78%; --sec-deep: 165 62% 30%;
-  }
-  [data-section="books"] {
-    --primary: 43 100% 66%; --primary-deep: 32 92% 34%; --ring: 32 92% 34%;
-    --sec-1: 43 100% 71%; --sec-2: 32 100% 72%; --sec-3: 20 100% 80%; --sec-deep: 32 92% 34%;
-  }
-  [data-section="docs"] {
-    --primary: 205 85% 70%; --primary-deep: 205 78% 36%; --ring: 205 78% 36%;
-    --sec-1: 205 85% 76%; --sec-2: 188 75% 72%; --sec-3: 225 85% 82%; --sec-deep: 205 78% 36%;
-  }
+  /* Colorful Daydream: every section shares the Home palette (violet → sky → pink) so the whole app
+     feels as playful as the home page. (Explorer / Tales keep their own per-section palettes below.) */
+  [data-section="moments"],
+  [data-section="grow"],
+  [data-section="books"],
+  [data-section="docs"],
   [data-section="family"] {
-    --primary: 20 100% 74%; --primary-deep: 14 66% 42%; --ring: 14 66% 42%;
-    --sec-1: 20 100% 79%; --sec-2: 12 75% 70%; --sec-3: 38 100% 78%; --sec-deep: 14 66% 42%;
+    --primary: 255 92% 76%; --primary-deep: 258 58% 52%; --ring: 258 58% 52%;
+    --sec-1: 255 92% 76%; --sec-2: 205 85% 78%; --sec-3: 356 100% 82%; --sec-deep: 258 58% 52%;
   }
 
 
@@ -329,6 +319,13 @@
   }
   html {
     -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Safety net: nothing may make the page scroll sideways on a phone. `clip` (unlike `hidden`)
+     does not turn body into a scroll container, so sticky headers keep working. */
+  html, body {
+    max-width: 100%;
+    overflow-x: clip;
   }
   body {
     @apply bg-background text-foreground;
@@ -456,9 +453,12 @@
       radial-gradient(55% 40% at 50% 100%, hsl(var(--sec-3) / 0.22), transparent 70%);
   }
   .text-sec { color: hsl(var(--sec-deep)); }
+  /* Accent text (e.g. "19 years"): one solid, darker shade of the section colour — a fading gradient
+     went too light to read on the pastel hero. */
   .text-sec-gradient {
-    background-image: linear-gradient(100deg, hsl(var(--sec-deep)), hsl(var(--coral)) 70%);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+    background-image: none;
+    color: hsl(var(--sec-deep));
+    color: color-mix(in srgb, hsl(var(--sec-deep)) 82%, black);
   }
   .btn-gradient {
     background-image: var(--gradient-button);

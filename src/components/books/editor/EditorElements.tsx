@@ -1,6 +1,8 @@
 /** Pure renderer for editor elements — used both inside the editor and for read-only display in BookPageFrame and the PDF export. */
 
+import { useEffect } from "react";
 import type { EditorElement, StickerElement, StickerShape, TapeElement } from "./types";
+import { fontStack, loadFonts } from "./fonts";
 
 // Most paths designed in a 24×24 viewBox
 const STAR = "M12 3l2.4 5.6 6 .5-4.6 4 1.4 5.9-5.2-3.2-5.2 3.2 1.4-5.9-4.6-4 6-.5z";
@@ -159,7 +161,7 @@ export function renderElement(el: EditorElement) {
         <div
           style={{
             ...baseStyle,
-            fontFamily: fontFamilyFor(t.font),
+            fontFamily: t.fontFamily ? fontStack(t.fontFamily) : fontFamilyFor(t.font),
             fontSize: t.size,
             fontWeight: t.bold ? 700 : 400,
             fontStyle: t.italic ? "italic" : "normal",
@@ -353,6 +355,11 @@ export function renderElement(el: EditorElement) {
 
 /** Read-only overlay layer — sits above BookPageView at design canvas resolution. */
 export function ElementsOverlay({ elements }: { elements: EditorElement[] }) {
+  // Make sure any library fonts used on this page are loaded wherever it is shown (preview, editor, PDF).
+  const fontKey = elements.map((e) => (e.type === "text" ? e.fontFamily ?? "" : "")).filter(Boolean).join("|");
+  useEffect(() => {
+    if (fontKey) void loadFonts(fontKey.split("|"));
+  }, [fontKey]);
   const sorted = [...elements]
     .filter((e) => !e.hidden)
     .sort((a, b) => a.z - b.z);

@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,27 +53,37 @@ const Family = () => {
     if (!guard("family_invites", "Family invites")) return;
     setCreating(true);
     const token = generateToken();
-    const { error } = await supabase.from("child_invites").insert({
-      child_id: child.id,
-      owner_id: user.id,
-      token,
-      role,
-      email: email.trim() || null,
-    });
-    setCreating(false);
-    if (error) {
-      toast.error(isPlanLockedError(error.message) ? "Family invites are a paid feature — upgrade to invite family." : "Couldn't create invite");
+    const inviteEmail = email.trim() || null;
+    const { data: created, error } = await supabase
+      .from("child_invites")
+      .insert({ child_id: child.id, owner_id: user.id, token, role, email: inviteEmail })
+      .select("id")
+      .single();
+    if (error || !created) {
+      setCreating(false);
+      toast.error(isPlanLockedError(error?.message ?? "") ? "Family invites are a paid feature — upgrade to invite family." : "Couldn't create invite");
       return;
     }
     setEmail("");
     qc.invalidateQueries({ queryKey: ["invites"] });
     const link = `${window.location.origin}/share/${token}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      toast.success("Invite link copied to clipboard");
-    } catch {
-      toast.success("Invite created");
+    const copied = await navigator.clipboard.writeText(link).then(() => true, () => false);
+    // With an email address, the invite is also emailed to them.
+    const emailed = inviteEmail ? await emailInvite(created.id) : null;
+    setCreating(false);
+    if (emailed === true) toast.success(`Invite emailed to ${inviteEmail}${copied ? " — link copied too" : ""}`);
+    else if (emailed === false) toast.warning(`Invite created, but the email couldn't be sent${copied ? " — the link is copied, share it yourself" : ""}`);
+    else toast.success(copied ? "Invite link copied to clipboard" : "Invite created");
+  };
+
+  /** Asks the server to email an invite to the address stored on it. Returns whether it was sent. */
+  const emailInvite = async (inviteId: string): Promise<boolean> => {
+    const { data, error } = await supabase.functions.invoke("send-family-invite", { body: { invite_id: inviteId } });
+    if (error || !data?.ok) {
+      console.error("send-family-invite failed:", error ?? data);
+      return false;
     }
+    return true;
   };
 
   const copyLink = async (token: string) => {
@@ -100,32 +111,36 @@ const Family = () => {
     setResendingId(invite.id);
     // Revoke the old token then create a fresh one with same role/email.
     const newToken = generateToken();
-    const [{ error: revokeError }, { error: insertError }] = await Promise.all([
+    const [{ error: revokeError }, { data: fresh, error: insertError }] = await Promise.all([
       supabase
         .from("child_invites")
         .update({ revoked_at: new Date().toISOString() })
         .eq("id", invite.id),
-      supabase.from("child_invites").insert({
-        child_id: child.id,
-        owner_id: user.id,
-        token: newToken,
-        role: invite.role,
-        email: invite.email,
-      }),
+      supabase
+        .from("child_invites")
+        .insert({
+          child_id: child.id,
+          owner_id: user.id,
+          token: newToken,
+          role: invite.role,
+          email: invite.email,
+        })
+        .select("id")
+        .single(),
     ]);
-    setResendingId(null);
-    if (revokeError || insertError) {
+    if (revokeError || insertError || !fresh) {
+      setResendingId(null);
       toast.error("Couldn't resend invite");
       return;
     }
     qc.invalidateQueries({ queryKey: ["invites"] });
     const link = `${window.location.origin}/share/${newToken}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      toast.success("Fresh link copied to clipboard");
-    } catch {
-      toast.success("Fresh invite created");
-    }
+    const copied = await navigator.clipboard.writeText(link).then(() => true, () => false);
+    const emailed = invite.email ? await emailInvite(fresh.id) : null;
+    setResendingId(null);
+    if (emailed === true) toast.success(`Fresh invite emailed to ${invite.email}`);
+    else if (emailed === false) toast.warning(`Fresh invite created, but the email couldn't be sent${copied ? " — the link is copied, share it yourself" : ""}`);
+    else toast.success(copied ? "Fresh link copied to clipboard" : "Fresh invite created");
   };
 
   const removeShare = async (id: string) => {
@@ -162,17 +177,15 @@ const Family = () => {
       <TopBar childName={childName} />
 
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-6 md:max-w-6xl md:py-10">
-        <header className="animate-fade-in-up">
-          <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/25 text-primary-deep">
-            <Users className="h-5 w-5" />
-          </span>
-          <h1 className="font-display text-2xl font-bold text-foreground sm:text-3xl">Family sharing</h1>
-          <p className="mt-1 text-[14px] text-muted-foreground">
-            {isOwner
+        <PageHero
+          icon={Users}
+          title="Family sharing"
+          subtitle={
+            isOwner
               ? `Invite a co-parent or grandparent to ${childName}'s journey.`
-              : `You're a guest in ${childName}'s journey.`}
-          </p>
-        </header>
+              : `You're a guest in ${childName}'s journey.`
+          }
+        />
 
         {/* Shared-with-me view */}
         {!isOwner && myShare && (

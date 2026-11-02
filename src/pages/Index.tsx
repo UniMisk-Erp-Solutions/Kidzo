@@ -95,13 +95,15 @@ const Index = () => {
             achievementsCount={achievements.length}
             documentsCount={documents.length}
           />
-          <div className="grid gap-8 md:gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
-            <div className="space-y-8 md:space-y-12">
+          {/* grid-cols-[minmax(0,1fr)]: without it the single phone column grows to fit the widest
+              child (the carousels), pushing every card past the right edge of the screen. */}
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+            <div className="min-w-0 space-y-8 md:space-y-12">
               {canEdit && <CreateMomentCTA />}
               <Flashbacks memories={memories} variant="card" />
               <RecentTimeline memories={memories} achievements={achievements} />
             </div>
-            <div className="space-y-8 lg:sticky lg:top-[calc(var(--topbar-h,72px)+1.5rem)]">
+            <div className="min-w-0 space-y-8 lg:sticky lg:top-[calc(var(--topbar-h,72px)+1.5rem)]">
               <UpcomingMilestones dob={new Date(child.dob)} childName={child.name} />
             </div>
           </div>

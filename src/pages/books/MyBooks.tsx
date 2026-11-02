@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BookOpen, Plus, Trash2, Eye, Truck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { StatusBadge } from "@/components/books/StatusBadge";
 import { useUserBooks, useDeleteUserBook, type UserBook, type UserBookStatus } from "@/hooks/useUserBooks";
@@ -56,19 +57,17 @@ const MyBooks = () => {
       <TopBar childName={child?.name ?? ""} />
 
       <main className="mx-auto max-w-2xl px-6 py-6 md:max-w-6xl md:py-10">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight md:text-3xl">
-              My memory books
-            </h1>
-            <p className="mt-1 text-[14px] text-muted-foreground">
-              Drafts, orders and printed keepsakes — all in one place.
-            </p>
-          </div>
-          <Button variant="warm" size="lg" onClick={() => navigate("/books/new")}>
-            <Plus className="h-4 w-4" /> Create book
-          </Button>
-        </div>
+        <PageHero
+          className="mb-6"
+          icon={BookOpen}
+          title="My memory books"
+          subtitle="Drafts, orders and printed keepsakes — all in one place."
+          actions={
+            <Button variant="outline" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => navigate("/books/new")}>
+              <Plus className="h-4 w-4" /> Create book
+            </Button>
+          }
+        />
 
         {/* Stats */}
         <div className="mb-6 grid grid-cols-3 gap-3">

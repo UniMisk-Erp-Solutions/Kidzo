@@ -13,6 +13,7 @@ import { exportBookPdf, type PdfProgress } from "@/lib/exportBookPdf";
 import { PdfExportDialog } from "@/components/books/PdfExportDialog";
 import { PageEditorDialog } from "@/components/books/PageEditorDialog";
 import { pageKeyFor, readPageData, type CustomPagesMap, type EditorElement } from "@/components/books/editor/types";
+import { applyTextOverrides, type TextOverrides } from "@/components/books/editor/pageText";
 import { calculatePrice, formatCurrency, type BookSize, type PaperQuality, type BindingType } from "@/lib/bookPricing";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useScreenGuard } from "@/lib/screenGuard";
@@ -84,10 +85,15 @@ const BookPreview = () => {
     setPageIndex(0);
   }, [book?.id]);
 
-  const handleSavePageEdits = async (els: EditorElement[], hideNative: boolean, nativeEditable: boolean) => {
+  const handleSavePageEdits = async (
+    els: EditorElement[],
+    hideNative: boolean,
+    nativeEditable: boolean,
+    textOverrides: TextOverrides,
+  ) => {
     if (!book || !pages[pageIndex]) return;
     const key = pageKeyFor(pages[pageIndex] as { kind: string; memory?: { id: string }; number?: number; spreadKey?: string });
-    const next: CustomPagesMap = { ...customPages, [key]: { elements: els, hideNative, nativeEditable } };
+    const next: CustomPagesMap = { ...customPages, [key]: { elements: els, hideNative, nativeEditable, textOverrides } };
     try {
       await updateBook.mutateAsync({
         id: book.id,
@@ -165,6 +171,9 @@ const BookPreview = () => {
   const currentOverlay = currentData.elements;
   const currentHideNative = currentData.hideNative;
   const currentNativeEditable = currentData.nativeEditable;
+  const currentTextOverrides = currentData.textOverrides ?? {};
+  // The page as shown to the reader, with the user's text edits applied.
+  const shownPage = current ? applyTextOverrides(current, currentTextOverrides) : current;
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-background">
@@ -203,17 +212,18 @@ const BookPreview = () => {
 
       {/* Main viewer fills remaining height — uses CSS grid so the page area
           gets exactly the leftover space, no horizontal/vertical scroll. */}
-      <main className="grid min-h-0 flex-1 grid-rows-[1fr_auto] overflow-hidden">
+      <main className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-hidden">
         {/* Page area — page is auto-sized to fit container while keeping 3:4 aspect */}
-        <div className="relative min-h-0 overflow-hidden px-3 py-3">
-          <div className="relative mx-auto flex h-full w-full max-w-5xl items-center justify-center">
-            {/* The page itself — uses aspect-ratio + max-h so it never overflows */}
+        {/* The cell is a size container, so the page is sized from the space it actually has:
+            the largest 3:4 box that fits both width and height (works on any phone). */}
+        <div className="relative grid min-h-0 place-items-center overflow-hidden px-3 py-3 [container-type:size]">
+          <div className="contents">
+            {/* The page itself */}
             <div
-              className="relative max-h-full overflow-hidden rounded-2xl border shadow-lift"
+              className="relative overflow-hidden rounded-2xl border shadow-lift"
               style={{
                 aspectRatio: "3 / 4",
-                height: "100%",
-                maxWidth: "100%",
+                width: "min(100cqw, 75cqh)",
                 backgroundColor: colors.primary,
               }}
             >
@@ -222,7 +232,7 @@ const BookPreview = () => {
                   (currentLocked ? (
                     <LockedBookPage colors={colors} pageNumber={pageIndex + 1} />
                   ) : (
-                    <BookPageFrame page={current} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
+                    <BookPageFrame page={shownPage ?? current} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
                   ))}
               </ScreenshotShield>
             </div>
@@ -254,7 +264,7 @@ const BookPreview = () => {
         </div>
 
         {/* Bottom strip — thumbnails + actions */}
-        <div className="border-t bg-card">
+        <div className="min-w-0 border-t bg-card">
           {/* Thumbnail strip */}
           <div className="overflow-x-auto px-4 py-2 scrollbar-hide">
             <div className="mx-auto flex w-max gap-1.5">
@@ -295,7 +305,7 @@ const BookPreview = () => {
 
           {/* Action bar */}
           <div className="border-t">
-            <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 md:px-6">
+            <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 px-3 py-2.5 md:px-6">
               <div className="flex items-center gap-2">
                 <Button size="sm" variant="outline" onClick={handleDownload}>
                   <Download className="h-4 w-4" />
@@ -306,7 +316,12 @@ const BookPreview = () => {
                   <span className="hidden sm:inline">Edit page</span>
                 </Button>
               </div>
-              {fullAccess ? (
+              {entLoading ? (
+                // Plan not known yet: don't flash "Upgrade" at paying users.
+                <Button size="sm" disabled>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Continue to order
+                </Button>
+              ) : fullAccess ? (
                 <Button size="sm" onClick={() => navigate(`/books/${book.id}/checkout`)}>
                   Continue to order <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -334,6 +349,7 @@ const BookPreview = () => {
         initialElements={currentOverlay}
         initialHideNative={currentHideNative}
         initialNativeEditable={currentNativeEditable}
+        initialTextOverrides={currentTextOverrides}
         bookId={book?.id}
         saving={updateBook.isPending}
         onSave={handleSavePageEdits}

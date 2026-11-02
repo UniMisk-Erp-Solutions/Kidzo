@@ -1,4 +1,4 @@
-import type { BookTemplate } from "@/hooks/useBookTemplates";
+import type { BookTemplate } from "@/lib/types/bookTemplate";
 
 /**
  * Built-in scrapbook looks for the "Export & share" PDF. They reuse the same page renderer as the

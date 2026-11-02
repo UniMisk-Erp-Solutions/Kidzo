@@ -137,7 +137,7 @@ const BookCustomizer = () => {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Live preview */}
           <div>
             <div
@@ -254,7 +254,7 @@ const BookCustomizer = () => {
                     <label className="w-16 text-[12px] capitalize text-muted-foreground">{key}</label>
                     <input
                       type="color"
-                      value={colors[key]}
+                      value={/^#[0-9a-f]{6}$/i.test(colors[key] ?? "") ? colors[key] : "#000000"}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
                       className="h-9 w-12 cursor-pointer rounded-lg border bg-transparent"
                     />
@@ -316,13 +316,13 @@ const BookCustomizer = () => {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <div className="text-[13px] text-muted-foreground">Step 2 of 4</div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate(`/books/${book.id}/memories`)}>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 md:px-6">
+          <div className="hidden text-[13px] text-muted-foreground sm:block">Step 2 of 4</div>
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none">
+            <Button variant="outline" size="sm" className="shrink-0 md:h-10 md:px-4" onClick={() => navigate(`/books/${book.id}/memories`)}>
               Back
             </Button>
-            <Button onClick={handlePreview} disabled={update.isPending || pageOrder.length === 0}>
+            <Button size="sm" className="min-w-0 flex-1 md:h-10 md:flex-none md:px-4" onClick={handlePreview} disabled={update.isPending || pageOrder.length === 0}>
               {update.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
