@@ -165,8 +165,26 @@ const Grow = () => {
           }
         />
 
-        {/* Type filter chips */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-6 px-6 pb-1">
+        {/* Type filter: one dropdown on phones, chips from sm up */}
+        <Select value={filter} onValueChange={(v) => setFilter(v as AchievementType | "all")}>
+          <SelectTrigger className="h-11 rounded-full border-border bg-card px-4 text-[14px] sm:hidden" aria-label="Filter by type">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPES.map((t) => {
+              const Icon = t.icon;
+              return (
+                <SelectItem key={t.id} value={t.id}>
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5" />
+                    {t.label}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+        <div className="-mx-6 hidden gap-2 overflow-x-auto px-6 pb-1 scrollbar-hide sm:flex">
           {TYPES.map((t) => {
             const Icon = t.icon;
             const active = filter === t.id;
@@ -208,7 +226,10 @@ const Grow = () => {
 
       {/* Add dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl">
+        {/* Phones: a narrower bottom sheet that slides up and is as tall as the form needs, so nothing has to scroll. Larger screens: centered dialog. */}
+        <DialogContent
+          className="sheet-up scrollbar-hide w-[88%] max-w-sm overflow-y-auto rounded-3xl max-sm:bottom-0 max-sm:top-auto max-sm:max-h-[calc(100dvh_-_1rem)] max-sm:translate-y-0 max-sm:rounded-b-none sm:max-h-[90vh] sm:max-w-md"
+        >
           <DialogHeader>
             <DialogTitle>Add achievement</DialogTitle>
           </DialogHeader>
@@ -283,10 +304,10 @@ const Grow = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-11 w-full justify-start rounded-xl font-normal"
+                      className="h-11 w-full justify-start gap-2 rounded-xl px-3 font-normal"
                     >
-                      <CalendarIcon className="h-4 w-4" />
-                      {format(date, "PPP")}
+                      <CalendarIcon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{format(date, "PP")}</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">

@@ -327,6 +327,13 @@
     max-width: 100%;
     overflow-x: clip;
   }
+  /* Radix (Select, Dialog, Sheet…) locks scroll by forcing `overflow: hidden` on body. With the clip above
+     on <html>, that turns body into its own scroll container, so sticky bars (top nav, filter bar) stop
+     sticking and scroll off screen when a menu opens. Keep body un-scrollable-by-itself while locked. */
+  html body[data-scroll-locked] {
+    overflow: visible !important;
+    overflow-x: clip !important;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -547,4 +554,22 @@ input[type="number"] {
   .screenshot-shield {
     display: none !important;
   }
+}
+
+/* Bottom-sheet entrance for dialogs on phones (used by the Grow "Add achievement" form). Replaces the
+   centered zoom/slide-in that DialogContent applies; keeps the -50% horizontal centering. */
+@media (max-width: 639px) {
+  .sheet-up[data-state="open"] { animation: sheet-up-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .sheet-up[data-state="closed"] { animation: sheet-up-out 0.2s ease-in both; }
+}
+@keyframes sheet-up-in {
+  from { transform: translate(-50%, 100%); }
+  to { transform: translate(-50%, 0); }
+}
+@keyframes sheet-up-out {
+  from { transform: translate(-50%, 0); }
+  to { transform: translate(-50%, 100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-up[data-state] { animation: none !important; }
 }

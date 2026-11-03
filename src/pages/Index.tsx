@@ -104,7 +104,13 @@ const Index = () => {
               <RecentTimeline memories={memories} achievements={achievements} />
             </div>
             <div className="min-w-0 space-y-8 lg:sticky lg:top-[calc(var(--topbar-h,72px)+1.5rem)]">
-              <UpcomingMilestones dob={new Date(child.dob)} childName={child.name} />
+              <UpcomingMilestones
+                dob={new Date(child.dob)}
+                childId={child.id}
+                childName={child.name}
+                memories={memories}
+                canEdit={canEdit}
+              />
             </div>
           </div>
         </div>

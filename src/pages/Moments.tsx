@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, ImageIcon, Filter, Sparkles, LayoutGrid, GitCommitVertical } from "lucide-react";
-import { format } from "date-fns";
+import { Search, Plus, ImageIcon, Filter, Sparkles, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +20,7 @@ import { ViewToggle } from "@/components/childbook/ViewToggle";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { MemoryDetail } from "@/components/childbook/MemoryDetail";
 import { MemoryTimeline } from "@/components/childbook/MemoryTimeline";
+import { MemoryPolaroid } from "@/components/childbook/MemoryPolaroid";
 import { Flashbacks } from "@/components/childbook/Flashbacks";
 import { cn } from "@/lib/utils";
 
@@ -32,14 +32,14 @@ const RANGES = [
   { value: "365", label: "Last year" },
 ];
 
-const tagStyles: Record<string, string> = {
-  Milestone: "bg-accent/40 text-accent-foreground",
-  Celebration: "bg-secondary/30 text-secondary",
-  Everyday: "bg-primary/30 text-primary-deep",
-  Cozy: "bg-muted text-muted-foreground",
-  Adventure: "bg-success/25 text-success",
-  Family: "bg-warning/25 text-warning-foreground",
-};
+/** Keep the menus attached under their trigger; the filter bar is sticky, so collision-flipping can push them off screen. */
+const FILTER_MENU = {
+  side: "bottom",
+  align: "end",
+  sideOffset: 6,
+  avoidCollisions: false,
+  className: "max-h-[min(18rem,var(--radix-select-content-available-height))]",
+} as const;
 
 const momentsSubtitle = (count: number) =>
   count > 0 ? `${count} ${count === 1 ? "memory" : "memories"} captured ✨` : "Capture the little moments that matter.";
@@ -66,8 +66,12 @@ const Moments = () => {
   const [showMonths, setShowMonths] = useState<boolean>(
     () => typeof window !== "undefined" && localStorage.getItem("moments:showMonths") === "1",
   );
-  const [yearFilter, setYearFilter] = useState<number | "all">("all");
-  const yearRefs = useRef<Record<number, HTMLElement | null>>({});
+  const [yearFilter, setYearFilter] = useState("all");
+
+  const years = useMemo(
+    () => Array.from(new Set(memories.map((m) => new Date(m.happened_at).getFullYear()))).sort((a, b) => b - a),
+    [memories],
+  );
 
   useEffect(() => {
     localStorage.setItem("moments:view", view);
@@ -82,13 +86,14 @@ const Moments = () => {
     return memories.filter((m) => {
       if (category !== "All" && m.category !== category) return false;
       if (cutoff && new Date(m.happened_at).getTime() < cutoff) return false;
+      if (yearFilter !== "all" && new Date(m.happened_at).getFullYear() !== Number(yearFilter)) return false;
       if (q) {
         const hay = `${m.title} ${m.story ?? ""} ${m.tags.join(" ")} ${m.who_was_there.join(" ")}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [memories, category, range, search]);
+  }, [memories, category, range, yearFilter, search]);
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -125,28 +130,73 @@ const Moments = () => {
               className="h-11 rounded-xl pl-9"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-6 px-6 pb-1">
+          <div className="grid grid-cols-3 gap-2 sm:hidden">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="h-10 rounded-full border-border px-3 text-[12px]" aria-label="Category">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent {...FILTER_MENU} align="start">
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>{c === "All" ? "All categories" : c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={yearFilter} onValueChange={setYearFilter}>
+              <SelectTrigger className="h-10 rounded-full border-border px-3 text-[12px]" aria-label="Year">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent {...FILTER_MENU} align="center">
+                <SelectItem value="all">All years</SelectItem>
+                {years.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={range} onValueChange={setRange}>
+              <SelectTrigger className="h-10 rounded-full border-border px-3 text-[12px]" aria-label="Time">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent {...FILTER_MENU}>
+                {RANGES.map((r) => (
+                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="-mx-6 -my-1 hidden gap-2 overflow-x-auto px-6 py-2 scrollbar-hide sm:flex">
             {CATEGORIES.map((c) => (
               <button
                 key={c}
                 onClick={() => setCategory(c)}
                 className={cn(
-                  "flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-all",
+                  "flex-shrink-0 rounded-md border px-3.5 py-1.5 text-[13px] font-medium transition-all odd:-rotate-1 even:rotate-1 hover:rotate-0",
                   category === c
-                    ? "border-primary-deep bg-primary/25 text-primary-deep"
-                    : "border-border bg-card text-muted-foreground hover:bg-muted",
+                    ? "border-solid border-primary-deep bg-primary/25 text-primary-deep"
+                    : "border-dashed border-foreground/30 bg-card text-muted-foreground hover:bg-muted",
                 )}
               >
                 {c}
               </button>
             ))}
-            <div className="ml-auto flex-shrink-0">
+            <div className="ml-auto flex flex-shrink-0 gap-2">
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger className="h-9 w-[130px] rounded-full border-border text-[13px]">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent {...FILTER_MENU}>
+                  <SelectItem value="all">All years</SelectItem>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={range} onValueChange={setRange}>
                 <SelectTrigger className="h-9 w-[140px] rounded-full border-border text-[13px]">
                   <Filter className="h-3.5 w-3.5" />
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent {...FILTER_MENU}>
                   {RANGES.map((r) => (
                     <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
                   ))}
@@ -171,132 +221,42 @@ const Moments = () => {
             onCreate={canEdit ? () => navigate("/moments/new") : undefined}
           />
         ) : view === "timeline" ? (
-          (() => {
-            const sorted = [...filtered].sort(
-              (a, b) => new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime(),
-            );
-            const years = Array.from(
-              new Set(sorted.map((m) => new Date(m.happened_at).getFullYear())),
-            );
-            const visible =
-              yearFilter === "all"
-                ? sorted
-                : sorted.filter((m) => new Date(m.happened_at).getFullYear() === yearFilter);
-            return (
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex flex-wrap gap-1.5">
-                    <button
-                      onClick={() => setYearFilter("all")}
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
-                        yearFilter === "all"
-                          ? "border-primary-deep bg-primary/25 text-primary-deep"
-                          : "border-border bg-card text-muted-foreground hover:bg-muted",
-                      )}
-                    >
-                      All years
-                    </button>
-                    {years.map((y) => (
-                      <button
-                        key={y}
-                        onClick={() => {
-                          setYearFilter(y);
-                          requestAnimationFrame(() => {
-                            yearRefs.current[y]?.scrollIntoView({ behavior: "smooth", block: "start" });
-                          });
-                        }}
-                        className={cn(
-                          "rounded-full border px-3 py-1 text-[12px] font-medium transition-colors",
-                          yearFilter === y
-                            ? "border-primary-deep bg-primary/25 text-primary-deep"
-                            : "border-border bg-card text-muted-foreground hover:bg-muted",
-                        )}
-                      >
-                        {y}
-                      </button>
-                    ))}
-                  </div>
-                  <label className="ml-auto flex cursor-pointer items-center gap-1.5 text-[12px] text-muted-foreground">
-                    <input
-                      type="checkbox"
-                      checked={showMonths}
-                      onChange={(e) => setShowMonths(e.target.checked)}
-                      className="h-3.5 w-3.5 accent-[hsl(var(--primary))]"
-                    />
-                    Month markers
-                  </label>
-                </div>
-                <MemoryTimeline
-                  memories={visible}
-                  onOpen={setOpen}
-                  showMonths={showMonths}
-                  yearRefs={yearRefs}
-                />
-              </div>
-            );
-          })()
+          <div className="space-y-4">
+            <label className="ml-auto flex w-fit cursor-pointer items-center gap-1.5 text-[12px] text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showMonths}
+                onChange={(e) => setShowMonths(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[hsl(var(--primary))]"
+              />
+              Month markers
+            </label>
+            <MemoryTimeline
+              memories={[...filtered].sort(
+                (a, b) => new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime(),
+              )}
+              onOpen={setOpen}
+              showMonths={showMonths}
+            />
+          </div>
         ) : (
-          <ul
-            className="gap-3 sm:gap-4"
-            style={{ columnCount: 2, columnGap: "1rem" }}
-          >
+          <ul className="columns-2 gap-6 px-1 pt-2 sm:columns-3 lg:columns-4">
             {filtered.map((m, i) => (
               <li
                 key={m.id}
-                className="mb-3 break-inside-avoid sm:mb-4"
+                className="mb-6 break-inside-avoid"
                 style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
               >
-                <button
-                  onClick={() => setOpen(m)}
-                  className="group block w-full overflow-hidden rounded-2xl border border-border bg-card text-left shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-lift animate-fade-in-up"
-                >
-                  {m.photo_url ? (
-                    <div className="relative">
-                      <img
-                        src={m.photo_url}
-                        alt={m.title}
-                        loading="lazy"
-                        className="w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      {(m.photo_urls?.length ?? 0) > 1 && (
-                        <span className="absolute bottom-2 right-2 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-soft">
-                          +{(m.photo_urls?.length ?? 1) - 1}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex aspect-square items-center justify-center bg-gradient-warm text-muted-foreground">
-                      <ImageIcon className="h-8 w-8" />
-                    </div>
-                  )}
-                  <div className="space-y-1.5 p-3">
-                    {m.is_linked && (
-                      <div>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/30 px-2 py-0.5 text-[10px] font-medium text-secondary">
-                          ↳ {m.primary_child_id && nameById[m.primary_child_id]
-                            ? `From ${nameById[m.primary_child_id]}`
-                            : "Sibling's memory"}
-                          {m.relation_label ? ` · ${m.relation_label}` : ""}
-                        </span>
-                      </div>
-                    )}
-                    <span
-                      className={cn(
-                        "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                        tagStyles[m.category] ?? "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {m.category}
-                    </span>
-                    <h3 className="line-clamp-2 text-[14px] font-semibold leading-snug text-foreground">
-                      {m.title}
-                    </h3>
-                    <p className="text-[12px] text-muted-foreground">
-                      {format(new Date(m.happened_at), "MMM d, yyyy")}
-                    </p>
-                  </div>
-                </button>
+                <MemoryPolaroid
+                  memory={m}
+                  index={i}
+                  onOpen={setOpen}
+                  linkedLabel={
+                    m.is_linked
+                      ? `${m.primary_child_id && nameById[m.primary_child_id] ? `From ${nameById[m.primary_child_id]}` : "Sibling's memory"}${m.relation_label ? ` · ${m.relation_label}` : ""}`
+                      : undefined
+                  }
+                />
               </li>
             ))}
           </ul>
