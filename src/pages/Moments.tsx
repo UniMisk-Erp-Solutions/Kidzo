@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 const CATEGORIES = ["All", "Milestone", "Celebration", "Everyday", "Cozy", "Adventure", "Family"];
 const RANGES = [
   { value: "all", label: "All time" },
+  { value: "newest", label: "Newest to oldest" },
+  { value: "oldest", label: "Oldest to newest" },
   { value: "30", label: "Last 30 days" },
   { value: "90", label: "Last 3 months" },
   { value: "365", label: "Last year" },
@@ -39,6 +41,12 @@ const FILTER_MENU = {
   avoidCollisions: false,
   className: "max-h-[min(18rem,var(--radix-select-content-available-height))]",
 } as const;
+
+const sortMemories = (list: Memory[], dir: "asc" | "desc") =>
+  [...list].sort((a, b) => {
+    const d = new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime();
+    return dir === "asc" ? d : -d;
+  });
 
 const momentsSubtitle = (count: number) =>
   count > 0 ? `${count} ${count === 1 ? "memory" : "memories"} captured ✨` : "Capture the little moments that matter.";
@@ -85,7 +93,7 @@ const Moments = () => {
   }, [showMonths]);
 
   const filtered = useMemo(() => {
-    const cutoff = range === "all" ? null : Date.now() - parseInt(range) * 24 * 60 * 60 * 1000;
+    const cutoff = !/^d+$/.test(range) ? null : Date.now() - parseInt(range) * 24 * 60 * 60 * 1000;
     const q = search.toLowerCase().trim();
     return memories.filter((m) => {
       if (category !== "All" && m.category !== category) return false;
@@ -236,9 +244,7 @@ const Moments = () => {
               Month markers
             </label>
             <MemoryTimeline
-              memories={[...filtered].sort(
-                (a, b) => new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime(),
-              )}
+              memories={sortMemories(filtered, range === "newest" ? "desc" : "asc")}
               onOpen={setOpen}
               showMonths={showMonths}
               linkedLabelFor={linkedLabelFor}
@@ -247,9 +253,7 @@ const Moments = () => {
         ) : (
           // Grid: the same year-by-year rows as the timeline, newest year first.
           <MemoryTimeline
-            memories={[...filtered].sort(
-              (a, b) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime(),
-            )}
+            memories={sortMemories(filtered, range === "oldest" ? "asc" : "desc")}
             onOpen={setOpen}
             linkedLabelFor={linkedLabelFor}
           />
