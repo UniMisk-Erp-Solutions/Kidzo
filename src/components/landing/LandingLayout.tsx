@@ -101,14 +101,9 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <>
-                <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate("/auth")}>
-                  Sign in
-                </Button>
-                <Button variant="warm" size="sm" onClick={goApp} className="px-2.5 sm:px-4">
-                  Get started
-                </Button>
-              </>
+              <Button variant="warm" size="sm" onClick={goApp} className="px-2.5 sm:px-4">
+                Get started
+              </Button>
             )}
             <Button
               variant="ghost"

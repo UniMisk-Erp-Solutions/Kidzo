@@ -5,6 +5,17 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -106,14 +117,29 @@ export const TopBar = ({ childName }: { childName: string }) => {
           >
             <Settings className="h-[18px] w-[18px]" strokeWidth={2} />
           </button>
-          <button
-            aria-label="Sign out"
-            onClick={handleSignOut}
-            // Phones: Sign out lives in Settings, which keeps the header from overflowing.
-            className="hidden h-10 w-10 items-center justify-center rounded-xl sm:flex text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <LogOut className="h-[18px] w-[18px]" strokeWidth={2} />
-          </button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                aria-label="Sign out"
+                // Phones: Sign out lives in Settings, which keeps the header from overflowing.
+                className="hidden h-10 w-10 items-center justify-center rounded-xl sm:flex text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <LogOut className="h-[18px] w-[18px]" strokeWidth={2} />
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-sm rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Sign out?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You'll need to sign in again to see {childName}'s memories.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Stay signed in</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSignOut}>Sign out</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
       <PrimaryNav />

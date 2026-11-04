@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ConfirmProvider";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ScrollText } from "lucide-react";
@@ -691,8 +692,9 @@ const CouponsTab = () => {
     if (error) return toast.error(error.message);
     load();
   };
+  const confirm = useConfirm();
   const remove = async (c: any) => {
-    if (!confirm(`Delete coupon ${c.code}?`)) return;
+    if (!(await confirm({ title: `Delete coupon ${c.code}?`, confirmLabel: "Delete", destructive: true }))) return;
     const { error } = await supabase.from("coupons").delete().eq("id", c.id);
     if (error) return toast.error(error.message);
     toast.success("Coupon deleted");

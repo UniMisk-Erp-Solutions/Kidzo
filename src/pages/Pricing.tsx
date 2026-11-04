@@ -64,7 +64,7 @@ const describeDocumentLimits = (text?: string | null) => {
 
 const formatFeature = (f: Feature) => {
   if (f.key === "max_children") return `${f.value_int} child${f.value_int === 1 ? "" : "ren"}`;
-  if (f.key === "max_storage_mb") return `${formatStorage(f.value_int ?? 0)} storage`;
+  if (f.key === "max_storage_mb") return f.value_int === null ? "Unlimited storage" : `${formatStorage(f.value_int)} storage`;
   if (f.key === "document_limits") return describeDocumentLimits(f.value_text);
   return FEATURE_LABEL[f.key] ?? f.key;
 };
@@ -77,9 +77,9 @@ const featureRank = (k: string) => (FEATURE_ORDER.indexOf(k) === -1 ? 99 : FEATU
 const visibleFeatures = (features: Feature[], planId: string) =>
   features
     .filter((f) => f.plan_id === planId)
-    // Numeric limits with no value are not shown (we never advertise "unlimited").
+    // A child limit with no value is not shown; empty storage means unlimited.
     .filter((f) => !HIDDEN_FEATURES.includes(f.key))
-    .filter((f) => !(["max_children", "max_storage_mb"].includes(f.key) && f.value_int === null))
+    .filter((f) => !(f.key === "max_children" && f.value_int === null))
     .sort((a, b) => featureRank(a.key) - featureRank(b.key));
 
 /** The signed-in user's plan (no subscription row = Free). Null while loading or signed out. */
@@ -171,6 +171,79 @@ const CycleToggle = ({ cycle, onChange }: { cycle: Cycle; onChange: (c: Cycle) =
   );
 };
 
+const symbolFor = (currency: string) => (currency === "INR" ? "₹" : "$");
+
+/** Phone layout: one plan at a time, with its own monthly / yearly choice inside the card. */
+const MobilePlanCard = ({
+  plan,
+  features,
+  cycle,
+  onCycleChange,
+  isCurrent,
+  onChoose,
+}: CardProps & { onCycleChange: (c: Cycle) => void }) => {
+  const isPopular = plan.slug === "family";
+  const isFree = plan.price_monthly === 0 && plan.price_yearly === 0;
+  const yearly = cycle === "yearly" && !isFree;
+  const price = yearly ? plan.price_yearly : plan.price_monthly;
+  const sym = symbolFor(plan.currency);
+  const option = (value: Cycle, label: string, sub: string) => (
+    <button
+      type="button"
+      onClick={() => onCycleChange(value)}
+      className={`flex-1 rounded-xl border px-2 py-2 text-center transition ${
+        cycle === value ? "border-primary bg-primary/10 text-foreground" : "border-border bg-card text-muted-foreground"
+      }`}
+    >
+      <span className="block text-sm font-semibold">{label}</span>
+      <span className="block text-[11px]">{sub}</span>
+    </button>
+  );
+  return (
+    <Card className={`flex flex-col p-5 ${isPopular || isCurrent ? "border-primary shadow-lift" : ""}`}>
+      <div className="flex items-center gap-2">
+        <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+        {isPopular && (
+          <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-medium text-primary-foreground">
+            Most popular
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
+
+      {!isFree && (
+        <div className="mt-4 flex gap-2">
+          {option("monthly", "Monthly", `${sym}${plan.price_monthly}/mo`)}
+          {option("yearly", "Yearly", "Save 2 months")}
+        </div>
+      )}
+
+      <div className="mt-4 flex items-baseline gap-1">
+        <span className="text-4xl font-bold text-foreground">
+          {sym}
+          {price}
+        </span>
+        <span className="text-sm text-muted-foreground">/{yearly ? "yr" : "mo"}</span>
+      </div>
+      {yearly && (
+        <p className="text-xs text-muted-foreground">
+          Billed once a year · about {sym}
+          {Math.round(plan.price_yearly / 12)}/month
+        </p>
+      )}
+
+      <ul className="mt-5 space-y-2.5 text-sm">
+        {features.map((f) => (
+          <FeatureItem key={f.key} f={f} />
+        ))}
+      </ul>
+      <div className="mt-6">
+        <PlanCta plan={plan} isPopular={!isFree} isCurrent={isCurrent} onChoose={onChoose} />
+      </div>
+    </Card>
+  );
+};
+
 const Pricing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -179,6 +252,8 @@ const Pricing = () => {
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const { planSlug, loading: entLoading } = useEntitlements();
   const currentSlug = currentPlanSlug(!!user, entLoading, planSlug);
+  const [pickedSlug, setPickedSlug] = useState<string | null>(null);
+  const mobilePlan = plans.find((p) => p.slug === (pickedSlug ?? currentSlug ?? "family")) ?? plans[0];
 
   useEffect(() => {
     (async () => {
@@ -203,15 +278,47 @@ const Pricing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-warm px-4 py-12 sm:px-6 sm:py-16">
+    <div className="scrollbar-hide h-screen overflow-y-auto bg-gradient-warm px-4 py-6 sm:px-6 sm:py-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-10 text-center">
+        <Link to={user ? "/home" : "/"} className="text-sm text-primary-deep hover:underline">
+          ← Back to {user ? "dashboard" : "home"}
+        </Link>
+        <div className="mb-6 mt-5 text-center">
           <h1 className="font-display text-3xl font-bold text-foreground sm:text-4xl">Pick the plan for your family</h1>
           <p className="mt-3 text-muted-foreground">Start free. Upgrade anytime to unlock more children and features.</p>
-          <CycleToggle cycle={cycle} onChange={setCycle} />
+          <div className="hidden md:block">
+            <CycleToggle cycle={cycle} onChange={setCycle} />
+          </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="md:hidden">
+          <div className="mb-6 flex rounded-full border border-border bg-card p-1">
+            {plans.map((plan) => (
+              <button
+                key={plan.id}
+                type="button"
+                onClick={() => setPickedSlug(plan.slug)}
+                className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${
+                  mobilePlan?.id === plan.id ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {plan.name}
+              </button>
+            ))}
+          </div>
+          {mobilePlan && (
+            <MobilePlanCard
+              plan={mobilePlan}
+              features={visibleFeatures(features, mobilePlan.id)}
+              cycle={cycle}
+              onCycleChange={setCycle}
+              isCurrent={currentSlug === mobilePlan.slug}
+              onChoose={() => handleChoose(mobilePlan)}
+            />
+          )}
+        </div>
+
+        <div className="hidden gap-6 md:grid md:grid-cols-3">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}
@@ -222,12 +329,6 @@ const Pricing = () => {
               onChoose={() => handleChoose(plan)}
             />
           ))}
-        </div>
-
-        <div className="mt-10 text-center">
-          <Link to={user ? "/home" : "/"} className="text-sm text-primary-deep hover:underline">
-            ← Back to {user ? "dashboard" : "home"}
-          </Link>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { Trash2, Users, Heart, Tag, X, Pencil, CalendarIcon, Plus, Loader2, Check, Star, Camera } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -144,9 +145,10 @@ export const MemoryDetail = ({ memory, onClose }: Props) => {
     return { whoSuggestions: tally("who_was_there"), tagSuggestions: tally("tags") };
   }, [pastMemories]);
 
+  const confirm = useConfirm();
   const handleDelete = async () => {
     if (!memory) return;
-    if (!confirm("Delete this memory? This can't be undone.")) return;
+    if (!(await confirm({ title: "Delete this memory?", description: "This can't be undone.", confirmLabel: "Delete", destructive: true }))) return;
     setDeleting(true);
     const { error } = await supabase.from("memories").delete().eq("id", memory.id);
     setDeleting(false);
@@ -328,7 +330,7 @@ export const MemoryDetail = ({ memory, onClose }: Props) => {
                   >
                     {memory.category}
                   </span>
-                  <h2 className="mt-3 text-2xl font-bold text-foreground">{memory.title}</h2>
+                  <DialogTitle className="mt-3 text-2xl font-bold leading-tight tracking-normal text-foreground">{memory.title}</DialogTitle>
                   <p className="mt-1 text-[13px] text-muted-foreground">
                     {format(new Date(memory.happened_at), "EEEE, MMMM d, yyyy")}
                   </p>
@@ -389,7 +391,7 @@ export const MemoryDetail = ({ memory, onClose }: Props) => {
                 </>
               ) : (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-bold text-foreground">Edit memory</h2>
+                  <DialogTitle className="text-xl font-bold leading-tight tracking-normal text-foreground">Edit memory</DialogTitle>
 
                   {/* Photo manager */}
                   <div className="space-y-2">

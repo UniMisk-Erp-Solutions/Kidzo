@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ConfirmProvider";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -138,9 +139,10 @@ const Family = () => {
     qc.invalidateQueries({ queryKey: ["shares"] });
   };
 
+  const confirm = useConfirm();
   const handleLeave = async () => {
     if (!child) return;
-    if (!confirm(`Leave ${childName}'s shared book? You won't see new memories until you're invited again.`)) return;
+    if (!(await confirm({ title: `Leave ${childName}'s shared book?`, description: "You won't see new memories until you're invited again.", confirmLabel: "Leave", destructive: true }))) return;
     try {
       await leaveShare.mutateAsync(child.id);
       toast.success(`You left ${childName}'s book`);
@@ -350,8 +352,8 @@ const Family = () => {
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-success/20 text-success">
                       <ShieldCheck className="h-4 w-4" />
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[14px] font-medium text-foreground">
+                    <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0">
+                      <div className="break-words text-[14px] font-medium text-foreground">
                         {isMe ? "You" : s.invite_email ?? "Family member"}
                         <span
                           className={cn(
@@ -370,7 +372,7 @@ const Family = () => {
                     </div>
 
                     {isOwner ? (
-                      <>
+                      <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
                         <Select
                           value={s.role}
                           onValueChange={(v) => updateRole(s.id, v as "viewer" | "editor")}
@@ -391,7 +393,7 @@ const Family = () => {
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                      </>
+                      </div>
                     ) : isMe ? (
                       <Button variant="ghost" size="sm" onClick={handleLeave}>
                         <LogOut className="h-4 w-4" /> Leave

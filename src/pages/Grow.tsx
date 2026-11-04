@@ -29,6 +29,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ConfirmProvider";
+import { AchievementDetail } from "@/components/childbook/AchievementDetail";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useAchievements, type AchievementType, type Achievement } from "@/hooks/useAchievements";
@@ -58,6 +60,7 @@ const Grow = () => {
 
   const [filter, setFilter] = useState<AchievementType | "all">("all");
   const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState<Achievement | null>(null);
 
   // form
   const [type, setType] = useState<AchievementType>("academics");
@@ -139,11 +142,13 @@ const Grow = () => {
     setOpen(false);
   };
 
+  const confirm = useConfirm();
   const handleDelete = async (id: string) => {
-    if (!confirm("Remove this achievement?")) return;
+    if (!(await confirm({ title: "Remove this achievement?", confirmLabel: "Remove", destructive: true }))) return;
     const { error } = await supabase.from("achievements").delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["achievements"] });
+    setViewing(null);
     toast.success("Removed.");
   };
 
@@ -208,7 +213,7 @@ const Grow = () => {
 
         {/* List */}
         {isLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-28 animate-pulse rounded-2xl bg-muted" />
             ))}
@@ -216,13 +221,24 @@ const Grow = () => {
         ) : filtered.length === 0 ? (
           <EmptyState onAdd={() => setOpen(true)} />
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((a) => (
-              <AchievementCard key={a.id} a={a} onDelete={canEdit ? () => handleDelete(a.id) : undefined} />
+              <AchievementCard
+                key={a.id}
+                a={a}
+                onOpen={() => setViewing(a)}
+                onDelete={canEdit ? () => handleDelete(a.id) : undefined}
+              />
             ))}
           </ul>
         )}
       </main>
+
+      <AchievementDetail
+        achievement={viewing}
+        onClose={() => setViewing(null)}
+        onDelete={canEdit ? (a) => handleDelete(a.id) : undefined}
+      />
 
       {/* Add dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
@@ -315,6 +331,7 @@ const Grow = () => {
                       mode="single"
                       selected={date}
                       onSelect={(d) => d && setDate(d)}
+                      disabled={(d) => d > new Date()}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
@@ -376,11 +393,17 @@ const Grow = () => {
   );
 };
 
-const AchievementCard = ({ a, onDelete }: { a: Achievement; onDelete?: () => void }) => {
+const AchievementCard = ({ a, onOpen, onDelete }: { a: Achievement; onOpen: () => void; onDelete?: () => void }) => {
   const meta = TYPES.find((t) => t.id === a.type);
   const Icon = meta?.icon ?? Sparkles;
   return (
-    <li className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:shadow-lift animate-fade-in-up">
+    <li
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
+      className="cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift animate-fade-in-up"
+    >
       {a.photo_url && (
         <img src={a.photo_url} alt={a.subject} className="h-36 w-full object-cover" loading="lazy" />
       )}
@@ -397,7 +420,10 @@ const AchievementCard = ({ a, onDelete }: { a: Achievement; onDelete?: () => voi
           </span>
           {onDelete && (
             <button
-              onClick={onDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               aria-label="Delete"
               className="text-muted-foreground hover:text-destructive"
             >

@@ -7,10 +7,12 @@ interface Props {
   memories: Memory[];
   onOpen: (m: Memory) => void;
   showMonths?: boolean;
+  /** Label for memories that belong to a sibling (shown on the polaroid). */
+  linkedLabelFor?: (m: Memory) => string | undefined;
 }
 
-/** Memories grouped by year: a stamped year heading, then polaroids flowing left to right. */
-export const MemoryTimeline = ({ memories, onOpen, showMonths = false }: Props) => {
+/** Memories grouped by year, in the order given: a stamped year heading, then polaroids flowing left to right. */
+export const MemoryTimeline = ({ memories, onOpen, showMonths = false, linkedLabelFor }: Props) => {
   const byYear = new Map<number, Memory[]>();
   for (const m of memories) {
     const year = new Date(m.happened_at).getFullYear();
@@ -49,7 +51,7 @@ export const MemoryTimeline = ({ memories, onOpen, showMonths = false }: Props) 
                       </li>
                     )}
                     <li className="w-[calc(50%-14px)] min-w-[150px] sm:w-[220px]">
-                      <MemoryPolaroid memory={m} index={index} onOpen={onOpen} />
+                      <MemoryPolaroid memory={m} index={index} onOpen={onOpen} linkedLabel={linkedLabelFor?.(m)} />
                     </li>
                   </Fragment>
                 );

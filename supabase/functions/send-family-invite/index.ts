@@ -8,6 +8,8 @@
 //   RESEND_FROM     – sender on a Resend-verified domain, e.g. "Kidzopedia <invites@yourdomain.com>"
 //   SITE_URL        – (optional) public app URL used in the link, e.g. https://app.kidzopedia.in
 //                     (falls back to the request's Origin header)
+// Self-hosted (Coolify): if RESEND_API_KEY / RESEND_FROM are unset, the function reuses the auth
+// service's Resend SMTP settings (SMTP_PASS, SMTP_ADMIN_EMAIL, SMTP_SENDER_NAME).
 import { createClient, type SupabaseClient, type User } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -43,8 +45,10 @@ type Invite = {
 type Config = { supabaseUrl: string; serviceKey: string; anonKey: string; resendKey: string; from: string };
 
 function readConfig(): Config {
-  const resendKey = Deno.env.get("RESEND_API_KEY");
-  const from = Deno.env.get("RESEND_FROM");
+  // Self-hosted: the auth service already sends through Resend's SMTP relay, whose password is the API key.
+  const resendKey = Deno.env.get("RESEND_API_KEY") || (Deno.env.get("SMTP_HOST") === "smtp.resend.com" ? Deno.env.get("SMTP_PASS") : undefined);
+  const smtpAdmin = Deno.env.get("SMTP_ADMIN_EMAIL");
+  const from = Deno.env.get("RESEND_FROM") || (smtpAdmin ? `${Deno.env.get("SMTP_SENDER_NAME") || "Kidzopedia"} <${smtpAdmin}>` : undefined);
   if (!resendKey || !from) throw new HttpError(500, "Email sending isn't configured yet");
   return {
     supabaseUrl: Deno.env.get("SUPABASE_URL") ?? "",

@@ -10,22 +10,40 @@ type Delivery = {
   fresh: boolean;
 };
 
-/** Asks the server to email an invite to the address stored on it. Returns whether it was sent. */
-async function emailInvite(inviteId: string): Promise<boolean> {
-  const { data, error } = await supabase.functions.invoke("send-family-invite", { body: { invite_id: inviteId } });
-  if (error || !data?.ok) {
-    console.error("send-family-invite failed:", error ?? data);
-    return false;
+type EmailResult = { ok: true } | { ok: false; reason: string | null };
+
+/** The message the function put in its error response, if there was one. */
+async function serverReason(error: unknown): Promise<string | null> {
+  const res = (error as { context?: unknown } | null)?.context;
+  if (!(res instanceof Response)) return null;
+  try {
+    const body = await res.clone().json();
+    // The function answers { error }; the edge runtime itself (e.g. a function that isn't deployed) answers { msg }.
+    const reason = body?.error ?? body?.msg ?? body?.message;
+    return typeof reason === "string" ? reason : null;
+  } catch {
+    return null;
   }
-  return true;
 }
 
-function announce({ email, fresh }: Delivery, emailed: boolean | null, copied: boolean) {
+/** Asks the server to email an invite to the address stored on it. */
+async function emailInvite(inviteId: string): Promise<EmailResult> {
+  const { data, error } = await supabase.functions.invoke("send-family-invite", { body: { invite_id: inviteId } });
+  if (!error && data?.ok) return { ok: true };
+  const reason = await serverReason(error);
+  console.error("send-family-invite failed:", reason ?? error ?? data);
+  return { ok: false, reason };
+}
+
+function announce({ email, fresh }: Delivery, emailed: EmailResult | null, copied: boolean) {
   const subject = fresh ? "Fresh invite" : "Invite";
   const copiedNote = copied ? " — the link is copied, share it yourself" : "";
-  if (emailed === true) return toast.success(`${subject} emailed to ${email}${copied && !fresh ? " — link copied too" : ""}`);
-  if (emailed === false) return toast.warning(`${subject} created, but the email couldn't be sent${copiedNote}`);
-  return toast.success(copied ? `${fresh ? "Fresh link" : "Invite link"} copied to clipboard` : `${subject} created`);
+  if (emailed === null) {
+    return toast.success(copied ? `${fresh ? "Fresh link" : "Invite link"} copied to clipboard` : `${subject} created`);
+  }
+  if (emailed.ok === true) return toast.success(`${subject} emailed to ${email}${copied && !fresh ? " — link copied too" : ""}`);
+  const why = emailed.reason ? ` (${emailed.reason})` : "";
+  return toast.warning(`${subject} created, but the email couldn't be sent${why}${copiedNote}`);
 }
 
 /** Copies the invite link, emails it when there is an address, and tells the user what happened. */

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Cake, History, PenLine, Printer, Package, Truck, type LucideIcon } from "lucide-react";
+import { BookOpen, Cake, ChevronRight, History, PartyPopper, PenLine, Printer, Package, Sparkles, Truck, type LucideIcon } from "lucide-react";
 import { addYears, differenceInCalendarDays, differenceInDays, format, getISOWeek } from "date-fns";
 import { MemoryDetail } from "@/components/childbook/MemoryDetail";
 import { useUserBooks, type UserBook } from "@/hooks/useUserBooks";
@@ -23,6 +23,12 @@ interface Item {
   tone: string;
   imageUrl?: string | null;
   onClick?: () => void;
+  /** Small uppercase line above the title. */
+  label?: string;
+  /** Outlined action chip shown on the right when the row is clickable. */
+  cta?: string;
+  /** Birthday styling: celebration gradient, confetti and a countdown badge. */
+  festive?: { days: number };
 }
 
 /** One question a week; the week number picks it, so it changes every Monday and repeats after half a year. */
@@ -74,6 +80,8 @@ export const UpcomingMilestones = ({ dob, childId, childName, memories, canEdit 
       const { memory, yearsAgo, exact } = flash;
       list.push({
         key: "on-this-day",
+        label: "On this day",
+        cta: "Relive",
         icon: History,
         title: memory.title,
         when: `${yearsAgo} ${yearsAgo === 1 ? "year" : "years"} ago ${exact ? "today" : "this week"} · ${format(new Date(memory.happened_at), "MMM d, yyyy")}`,
@@ -86,9 +94,11 @@ export const UpcomingMilestones = ({ dob, childId, childName, memories, canEdit 
     const prompt = WEEKLY_PROMPTS[getISOWeek(today) % WEEKLY_PROMPTS.length].replace("{name}", childName);
     list.push({
       key: "weekly-prompt",
+      label: "Weekly prompt",
+      cta: canEdit ? "Write" : undefined,
       icon: PenLine,
       title: prompt,
-      when: canEdit ? "This week's prompt · tap to capture it" : "This week's prompt",
+      when: canEdit ? "Tap to capture it" : "A little moment worth keeping",
       tone: "bg-primary/30 text-primary-deep",
       onClick: canEdit ? () => navigate("/moments/new") : undefined,
     });
@@ -110,7 +120,29 @@ export const UpcomingMilestones = ({ dob, childId, childName, memories, canEdit 
   );
 };
 
+const FestiveRow = ({ item, days }: { item: Item; days: number }) => (
+  <div className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border bg-gradient-celebrate p-4 shadow-soft sm:p-5">
+    <Sparkles className="pointer-events-none absolute right-3 top-2 h-4 w-4 text-accent-foreground/40" />
+    <PartyPopper className="pointer-events-none absolute -bottom-1 right-14 h-9 w-9 -rotate-12 text-primary-deep/15" />
+    <span className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-card/85 text-primary-deep shadow-soft">
+      <Cake className="h-6 w-6" strokeWidth={2.2} />
+      <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 text-accent-foreground" />
+    </span>
+    <div className="relative min-w-0 flex-1">
+      <div className="line-clamp-2 text-[15px] font-semibold text-[hsl(var(--on-celebrate))]">{item.title} 🎉</div>
+      <div className="text-[13px] text-[hsl(var(--on-celebrate))]/70">{days === 0 ? "It’s today!" : "Time to start planning the memories"}</div>
+    </div>
+    <span className="relative flex-shrink-0 rounded-2xl bg-card/85 px-3 py-1.5 text-center shadow-soft">
+      <span className="block text-lg font-bold leading-none text-primary-deep">{days === 0 ? "🎂" : days}</span>
+      <span className="block pt-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {days === 0 ? "today" : days === 1 ? "day" : "days"}
+      </span>
+    </span>
+  </div>
+);
+
 const ItemRow = ({ item }: { item: Item }) => {
+  if (item.festive) return <FestiveRow item={item} days={item.festive.days} />;
   const Icon = item.icon;
   const body = (
     <>
@@ -122,12 +154,22 @@ const ItemRow = ({ item }: { item: Item }) => {
         </span>
       )}
       <div className="min-w-0 flex-1">
+        {item.label && (
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-primary-deep/70">{item.label}</div>
+        )}
         <div className="line-clamp-2 text-[15px] font-semibold text-foreground">{item.title}</div>
         <div className="text-[13px] text-muted-foreground">{item.when}</div>
       </div>
+      {item.onClick && item.cta && (
+        <span className="relative inline-flex flex-shrink-0 items-center gap-0.5 rounded-full border border-primary-deep/30 px-2.5 py-1 text-[12px] font-medium text-primary-deep transition-colors group-hover:border-primary-deep/60 group-hover:bg-primary/10">
+          {item.cta}
+          <ChevronRight className="h-3.5 w-3.5" />
+        </span>
+      )}
+      <Icon className="pointer-events-none absolute -bottom-3 right-10 h-16 w-16 -rotate-12 text-foreground/[0.04]" strokeWidth={1.6} />
     </>
   );
-  const cls = "flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left shadow-soft transition-all duration-200 sm:p-5";
+  const cls = "group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card p-4 text-left shadow-soft transition-all duration-200 sm:p-5";
   return item.onClick ? (
     <button type="button" onClick={item.onClick} className={cn(cls, "hover:-translate-y-0.5 hover:shadow-lift")}>
       {body}
@@ -147,6 +189,7 @@ const birthdayItem = (dob: Date, childName: string, today: Date): Item => {
     title: `${childName}'s ${ordinal(next.getFullYear() - dob.getFullYear())} birthday`,
     when: `in ${days} ${days === 1 ? "day" : "days"}`,
     tone: "bg-secondary/25 text-secondary",
+    festive: { days },
   };
 };
 
@@ -159,6 +202,8 @@ const bookItem = (books: UserBook[], memoryCount: number, navigate: (to: string)
   if (shipped) {
     return {
       key: "book-shipped",
+      label: "Your book",
+      cta: "Track",
       icon: Truck,
       title: `"${shipped.title}" is on its way`,
       when: shipped.tracking_number ? `Tracking: ${shipped.tracking_number}` : "Shipped",
@@ -170,6 +215,8 @@ const bookItem = (books: UserBook[], memoryCount: number, navigate: (to: string)
   if (printing) {
     return {
       key: "book-printing",
+      label: "Your book",
+      cta: "View",
       icon: Printer,
       title: `"${printing.title}" is being printed`,
       when: "We'll let you know when it ships",
@@ -181,6 +228,8 @@ const bookItem = (books: UserBook[], memoryCount: number, navigate: (to: string)
   if (ordered) {
     return {
       key: "book-ordered",
+      label: "Your book",
+      cta: "View",
       icon: Package,
       title: `"${ordered.title}" order confirmed`,
       when: ordered.order_date ? `Ordered ${format(new Date(ordered.order_date), "MMM d")}` : "Waiting to be printed",
@@ -192,6 +241,8 @@ const bookItem = (books: UserBook[], memoryCount: number, navigate: (to: string)
   if (unfinished) {
     return {
       key: "book-unfinished",
+      label: "Your book",
+      cta: unfinished.status === "preview" ? "Order" : "Continue",
       icon: BookOpen,
       title: `Finish "${unfinished.title}"`,
       when: unfinished.status === "preview" ? "In preview · ready to order" : "Draft · pick up where you left off",
@@ -202,6 +253,8 @@ const bookItem = (books: UserBook[], memoryCount: number, navigate: (to: string)
   if (books.length === 0 && memoryCount >= PRINT_READY_MEMORIES) {
     return {
       key: "book-ready",
+      label: "Your book",
+      cta: "Create",
       icon: BookOpen,
       title: `You have ${memoryCount} memories, enough for a book`,
       when: "Turn them into a printed keepsake",

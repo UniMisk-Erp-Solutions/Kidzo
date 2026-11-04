@@ -226,16 +226,6 @@
   [data-palette="tales"][data-section="books"] { --sec-1: 40 62% 66%; --sec-2: 12 50% 70%; --sec-3: 20 62% 82%; --sec-deep: 28 65% 28%; }
   [data-palette="tales"][data-section="docs"] { --sec-1: 205 26% 68%; --sec-2: 108 22% 70%; --sec-3: 40 62% 76%; --sec-deep: 205 40% 28%; }
   [data-palette="tales"][data-section="family"] { --sec-1: 12 50% 70%; --sec-2: 40 62% 72%; --sec-3: 11 49% 62%; --sec-deep: 10 50% 32%; }
-  /* Gingham picnic trim under the header (Tales only) */
-  [data-palette="tales"]:not([data-landing]) header.sticky::after {
-    content: ""; display: block; height: 9px;
-    background-color: hsl(40 75% 98%);
-    background-image:
-      linear-gradient(90deg, hsl(11 49% 52% / 0.5) 50%, transparent 50%),
-      linear-gradient(hsl(11 49% 52% / 0.5) 50%, transparent 50%);
-    background-size: 18px 18px;
-  }
-
   /* First landing page ("/") — peach cream, terracotta, olive ink, lilac band; heavy soft serif + DM Sans.
      Set by <html data-landing="wash"> from src/pages/Landing.tsx; independent of the in-app theme. */
   [data-landing="wash"] {

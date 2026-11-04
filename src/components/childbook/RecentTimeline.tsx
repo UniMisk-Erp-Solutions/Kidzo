@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, ImageIcon, Sparkles, Trophy } from "lucide-react";
+import { ImageIcon, Sparkles, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { MemoryDetail } from "@/components/childbook/MemoryDetail";
+import { AchievementDetail } from "@/components/childbook/AchievementDetail";
 import type { Memory } from "@/hooks/useMemories";
 import type { Achievement } from "@/hooks/useAchievements";
 import { cn } from "@/lib/utils";
@@ -20,7 +22,7 @@ const memoryToneByCat: Record<string, string> = {
   Family: "bg-warning/25 text-warning-foreground",
 };
 
-/** How far back "Recent activity" looks before "See all" is needed. */
+/** How far back "Recent activity" looks. */
 const RECENT_DAYS = 7;
 
 const rowClass =
@@ -104,40 +106,27 @@ interface Props {
   achievements: Achievement[];
 }
 
-/** The last week of memories and achievements; "See all" opens everything in place. */
+/** The last week of memories and achievements. */
 export const RecentTimeline = ({ memories, achievements }: Props) => {
   const navigate = useNavigate();
-  const [showAll, setShowAll] = useState(false);
+  const [open, setOpen] = useState<Memory | null>(null);
+  const [openAchievement, setOpenAchievement] = useState<Achievement | null>(null);
 
   const feed = buildFeed(memories, achievements);
   const weekAgo = subDays(new Date(), RECENT_DAYS);
-  const items = showAll ? feed : feed.filter((it) => it.date >= weekAgo);
-  const hasOlder = feed.length > items.length;
+  const items = feed.filter((it) => it.date >= weekAgo);
 
   return (
     <section aria-label="Recent activity" className="animate-fade-in-up">
-      <header className="mb-3 flex items-end justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground sm:text-2xl">{showAll ? "All activity" : "Recent activity"}</h2>
-          <p className="text-[13px] text-muted-foreground">
-            {showAll ? "Every memory and achievement" : `Memories and achievements from the last ${RECENT_DAYS} days`}
-          </p>
-        </div>
-        {(hasOlder || showAll) && (
-          <button
-            onClick={() => setShowAll((v) => !v)}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[13px] font-medium text-primary-deep transition-colors hover:bg-primary/15"
-          >
-            {showAll ? "Show less" : "See all"}
-            {showAll ? <ChevronDown className="h-4 w-4 rotate-180" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
-        )}
+      <header className="mb-3">
+        <h2 className="text-xl font-semibold text-foreground sm:text-2xl">Recent activity</h2>
+        <p className="text-[13px] text-muted-foreground">Memories and achievements from the last {RECENT_DAYS} days</p>
       </header>
 
       {feed.length === 0 && <EmptyState onCreate={() => navigate("/moments/new")} />}
       {feed.length > 0 && items.length === 0 && (
         <p className="rounded-2xl border border-dashed border-border bg-card/60 p-6 text-center text-[14px] text-muted-foreground">
-          Nothing new in the last {RECENT_DAYS} days. Tap “See all” to look back.
+          Nothing new in the last {RECENT_DAYS} days.
         </p>
       )}
       {items.length > 0 && (
@@ -145,14 +134,16 @@ export const RecentTimeline = ({ memories, achievements }: Props) => {
           {items.map((it) => (
             <li key={`${it.kind}-${it.id}`}>
               {it.kind === "memory" ? (
-                <MemoryRow memory={it.data} date={it.date} onOpen={() => navigate("/moments")} />
+                <MemoryRow memory={it.data} date={it.date} onOpen={() => setOpen(it.data)} />
               ) : (
-                <AchievementRow achievement={it.data} date={it.date} onOpen={() => navigate("/grow")} />
+                <AchievementRow achievement={it.data} date={it.date} onOpen={() => setOpenAchievement(it.data)} />
               )}
             </li>
           ))}
         </ul>
       )}
+      <MemoryDetail memory={open} onClose={() => setOpen(null)} />
+      <AchievementDetail achievement={openAchievement} onClose={() => setOpenAchievement(null)} />
     </section>
   );
 };

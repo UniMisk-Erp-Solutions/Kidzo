@@ -24,6 +24,7 @@ import { PronounsSelect } from "@/components/childbook/PronounsSelect";
 import { PhoneField, toE164 } from "@/components/childbook/PhoneField";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { useAddChildGuard } from "@/hooks/useAddChildGuard";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useActiveChildId, useLeaveSharedChild, useUpdateChild } from "@/hooks/useChildren";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { planName, planSlug, loading: planLoading } = useEntitlements();
+  const canAddChild = useAddChildGuard();
   const { data: child, isLoading } = useActiveChild();
   const { activeId, children } = useActiveChildId();
   const activeChild = children.find((c) => c.id === activeId) ?? child;
@@ -324,7 +326,7 @@ const Settings = () => {
               type="button"
               variant="warm"
               size="sm"
-              onClick={() => navigate("/onboarding?addChild=1")}
+              onClick={() => canAddChild() && navigate("/onboarding?addChild=1")}
             >
               <Plus className="h-4 w-4" /> Add child
             </Button>

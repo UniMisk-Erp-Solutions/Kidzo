@@ -48,6 +48,12 @@ const LAYOUTS: { id: LayoutStyle; title: string; desc: string; swatches?: string
 const blobForChild = (job: { childId: string | null; blob: Blob | null }, childId?: string) =>
   childId && job.childId === childId ? job.blob : null;
 
+/** 128 random bits as URL-safe text: unguessable, and carries no ids, names or server details. */
+const newShareToken = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return btoa(String.fromCharCode(...bytes)).replace(/[+/=]/g, (c) => ({ "+": "-", "/": "_", "=": "" })[c] ?? "");
+};
+
 const ExportShare = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -176,16 +182,26 @@ const ExportShare = () => {
     setSharing(true);
     const t = toast.loading("Uploading your photo book…");
     try {
-      const path = `${user.id}/${child.id}-${Date.now()}-${lastFilename}`;
+      // The file name is random (no child name or ids). The folder must stay the user id for the storage
+      // policy, but that path is never put in the link: the link is just a random token on our own domain.
+      const path = `${user.id}/${crypto.randomUUID()}.pdf`;
       const { error } = await supabase.storage
         .from("shared-keepsakes")
         .upload(path, lastBlob, { contentType: "application/pdf", upsert: false });
       if (error) throw error;
-      const { data } = supabase.storage.from("shared-keepsakes").getPublicUrl(path);
-      setShareUrl(data.publicUrl);
-      await navigator.clipboard.writeText(data.publicUrl).catch(() => {});
+      const token = newShareToken();
+      const { error: linkError } = await supabase
+        .from("shared_keepsakes")
+        .insert({ token, user_id: user.id, child_id: child.id, storage_path: path });
+      if (linkError) {
+        await supabase.storage.from("shared-keepsakes").remove([path]);
+        throw linkError;
+      }
+      const url = `${window.location.origin}/k/${token}`;
+      setShareUrl(url);
+      await navigator.clipboard.writeText(url).catch(() => {});
       toast.success("Link ready & copied to clipboard 🔗", { id: t });
-      return data.publicUrl;
+      return url;
     } catch (e) {
       toast.error("Couldn't create share link", {
         id: t,
@@ -382,11 +398,9 @@ const ExportShare = () => {
         blob={lastBlob}
         canDownload={canDownload}
         locked={!entLoading && !canDownload}
-        busy={busy}
         onClose={() => setPreviewOpen(false)}
         onDownload={downloadCurrent}
         onUpgrade={goUpgrade}
-        onShare={createShareLink}
       />
 
       <BottomNav />

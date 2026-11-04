@@ -25,6 +25,7 @@ import Grow from "./pages/Grow.tsx";
 import Documents from "./pages/Documents.tsx";
 import Family from "./pages/Family.tsx";
 import Share from "./pages/Share.tsx";
+import SharedKeepsake from "./pages/SharedKeepsake.tsx";
 import Settings from "./pages/Settings.tsx";
 import MyBooks from "./pages/books/MyBooks.tsx";
 import CreateBook from "./pages/books/CreateBook.tsx";
@@ -89,6 +90,7 @@ const ROUTES: AppRoute[] = [
   { path: "/records", element: <Navigate to="/documents" replace /> },
   { path: "/family", element: <Family />, guard: "user" },
   { path: "/share/:token", element: <Share /> },
+  { path: "/k/:token", element: <SharedKeepsake /> },
   { path: "/export", element: <ExportShare />, guard: "user" },
   { path: "/books", element: <MyBooks />, guard: "user" },
   { path: "/books/new", element: <CreateBook />, guard: "user" },

@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useActiveChildId } from "@/hooks/useChildren";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAddChildGuard } from "@/hooks/useAddChildGuard";
 import { cn } from "@/lib/utils";
 
 export const ChildSwitcher = ({ childName }: { childName?: string }) => {
   const { user } = useAuth();
   const { activeId, setActive, children } = useActiveChildId();
   const navigate = useNavigate();
+  const canAddChild = useAddChildGuard();
 
   // Always render so users can add another child even if they only have one.
   const owned = children.filter((c) => c.user_id === user?.id);
@@ -73,7 +75,7 @@ export const ChildSwitcher = ({ childName }: { childName?: string }) => {
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => navigate("/onboarding?addChild=1")}
+          onClick={() => canAddChild() && navigate("/onboarding?addChild=1")}
           className="flex items-center gap-2 rounded-lg text-primary-deep focus:text-primary-deep"
         >
           <Plus className="h-4 w-4" /> Add another child

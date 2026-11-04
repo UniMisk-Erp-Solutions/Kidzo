@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, ImageIcon, Filter, Sparkles, CalendarDays } from "lucide-react";
+import { Search, Plus, Camera, Filter, Sparkles, CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,6 @@ import { ViewToggle } from "@/components/childbook/ViewToggle";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { MemoryDetail } from "@/components/childbook/MemoryDetail";
 import { MemoryTimeline } from "@/components/childbook/MemoryTimeline";
-import { MemoryPolaroid } from "@/components/childbook/MemoryPolaroid";
 import { Flashbacks } from "@/components/childbook/Flashbacks";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +67,11 @@ const Moments = () => {
   );
   const [yearFilter, setYearFilter] = useState("all");
 
+  const linkedLabelFor = (m: Memory) =>
+    m.is_linked
+      ? `${m.primary_child_id && nameById[m.primary_child_id] ? `From ${nameById[m.primary_child_id]}` : "Sibling's memory"}${m.relation_label ? ` · ${m.relation_label}` : ""}`
+      : undefined;
+
   const years = useMemo(
     () => Array.from(new Set(memories.map((m) => new Date(m.happened_at).getFullYear()))).sort((a, b) => b - a),
     [memories],
@@ -102,7 +106,7 @@ const Moments = () => {
       {/* Header banner — same style as Grow */}
       <div className="mx-auto max-w-6xl px-6 pt-6">
         <PageHero
-          icon={ImageIcon}
+          icon={Camera}
           title="Moments"
           subtitle={momentsSubtitle(memories.length)}
           actions={
@@ -237,29 +241,18 @@ const Moments = () => {
               )}
               onOpen={setOpen}
               showMonths={showMonths}
+              linkedLabelFor={linkedLabelFor}
             />
           </div>
         ) : (
-          <ul className="columns-2 gap-6 px-1 pt-2 sm:columns-3 lg:columns-4">
-            {filtered.map((m, i) => (
-              <li
-                key={m.id}
-                className="mb-6 break-inside-avoid"
-                style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
-              >
-                <MemoryPolaroid
-                  memory={m}
-                  index={i}
-                  onOpen={setOpen}
-                  linkedLabel={
-                    m.is_linked
-                      ? `${m.primary_child_id && nameById[m.primary_child_id] ? `From ${nameById[m.primary_child_id]}` : "Sibling's memory"}${m.relation_label ? ` · ${m.relation_label}` : ""}`
-                      : undefined
-                  }
-                />
-              </li>
-            ))}
-          </ul>
+          // Grid: the same year-by-year rows as the timeline, newest year first.
+          <MemoryTimeline
+            memories={[...filtered].sort(
+              (a, b) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime(),
+            )}
+            onOpen={setOpen}
+            linkedLabelFor={linkedLabelFor}
+          />
         )}
       </main>
 

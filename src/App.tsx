@@ -6,6 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ConfirmProvider } from "@/components/ConfirmProvider";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { CookieBanner } from "@/components/CookieBanner";
 import { AppRoutes } from "./AppRoutes.tsx";
@@ -21,13 +22,15 @@ const App = () => (
 
       <BrowserRouter>
         <AuthProvider>
-          <ScrollToTop />
-          <SectionTheme />
-          <AmbientDecor />
-          <CookieBanner />
-          <PageTransition>
-          <AppRoutes />
-          </PageTransition>
+          <ConfirmProvider>
+            <ScrollToTop />
+            <SectionTheme />
+            <AmbientDecor />
+            <CookieBanner />
+            <PageTransition>
+            <AppRoutes />
+            </PageTransition>
+          </ConfirmProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

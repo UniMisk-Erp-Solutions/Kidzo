@@ -1,5 +1,5 @@
 import { CheckCircle2, FileText, Image as ImageIcon, Loader2, X } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import type { PdfProgress } from "@/lib/exportBookPdf";
@@ -76,9 +76,9 @@ export const PdfExportDialog = ({ open, progress, error, onClose }: Props) => {
 
           {/* Title */}
           <div>
-            <h2 className="text-[18px] font-bold leading-tight">
+            <DialogTitle className="text-[18px] font-bold leading-tight tracking-normal">
               {isError ? "Export failed" : isDone ? "PDF ready!" : "Generating your scrapbook…"}
-            </h2>
+            </DialogTitle>
             <p className="mt-1 text-[13px] text-muted-foreground">
               {isError
                 ? error

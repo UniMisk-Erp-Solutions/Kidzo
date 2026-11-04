@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ConfirmProvider";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -187,8 +188,9 @@ export function useDocumentPreview() {
 export function useDeleteDocument() {
   const docActions = useDocumentActions();
   const qc = useQueryClient();
+  const confirm = useConfirm();
   return async (doc: ChildDocument) => {
-    if (!confirm(`Delete "${doc.title}"? This can't be undone.`)) return;
+    if (!(await confirm({ title: `Delete "${doc.title}"?`, description: "This can't be undone.", confirmLabel: "Delete", destructive: true }))) return;
     const failure = await docActions.remove(doc);
     if (failure) return toast.error(failure);
     qc.invalidateQueries({ queryKey: ["documents"] });

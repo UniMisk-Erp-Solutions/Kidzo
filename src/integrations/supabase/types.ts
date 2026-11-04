@@ -686,6 +686,41 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_keepsakes: {
+        Row: {
+          child_id: string
+          created_at: string
+          revoked_at: string | null
+          storage_path: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          revoked_at?: string | null
+          storage_path: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          revoked_at?: string | null
+          storage_path?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_keepsakes_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_books: {
         Row: {
           binding_type: string
@@ -852,6 +887,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      resolve_shared_keepsake: {
+        Args: { _token: string }
+        Returns: string
       }
       lookup_invite: {
         Args: { _token: string }

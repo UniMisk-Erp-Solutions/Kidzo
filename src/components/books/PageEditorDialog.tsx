@@ -38,7 +38,7 @@ export function PageEditorDialog({
   if (!page) return null;
   return (
     <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
-      <DialogContent className="flex h-[95dvh] max-h-[95dvh] max-w-[98vw] flex-col gap-2 overflow-hidden p-3 sm:max-w-[98vw]">
+      <DialogContent className="flex h-[95dvh] max-h-[95dvh] max-w-[98vw] max-sm:w-[98vw] flex-col gap-2 overflow-hidden p-3 sm:max-w-[98vw]">
         <DialogHeader className="shrink-0">
           <DialogTitle>Edit page</DialogTitle>
           <DialogDescription className="sr-only">Edit the text, photos and stickers on this page.</DialogDescription>

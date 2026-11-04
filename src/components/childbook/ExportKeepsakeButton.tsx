@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, Lock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -8,20 +9,24 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { exportKeepsakePdf } from "@/lib/exportPdf";
 import { useFeatureGuard } from "@/hooks/useFeatureGuard";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import type { Memory } from "@/hooks/useMemories";
 import type { Achievement } from "@/hooks/useAchievements";
 
 interface Props {
   childName: string;
-  childDob: Date;
   memories: Memory[];
   achievements: Achievement[];
 }
 
-export const ExportKeepsakeButton = ({ childName, childDob, memories, achievements }: Props) => {
+export const ExportKeepsakeButton = ({ childName, memories, achievements }: Props) => {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const guard = useFeatureGuard();
+  const navigate = useNavigate();
+  const { can, loading: planLoading } = useEntitlements();
+  // Plan known and it doesn't include PDF export (free plan): the button sends people to the plans instead.
+  const locked = !planLoading && !can("pdf_export");
 
   const allDates = [
     ...memories.map((m) => new Date(m.happened_at).getFullYear()),
@@ -32,8 +37,6 @@ export const ExportKeepsakeButton = ({ childName, childDob, memories, achievemen
 
   const [fromYear, setFromYear] = useState<number>(minYear);
   const [toYear, setToYear] = useState<number>(maxYear);
-  const [includePhotos, setIncludePhotos] = useState(true);
-  const [includeStories, setIncludeStories] = useState(true);
   const [includeAchievements, setIncludeAchievements] = useState(true);
 
   // Keep the year range in sync as memories/achievements load in (the
@@ -75,13 +78,10 @@ export const ExportKeepsakeButton = ({ childName, childDob, memories, achievemen
     try {
       const report = await exportKeepsakePdf({
         childName,
-        childDob,
         memories,
         achievements,
         fromYear: fy,
         toYear: ty,
-        includePhotos,
-        includeStories,
         includeAchievements,
       });
       const ms = Math.round(performance.now() - startedAt);
@@ -142,7 +142,7 @@ export const ExportKeepsakeButton = ({ childName, childDob, memories, achievemen
           Export keepsake
         </Button>
       </DialogTrigger>
-      <DialogContent className="rounded-2xl sm:max-w-md">
+      <DialogContent className="w-[88%] max-w-sm rounded-2xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Export keepsake PDF</DialogTitle>
         </DialogHeader>
@@ -176,14 +176,6 @@ export const ExportKeepsakeButton = ({ childName, childDob, memories, achievemen
 
           <div className="space-y-3 rounded-xl border border-border bg-muted/40 p-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="ph" className="text-sm font-normal">Include photos</Label>
-              <Switch id="ph" checked={includePhotos} onCheckedChange={setIncludePhotos} />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="st" className="text-sm font-normal">Include stories & notes</Label>
-              <Switch id="st" checked={includeStories} onCheckedChange={setIncludeStories} />
-            </div>
-            <div className="flex items-center justify-between">
               <Label htmlFor="ac" className="text-sm font-normal">Include achievements</Label>
               <Switch id="ac" checked={includeAchievements} onCheckedChange={setIncludeAchievements} />
             </div>
@@ -194,10 +186,23 @@ export const ExportKeepsakeButton = ({ childName, childDob, memories, achievemen
           <Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>
             Cancel
           </Button>
-          <Button variant="warm" onClick={handle} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Generate PDF
-          </Button>
+          {locked ? (
+            <Button
+              variant="warm"
+              onClick={() => {
+                setOpen(false);
+                navigate("/pricing-plans");
+              }}
+            >
+              <Lock className="h-4 w-4" />
+              Upgrade to view
+            </Button>
+          ) : (
+            <Button variant="warm" onClick={handle} disabled={busy}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Generate PDF
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

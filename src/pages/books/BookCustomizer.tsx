@@ -262,7 +262,7 @@ const BookCustomizer = () => {
                       className="h-9 w-12 cursor-pointer rounded-lg border bg-transparent"
                     />
                     <Input
-                      value={colors[key]}
+                      value={colors[key] ?? ""}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
                       className="h-9 font-mono text-[12px]"
                     />

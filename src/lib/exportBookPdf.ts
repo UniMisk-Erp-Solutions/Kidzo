@@ -64,7 +64,7 @@ export type PdfProgress = {
 type FontsDoc = Document & { fonts?: { ready: Promise<unknown> } };
 
 /** Resolves once web fonts are ready (never rejects). */
-async function waitForFonts(): Promise<void> {
+export async function waitForFonts(): Promise<void> {
   try {
     await (document as FontsDoc).fonts?.ready;
   } catch {
@@ -93,7 +93,7 @@ function imageSettled(img: HTMLImageElement): Promise<void> {
 }
 
 /** Wait for any images on the page to fully decode. */
-async function waitForImages(host: HTMLElement): Promise<void> {
+export async function waitForImages(host: HTMLElement): Promise<void> {
   const imgs = Array.from(host.querySelectorAll("img"));
   if (imgs.length > 0) await Promise.all(imgs.map(imageSettled));
 }
@@ -128,7 +128,7 @@ function renderPage(root: Root, page: BookPage, colors: BookTemplateColors, cust
 }
 
 /** Snapshot the off-screen host at 2× DPI. */
-function snapshot(host: HTMLElement, colors: BookTemplateColors) {
+export function snapshot(host: HTMLElement, colors: BookTemplateColors) {
   return html2canvas(host, {
     backgroundColor: colors.paper ?? colors.primary ?? "#ffffff",
     scale: 2,
@@ -145,7 +145,7 @@ function snapshot(host: HTMLElement, colors: BookTemplateColors) {
 }
 
 /** The hidden element pages are drawn into before being captured. */
-function createRenderHost(colors: BookTemplateColors): HTMLDivElement {
+export function createRenderHost(colors: BookTemplateColors): HTMLDivElement {
   const host = document.createElement("div");
   host.style.position = "fixed";
   host.style.left = "-100000px";

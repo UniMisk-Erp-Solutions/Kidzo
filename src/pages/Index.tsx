@@ -60,7 +60,6 @@ const Index = () => {
             </Button>
             <ExportKeepsakeButton
               childName={child.name}
-              childDob={new Date(child.dob)}
               memories={memories}
               achievements={achievements}
             />

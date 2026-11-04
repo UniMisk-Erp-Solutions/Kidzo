@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ConfirmProvider";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Plus, Trash2, Eye, Truck, Loader2, Package, PackageCheck, Printer, type LucideIcon } from "lucide-react";
@@ -47,8 +48,9 @@ const MyBooks = () => {
     return { drafts, ordered, delivered };
   }, [books]);
 
+  const confirm = useConfirm();
   const handleDelete = async (book: UserBook) => {
-    if (!confirm(`Delete "${book.title}"? This can't be undone.`)) return;
+    if (!(await confirm({ title: `Delete "${book.title}"?`, description: "This can't be undone.", confirmLabel: "Delete", destructive: true }))) return;
     try {
       await del.mutateAsync(book.id);
       toast.success("Book deleted");
