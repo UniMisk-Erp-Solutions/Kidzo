@@ -93,7 +93,7 @@ const Pricing = () => {
               { "@type": "Question", name: "Do you offer refunds?", acceptedAnswer: { "@type": "Answer", text: "Yes — within 14 days of purchase, no questions asked. Email byteosaurus.01@gmail.com." } },
               { "@type": "Question", name: "How do I cancel?", acceptedAnswer: { "@type": "Answer", text: "From Settings → Billing, any time. Cancelling stops the next renewal and you keep paid features until the end of the period you paid for." } },
               { "@type": "Question", name: "Are there family or education discounts?", acceptedAnswer: { "@type": "Answer", text: "Yes — get in touch and we'll do our best for parent groups, schools and non-profits." } },
-              { "@type": "Question", name: "What payment methods are supported?", acceptedAnswer: { "@type": "Answer", text: "UPI, credit and debit cards, net banking and wallets, processed securely by Razorpay." } },
+              { "@type": "Question", name: "What payment methods are supported?", acceptedAnswer: { "@type": "Answer", text: "UPI, credit and debit cards, net banking and wallets, processed securely by CCAvenue." } },
             ],
           },
         ]}
@@ -154,8 +154,8 @@ const Pricing = () => {
         </div>
 
         <p className="mt-8 text-center text-[13px] text-muted-foreground">
-          Prices are in Indian Rupees (₹) and include applicable taxes. Paid plans renew at the end of each billing
-          period (monthly or yearly) and can be cancelled any time. Payments are processed securely by Razorpay — we never see your card details. See our{" "}
+          Prices are in Indian Rupees (₹) and include applicable taxes. Paid plans are a one-time payment for the period you choose
+          (monthly or yearly) and do not renew automatically. Payments are processed securely by CCAvenue — we never see your card details. See our{" "}
           <Link to="/legal/refund-policy" className="font-medium text-primary-deep hover:underline">
             Cancellation &amp; Refund Policy
           </Link>{" "}

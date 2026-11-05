@@ -83,7 +83,7 @@ const sections: Section[] = [
       <>
         <UL>
           <li>
-            <strong>Razorpay</strong> — only on the checkout page, and only when you are actually paying. Razorpay sets
+            <strong>CCAvenue</strong> — only on the payment page, and only when you are actually paying. CCAvenue sets
             cookies it needs for fraud prevention and to complete the transaction, under its own privacy policy. We do
             not control them, and they are not present anywhere else in the app.
           </li>

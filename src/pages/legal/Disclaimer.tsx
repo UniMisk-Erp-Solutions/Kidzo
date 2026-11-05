@@ -95,7 +95,7 @@ const sections: Section[] = [
     title: "Third-party links and services",
     body: (
       <P>
-        Where the app links to a third party, or relies on one (such as Razorpay for payment, or WhatsApp to deliver a
+        Where the app links to a third party, or relies on one (such as CCAvenue for payment, or WhatsApp to deliver a
         code), that party's own terms and privacy policy govern what it does. We choose our sub-processors carefully
         and list every one of them in the{" "}
         <Link to="/legal/data-processing" className="font-medium text-primary-deep hover:underline">

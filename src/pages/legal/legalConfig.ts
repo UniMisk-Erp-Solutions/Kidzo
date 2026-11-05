@@ -14,7 +14,7 @@ export const LEGAL = {
   registeredAddress: "C-1008, West Wing, 10th Floor, Stratum@Venus Ground, Nr. Jhansi Rani Statue, Nehru Nagar, Ahmedabad, Gujarat 380015, India",
   /** CIN / GSTIN etc. Optional. */
   registrationNo: "",
-  /** Support phone number (Razorpay expects a reachable contact). Omitted from pages when empty. */
+  /** Support phone number (payment gateways expect a reachable contact). Omitted from pages when empty. */
   phone: "+91 82383 26605",
 
   /** Primary contact for support and legal notices. */
@@ -53,7 +53,7 @@ export const SUBPROCESSORS: {
     location: "Our own servers in India",
   },
   {
-    name: "Razorpay Software Private Limited",
+    name: "CCAvenue (Avenues India Private Limited)",
     purpose: "Payment processing for paid plans",
     data: "Name, email, payment identifiers. We never see or store your full card number",
     location: "India",

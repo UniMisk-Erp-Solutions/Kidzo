@@ -4,7 +4,7 @@
  * - Plans WITHOUT `photo_book_orders` (Free) see only the first FREE_PREVIEW_PAGES pages;
  *   later pages are replaced by a locked placeholder — their real content is never rendered.
  * - Plans WITH `photo_book_orders` (Family, Premium) see every page and can order.
- * Ordering is enforced again on the server (razorpay-create-book-order).
+ * Ordering is enforced again on the server (ccavenue-create-order).
  */
 export const FREE_PREVIEW_PAGES = 2;
 

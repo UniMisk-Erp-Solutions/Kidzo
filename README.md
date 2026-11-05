@@ -24,9 +24,10 @@ child books.
 │   ├── hooks/                # Reusable hooks
 │   ├── integrations/supabase # Supabase client + generated types
 │   └── lib/                  # Utilities
+├── CCAVENUE_SETUP.md         # Payments (CCAvenue) setup
 ├── supabase/                 # Backend (Supabase project)
 │   ├── migrations/           # SQL migrations (apply in filename order)
-│   ├── functions/            # Edge functions (delete-account)
+│   ├── functions/            # Edge functions (delete-account, ccavenue-*)
 │   ├── templates/            # Auth email templates (e.g. 6-digit OTP confirmation)
 │   └── config.toml           # Supabase project config
 ├── vercel.json               # Vercel build + SPA rewrite config
@@ -141,10 +142,16 @@ Auth is configured to require email confirmation and to deliver a **6-digit code
   `MAILER_TEMPLATES_CONFIRMATION` at a URL serving this template.
 - Sign-up flow: `signUp` → enter 6-digit code → `verifyOtp({ type: 'signup' })`.
 
-### Edge function
+### Edge functions
 
 `supabase/functions/delete-account` deletes the calling user's account and owned
 data (requires `SUPABASE_SERVICE_ROLE_KEY` in the function environment).
+
+### Payments (CCAvenue)
+
+Plan purchases and printed-book orders are paid through CCAvenue hosted checkout
+(`ccavenue-create-order`, `ccavenue-callback`). Setup, env vars and limitations:
+[CCAVENUE_SETUP.md](CCAVENUE_SETUP.md).
 
 ## License
 

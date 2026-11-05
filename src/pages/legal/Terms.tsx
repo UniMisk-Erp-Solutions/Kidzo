@@ -123,7 +123,7 @@ const sections: Section[] = [
         <H3>Pricing and billing</H3>
         <UL>
           <li>Free and paid plans are described on the pricing page. Prices are shown in Indian Rupees and include applicable taxes unless stated otherwise.</li>
-          <li>Payment is collected by <strong>Razorpay</strong>. We never receive or store your full card number.</li>
+          <li>Payment is collected by <strong>CCAvenue</strong>. We never receive or store your full card number.</li>
           <li>
             Paid plans <strong>renew automatically</strong> at the end of each billing cycle at the then-current price,
             until you cancel. We will tell you before any price change affects you.

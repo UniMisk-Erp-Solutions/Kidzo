@@ -186,20 +186,6 @@ const PlansTab = () => {
     }).eq("id", plan.id);
     if (error) return toast.error(error.message);
 
-    // For paid plans, re-sync the price to Razorpay so NEW subscriptions bill the new amount.
-    // (Razorpay plan amounts are immutable → this creates fresh plans and repoints them.
-    //  Existing subscribers keep their current price until they re-subscribe.)
-    if (plan.slug !== "free" && (Number(plan.price_monthly) > 0 || Number(plan.price_yearly) > 0)) {
-      const { data: sync, error: syncErr } = await supabase.functions.invoke("admin-sync-razorpay-plans", {
-        body: { plan_slug: plan.slug },
-      });
-      if (syncErr || sync?.error) {
-        toast.warning(`Plan saved, but Razorpay price sync failed: ${sync?.error || syncErr?.message}. Display/one-time prices are updated; recurring price not yet.`);
-        return;
-      }
-      toast.success("Plan saved & synced to Razorpay — new price applies to new subscriptions.");
-      return;
-    }
     toast.success("Plan saved");
   };
 
