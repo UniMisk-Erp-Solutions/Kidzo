@@ -1,20 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ArrowLeft, CalendarIcon, Sparkles } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useAddChildGuard } from "@/hooks/useAddChildGuard";
 import { useCalendarMemory } from "@/hooks/useCalendarMemory";
-import { AgePreview } from "@/components/childbook/AgePreview";
-import { MilestoneTimelinePreview } from "@/components/childbook/MilestoneTimelinePreview";
+import { DobField, OnboardingHeader } from "@/components/childbook/OnboardingParts";
 import { PronounsSelect } from "@/components/childbook/PronounsSelect";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -79,28 +74,7 @@ const Onboarding = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
       <div className="w-full max-w-md">
-        {isAddingAnother && (
-          <Link
-            to="/settings"
-            className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Back to settings
-          </Link>
-        )}
-        <div className="mb-6 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-card/70 px-3 py-1 text-[12px] font-medium text-foreground/80 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5 text-accent" />
-            {isAddingAnother ? "Add another child" : "Step 1 of 1"}
-          </span>
-          <h1 className="font-display mt-3 text-3xl font-bold text-foreground">
-            {isAddingAnother ? "Tell us about your next little one" : "Tell us about your little one"}
-          </h1>
-          <p className="mt-2 text-[15px] text-muted-foreground">
-            {isAddingAnother
-              ? "Each child gets their own private book — you can switch any time."
-              : "We'll personalize every memory and milestone around them."}
-          </p>
-        </div>
+        <OnboardingHeader isAddingAnother={isAddingAnother} />
 
         <form onSubmit={handleSave} className="space-y-4 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-7">
           <div className="space-y-1.5">
@@ -115,41 +89,16 @@ const Onboarding = () => {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Date of birth</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={cn(
-                    "h-11 w-full justify-start rounded-xl text-left font-normal",
-                    !dob && "text-muted-foreground",
-                  )}
-                >
-                  <CalendarIcon className="h-4 w-4" />
-                  {dob ? format(dob, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dob}
-                  onSelect={(d) => {
-                    setDob(d);
-                    if (d) setDobMonth(d);
-                  }}
-                  month={dobMonth}
-                  onMonthChange={setDobMonth}
-                  disabled={(d) => d > new Date()}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-            <AgePreview dob={dob} name={name} />
-            <MilestoneTimelinePreview dob={dob} name={name} />
-          </div>
+          <DobField
+            dob={dob}
+            name={name}
+            month={dobMonth}
+            onSelect={(d) => {
+              setDob(d);
+              if (d) setDobMonth(d);
+            }}
+            onMonthChange={setDobMonth}
+          />
 
           <div className="space-y-1.5">
             <Label htmlFor="pronouns">Pronouns (optional)</Label>

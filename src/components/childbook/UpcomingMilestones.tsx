@@ -70,39 +70,11 @@ export const UpcomingMilestones = ({ dob, childId, childName, memories, canEdit 
 
   const items = useMemo(() => {
     const today = new Date();
-    const list: Item[] = [birthdayItem(dob, childName, today)];
-
     const book = bookItem(books.filter((b) => b.child_id === childId), memories.length, navigate);
-    if (book) list.push(book);
-
-    const flash = onThisDay(memories, today);
-    if (flash) {
-      const { memory, yearsAgo, exact } = flash;
-      list.push({
-        key: "on-this-day",
-        label: "On this day",
-        cta: "Relive",
-        icon: History,
-        title: memory.title,
-        when: `${yearsAgo} ${yearsAgo === 1 ? "year" : "years"} ago ${exact ? "today" : "this week"} · ${format(new Date(memory.happened_at), "MMM d, yyyy")}`,
-        tone: "bg-accent/40 text-accent-foreground",
-        imageUrl: memory.photo_url,
-        onClick: () => setOpen(memory),
-      });
-    }
-
-    const prompt = WEEKLY_PROMPTS[getISOWeek(today) % WEEKLY_PROMPTS.length].replace("{name}", childName);
-    list.push({
-      key: "weekly-prompt",
-      label: "Weekly prompt",
-      cta: canEdit ? "Write" : undefined,
-      icon: PenLine,
-      title: prompt,
-      when: canEdit ? "Tap to capture it" : "A little moment worth keeping",
-      tone: "bg-primary/30 text-primary-deep",
-      onClick: canEdit ? () => navigate("/moments/new") : undefined,
-    });
-    return list;
+    const flash = flashbackItem(memories, today, setOpen);
+    return [birthdayItem(dob, childName, today), book, flash, promptItem(childName, today, canEdit, navigate)].filter(
+      (i): i is Item => i !== null,
+    );
   }, [dob, childId, childName, memories, books, canEdit, navigate]);
 
   return (
@@ -193,77 +165,93 @@ const birthdayItem = (dob: Date, childName: string, today: Date): Item => {
   };
 };
 
-/** The most pressing thing about the child's books: an order on its way beats one being printed, beats an unfinished book. */
-const bookItem = (books: UserBook[], memoryCount: number, navigate: (to: string) => void): Item | null => {
-  const latest = (statuses: UserBook["status"][]) => books.find((b) => statuses.includes(b.status)); // books arrive newest first
-  const go = (b: UserBook, path: string) => () => navigate(`/books/${b.id}/${path}`);
+type Navigate = (to: string) => void;
+type BookStage = (b: UserBook, go: (path: string) => () => void) => Item;
 
-  const shipped = latest(["shipped"]);
-  if (shipped) {
-    return {
-      key: "book-shipped",
-      label: "Your book",
-      cta: "Track",
-      icon: Truck,
-      title: `"${shipped.title}" is on its way`,
-      when: shipped.tracking_number ? `Tracking: ${shipped.tracking_number}` : "Shipped",
-      tone: "bg-secondary/25 text-secondary",
-      onClick: go(shipped, "confirmation"),
-    };
-  }
-  const printing = latest(["printing"]);
-  if (printing) {
-    return {
-      key: "book-printing",
-      label: "Your book",
-      cta: "View",
-      icon: Printer,
-      title: `"${printing.title}" is being printed`,
-      when: "We'll let you know when it ships",
-      tone: "bg-accent/40 text-accent-foreground",
-      onClick: go(printing, "confirmation"),
-    };
-  }
-  const ordered = latest(["ordered"]);
-  if (ordered) {
-    return {
-      key: "book-ordered",
-      label: "Your book",
-      cta: "View",
-      icon: Package,
-      title: `"${ordered.title}" order confirmed`,
-      when: ordered.order_date ? `Ordered ${format(new Date(ordered.order_date), "MMM d")}` : "Waiting to be printed",
-      tone: "bg-accent/40 text-accent-foreground",
-      onClick: go(ordered, "confirmation"),
-    };
-  }
-  const unfinished = latest(["preview", "draft"]);
-  if (unfinished) {
-    return {
-      key: "book-unfinished",
-      label: "Your book",
-      cta: unfinished.status === "preview" ? "Order" : "Continue",
-      icon: BookOpen,
-      title: `Finish "${unfinished.title}"`,
-      when: unfinished.status === "preview" ? "In preview · ready to order" : "Draft · pick up where you left off",
-      tone: "bg-primary/30 text-primary-deep",
-      onClick: go(unfinished, unfinished.status === "preview" ? "preview" : "memories"),
-    };
-  }
-  if (books.length === 0 && memoryCount >= PRINT_READY_MEMORIES) {
-    return {
-      key: "book-ready",
-      label: "Your book",
-      cta: "Create",
-      icon: BookOpen,
-      title: `You have ${memoryCount} memories, enough for a book`,
-      when: "Turn them into a printed keepsake",
-      tone: "bg-primary/30 text-primary-deep",
-      onClick: () => navigate("/books/new"),
-    };
-  }
-  return null;
+const ACCENT_TONE = "bg-accent/40 text-accent-foreground";
+const PRIMARY_TONE = "bg-primary/30 text-primary-deep";
+
+const bookRow = (key: string, cta: string, icon: LucideIcon, title: string, when: string, tone: string, onClick: () => void): Item => ({
+  key: `book-${key}`,
+  label: "Your book",
+  cta,
+  icon,
+  title,
+  when,
+  tone,
+  onClick,
+});
+
+/** Book states in priority order: an order on its way beats one being printed, beats an unfinished book. */
+const BOOK_STAGES: { statuses: UserBook["status"][]; build: BookStage }[] = [
+  {
+    statuses: ["shipped"],
+    build: (b, go) =>
+      bookRow("shipped", "Track", Truck, `"${b.title}" is on its way`, b.tracking_number ? `Tracking: ${b.tracking_number}` : "Shipped", "bg-secondary/25 text-secondary", go("confirmation")),
+  },
+  {
+    statuses: ["printing"],
+    build: (b, go) => bookRow("printing", "View", Printer, `"${b.title}" is being printed`, "We'll let you know when it ships", ACCENT_TONE, go("confirmation")),
+  },
+  {
+    statuses: ["ordered"],
+    build: (b, go) =>
+      bookRow("ordered", "View", Package, `"${b.title}" order confirmed`, b.order_date ? `Ordered ${format(new Date(b.order_date), "MMM d")}` : "Waiting to be printed", ACCENT_TONE, go("confirmation")),
+  },
+  { statuses: ["preview", "draft"], build: (b, go) => unfinishedBookItem(b, go) },
+];
+
+const unfinishedBookItem: BookStage = (b, go) => {
+  const preview = b.status === "preview";
+  return bookRow(
+    "unfinished",
+    preview ? "Order" : "Continue",
+    BookOpen,
+    `Finish "${b.title}"`,
+    preview ? "In preview · ready to order" : "Draft · pick up where you left off",
+    PRIMARY_TONE,
+    go(preview ? "preview" : "memories"),
+  );
 };
+
+/** The most pressing thing about the child's books. */
+const bookItem = (books: UserBook[], memoryCount: number, navigate: Navigate): Item | null => {
+  // books arrive newest first
+  for (const stage of BOOK_STAGES) {
+    const book = books.find((b) => stage.statuses.includes(b.status));
+    if (book) return stage.build(book, (path) => () => navigate(`/books/${book.id}/${path}`));
+  }
+  if (books.length > 0 || memoryCount < PRINT_READY_MEMORIES) return null;
+  return bookRow("ready", "Create", BookOpen, `You have ${memoryCount} memories, enough for a book`, "Turn them into a printed keepsake", PRIMARY_TONE, () => navigate("/books/new"));
+};
+
+const flashbackItem = (memories: Memory[], today: Date, open: (m: Memory) => void): Item | null => {
+  const flash = onThisDay(memories, today);
+  if (!flash) return null;
+  const { memory, yearsAgo, exact } = flash;
+  return {
+    key: "on-this-day",
+    label: "On this day",
+    cta: "Relive",
+    icon: History,
+    title: memory.title,
+    when: `${yearsAgo} ${yearsAgo === 1 ? "year" : "years"} ago ${exact ? "today" : "this week"} · ${format(new Date(memory.happened_at), "MMM d, yyyy")}`,
+    tone: ACCENT_TONE,
+    imageUrl: memory.photo_url,
+    onClick: () => open(memory),
+  };
+};
+
+const promptItem = (childName: string, today: Date, canEdit: boolean, navigate: Navigate): Item => ({
+  key: "weekly-prompt",
+  label: "Weekly prompt",
+  cta: canEdit ? "Write" : undefined,
+  icon: PenLine,
+  title: WEEKLY_PROMPTS[getISOWeek(today) % WEEKLY_PROMPTS.length].replace("{name}", childName),
+  when: canEdit ? "Tap to capture it" : "A little moment worth keeping",
+  tone: PRIMARY_TONE,
+  onClick: canEdit ? () => navigate("/moments/new") : undefined,
+});
 
 /** A memory from a past year on today's date, or failing that within three days of it. */
 const onThisDay = (memories: Memory[], today: Date) => {

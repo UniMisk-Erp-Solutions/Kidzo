@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import type { Memory } from "@/hooks/useMemories";
 import type { Achievement } from "@/hooks/useAchievements";
-import type { PolaroidExportItem } from "@/lib/exportPolaroidPdf";
+import type { PolaroidExportItem } from "@/components/books/exportPolaroidPdf";
 
 /** Per-export diagnostics so the UI can show actionable error info. */
 export type KeepsakeExportReport = {
@@ -48,7 +48,7 @@ export async function exportKeepsakePdf(opts: {
   ].filter((it) => inRange(it.date));
 
   // Loaded on demand: the page renderer and html2canvas are heavy and only needed when exporting.
-  const { exportPolaroidPdf } = await import("@/lib/exportPolaroidPdf");
+  const { exportPolaroidPdf } = await import("@/components/books/exportPolaroidPdf");
   await exportPolaroidPdf({
     childName,
     items,
