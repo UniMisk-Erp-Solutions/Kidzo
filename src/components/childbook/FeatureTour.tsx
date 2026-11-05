@@ -4,6 +4,8 @@ import { Sparkles, CalendarClock, Camera, ArrowRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMarkFeatureTourSeen } from "@/hooks/useFeatureTourSeen";
 
 const TOUR_KEY = "childbook:featureTour:v1";
 
@@ -34,23 +36,71 @@ const STEPS: Step[] = [
   },
 ];
 
+type TourUser = NonNullable<ReturnType<typeof useAuth>["user"]>;
+
+/** Auto-show only for brand-new accounts (first login) that haven't seen the tour on this account or browser. */
+function shouldAutoShowTour(user: TourUser): boolean {
+  const seen =
+    user.user_metadata?.feature_tour_seen === true ||
+    localStorage.getItem(`${TOUR_KEY}:${user.id}`) ||
+    // Legacy global flag from before the key was per-user
+    localStorage.getItem(TOUR_KEY);
+  if (seen) return false;
+  return Date.now() - new Date(user.created_at).getTime() < 24 * 60 * 60 * 1000;
+}
+
+const StepDots = ({ step }: { step: number }) => (
+  <div className="mt-2 flex items-center justify-center gap-1.5">
+    {STEPS.map((_, i) => (
+      <span key={i} className={cn("h-1.5 rounded-full transition-all", i === step ? "w-6 bg-primary-deep" : "w-1.5 bg-border")} />
+    ))}
+  </div>
+);
+
+interface ActionsProps {
+  cta?: Step["cta"];
+  isLast: boolean;
+  onSkip: () => void;
+  onNext: () => void;
+  onCta: (to: string) => void;
+}
+
+const TourActions = ({ cta, isLast, onSkip, onNext, onCta }: ActionsProps) => (
+  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-between">
+    <Button variant="ghost" onClick={onSkip} className="sm:order-1">
+      Skip tour
+    </Button>
+    <div className="flex gap-2 sm:order-2">
+      {cta && (
+        <Button variant="soft" onClick={() => onCta(cta.to)}>
+          {cta.label}
+        </Button>
+      )}
+      <Button variant="warm" onClick={onNext}>
+        {isLast ? "Got it" : "Next"}
+        {!isLast && <ArrowRight className="h-4 w-4" />}
+      </Button>
+    </div>
+  </div>
+);
+
 export const FeatureTour = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const markSeen = useMarkFeatureTourSeen(TOUR_KEY);
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const seen = localStorage.getItem(TOUR_KEY);
-    if (!seen) {
-      // Slight delay so the dashboard mounts first
-      const t = setTimeout(() => setOpen(true), 400);
-      return () => clearTimeout(t);
-    }
-  }, []);
+    if (typeof window === "undefined" || loading || !user) return;
+    if (!shouldAutoShowTour(user)) return;
+    // Slight delay so the dashboard mounts first
+    const t = setTimeout(() => setOpen(true), 400);
+    return () => clearTimeout(t);
+  }, [user, loading]);
 
   const finish = () => {
-    localStorage.setItem(TOUR_KEY, "1");
+    if (user) markSeen(user.id);
     setOpen(false);
     setStep(0);
   };
@@ -85,41 +135,18 @@ export const FeatureTour = () => {
 
         <p className="text-[14px] leading-relaxed text-muted-foreground">{current.body}</p>
 
-        {/* Step indicators */}
-        <div className="mt-2 flex items-center justify-center gap-1.5">
-          {STEPS.map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                i === step ? "w-6 bg-primary-deep" : "w-1.5 bg-border",
-              )}
-            />
-          ))}
-        </div>
+        <StepDots step={step} />
 
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-between">
-          <Button variant="ghost" onClick={finish} className="sm:order-1">
-            Skip tour
-          </Button>
-          <div className="flex gap-2 sm:order-2">
-            {current.cta && (
-              <Button
-                variant="soft"
-                onClick={() => {
-                  finish();
-                  navigate(current.cta!.to);
-                }}
-              >
-                {current.cta.label}
-              </Button>
-            )}
-            <Button variant="warm" onClick={next}>
-              {isLast ? "Got it" : "Next"}
-              {!isLast && <ArrowRight className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
+        <TourActions
+          cta={current.cta}
+          isLast={isLast}
+          onSkip={finish}
+          onNext={next}
+          onCta={(to) => {
+            finish();
+            navigate(to);
+          }}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -1,17 +1,18 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopBar } from "@/components/childbook/TopBar";
+import { FilterPills, TemplateGrid } from "@/components/books/TemplateBrowser";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
-import { TemplateCard } from "@/components/books/TemplateCard";
 import { TemplatePreviewModal } from "@/components/books/TemplatePreviewModal";
 import { useBookTemplates, type BookTemplate } from "@/hooks/useBookTemplates";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useEntitlements } from "@/hooks/useEntitlements";
 import { useCreateUserBook } from "@/hooks/useUserBooks";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 const FILTERS: { id: string; label: string; match: (t: BookTemplate) => boolean }[] = [
   { id: "all", label: "All", match: () => true },
@@ -20,14 +21,24 @@ const FILTERS: { id: string; label: string; match: (t: BookTemplate) => boolean 
   { id: "birthday", label: "Birthday", match: (t) => t.category === "birthday" },
   { id: "seasonal", label: "Holiday", match: (t) => t.category === "seasonal" },
   { id: "everyday", label: "Everyday", match: (t) => t.category === "everyday" },
+  { id: "collage", label: "Collage", match: (t) => /scrapbook-(kraft|filmroll|newsprint)/.test(t.slug) },
   { id: "premium", label: "Premium ✨", match: (t) => t.is_premium },
 ];
+
+const matchesQuery = (t: BookTemplate, q: string) =>
+  !q ||
+  t.name.toLowerCase().includes(q) ||
+  t.description.toLowerCase().includes(q) ||
+  (t.suggested_age_range ?? "").toLowerCase().includes(q);
 
 const TemplateSelector = () => {
   const navigate = useNavigate();
   const { data: templates = [], isLoading } = useBookTemplates();
   const { data: child } = useActiveChild();
   const createBook = useCreateUserBook();
+  const { can, loading: entLoading } = useEntitlements();
+  // Premium templates are for plans that include photo books (Family / Premium).
+  const isLocked = (t: BookTemplate) => t.is_premium && !entLoading && !can("photo_book_orders");
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -36,18 +47,17 @@ const TemplateSelector = () => {
   const visible = useMemo(() => {
     const f = FILTERS.find((x) => x.id === filter)!;
     const q = search.trim().toLowerCase();
-    return templates
-      .filter(f.match)
-      .filter(
-        (t) =>
-          !q ||
-          t.name.toLowerCase().includes(q) ||
-          t.description.toLowerCase().includes(q) ||
-          (t.suggested_age_range ?? "").toLowerCase().includes(q),
-      );
+    return templates.filter(f.match).filter((t) => matchesQuery(t, q));
   }, [templates, filter, search]);
 
   const handleSelect = async (t: BookTemplate) => {
+    if (isLocked(t)) {
+      toast("Premium template ✨", {
+        description: "Upgrade to the Family or Premium plan to use this template.",
+        action: { label: "See plans", onClick: () => navigate("/pricing-plans") },
+      });
+      return;
+    }
     if (!child) {
       toast.error("Please add a child profile first");
       return;
@@ -77,19 +87,11 @@ const TemplateSelector = () => {
           <Button variant="ghost" size="sm" onClick={() => navigate("/books")} className="-ml-3 mb-3">
             <ArrowLeft className="h-4 w-4" /> My books
           </Button>
-          <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/30 text-primary-foreground">
-              <BookOpen className="h-6 w-6" />
-            </span>
-            <div>
-              <h1 className="text-[26px] font-bold leading-tight tracking-tight md:text-3xl">
-                Create your memory book
-              </h1>
-              <p className="mt-1 text-[14px] leading-relaxed text-muted-foreground">
-                Choose from {templates.length}+ beautifully designed templates, then we'll print and ship it to you.
-              </p>
-            </div>
-          </div>
+          <PageHero
+            icon={BookOpen}
+            title="Create your memory book"
+            subtitle={`Choose from ${templates.length}+ beautifully designed templates, then we'll print and ship it to you.`}
+          />
         </div>
 
         {/* Search */}
@@ -103,55 +105,20 @@ const TemplateSelector = () => {
           />
         </div>
 
-        {/* Filter pills */}
-        <div className="-mx-6 mb-6 overflow-x-auto px-6 scrollbar-hide">
-          <div className="flex w-max gap-2">
-            {FILTERS.map((f) => {
-              const isActive = filter === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFilter(f.id)}
-                  className={cn(
-                    "min-h-[36px] whitespace-nowrap rounded-full border px-4 text-[13px] font-medium transition-all",
-                    isActive
-                      ? "border-primary-deep bg-primary-deep text-primary-foreground shadow-soft"
-                      : "border-border bg-card text-foreground hover:border-primary/40",
-                  )}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <FilterPills filters={FILTERS} active={filter} onChange={setFilter} />
 
-        {/* Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20 text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading templates…
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-10 text-center">
-            <p className="text-muted-foreground">No templates match your search.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((t) => (
-              <TemplateCard
-                key={t.id}
-                template={t}
-                onSelect={handleSelect}
-                onPreview={setPreviewing}
-              />
-            ))}
-          </div>
-        )}
+        <TemplateGrid
+          loading={isLoading}
+          templates={visible}
+          isLocked={isLocked}
+          onSelect={handleSelect}
+          onPreview={setPreviewing}
+        />
       </main>
 
       <TemplatePreviewModal
         template={previewing}
+        locked={!!previewing && isLocked(previewing)}
         open={!!previewing}
         onOpenChange={(v) => !v && setPreviewing(null)}
         onSelect={(t) => {

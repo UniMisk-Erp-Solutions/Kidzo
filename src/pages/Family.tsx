@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ConfirmProvider";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,12 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeaveSharedChild } from "@/hooks/useChildren";
 import { useInvites, useShares } from "@/hooks/useShares";
 import { useFeatureGuard, isPlanLockedError } from "@/hooks/useFeatureGuard";
+import { useInviteDelivery } from "@/hooks/useInviteDelivery";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -38,6 +41,7 @@ const Family = () => {
   const { data: invites = [] } = useInvites(child?.id);
   const leaveShare = useLeaveSharedChild();
   const guard = useFeatureGuard();
+  const deliverInvite = useInviteDelivery();
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"viewer" | "editor">("viewer");
@@ -52,27 +56,21 @@ const Family = () => {
     if (!guard("family_invites", "Family invites")) return;
     setCreating(true);
     const token = generateToken();
-    const { error } = await supabase.from("child_invites").insert({
-      child_id: child.id,
-      owner_id: user.id,
-      token,
-      role,
-      email: email.trim() || null,
-    });
-    setCreating(false);
-    if (error) {
-      toast.error(isPlanLockedError(error.message) ? "Family invites are a paid feature — upgrade to invite family." : "Couldn't create invite");
+    const inviteEmail = email.trim() || null;
+    const { data: created, error } = await supabase
+      .from("child_invites")
+      .insert({ child_id: child.id, owner_id: user.id, token, role, email: inviteEmail })
+      .select("id")
+      .single();
+    if (error || !created) {
+      setCreating(false);
+      toast.error(isPlanLockedError(error?.message ?? "") ? "Family invites are a paid feature — upgrade to invite family." : "Couldn't create invite");
       return;
     }
     setEmail("");
     qc.invalidateQueries({ queryKey: ["invites"] });
-    const link = `${window.location.origin}/share/${token}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      toast.success("Invite link copied to clipboard");
-    } catch {
-      toast.success("Invite created");
-    }
+    await deliverInvite({ inviteId: created.id, token, email: inviteEmail, fresh: false });
+    setCreating(false);
   };
 
   const copyLink = async (token: string) => {
@@ -100,32 +98,31 @@ const Family = () => {
     setResendingId(invite.id);
     // Revoke the old token then create a fresh one with same role/email.
     const newToken = generateToken();
-    const [{ error: revokeError }, { error: insertError }] = await Promise.all([
+    const [{ error: revokeError }, { data: fresh, error: insertError }] = await Promise.all([
       supabase
         .from("child_invites")
         .update({ revoked_at: new Date().toISOString() })
         .eq("id", invite.id),
-      supabase.from("child_invites").insert({
-        child_id: child.id,
-        owner_id: user.id,
-        token: newToken,
-        role: invite.role,
-        email: invite.email,
-      }),
+      supabase
+        .from("child_invites")
+        .insert({
+          child_id: child.id,
+          owner_id: user.id,
+          token: newToken,
+          role: invite.role,
+          email: invite.email,
+        })
+        .select("id")
+        .single(),
     ]);
-    setResendingId(null);
-    if (revokeError || insertError) {
+    if (revokeError || insertError || !fresh) {
+      setResendingId(null);
       toast.error("Couldn't resend invite");
       return;
     }
     qc.invalidateQueries({ queryKey: ["invites"] });
-    const link = `${window.location.origin}/share/${newToken}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      toast.success("Fresh link copied to clipboard");
-    } catch {
-      toast.success("Fresh invite created");
-    }
+    await deliverInvite({ inviteId: fresh.id, token: newToken, email: invite.email, fresh: true });
+    setResendingId(null);
   };
 
   const removeShare = async (id: string) => {
@@ -142,9 +139,10 @@ const Family = () => {
     qc.invalidateQueries({ queryKey: ["shares"] });
   };
 
+  const confirm = useConfirm();
   const handleLeave = async () => {
     if (!child) return;
-    if (!confirm(`Leave ${childName}'s shared book? You won't see new memories until you're invited again.`)) return;
+    if (!(await confirm({ title: `Leave ${childName}'s shared book?`, description: "You won't see new memories until you're invited again.", confirmLabel: "Leave", destructive: true }))) return;
     try {
       await leaveShare.mutateAsync(child.id);
       toast.success(`You left ${childName}'s book`);
@@ -161,18 +159,16 @@ const Family = () => {
     <div className="min-h-screen bg-background pb-28">
       <TopBar childName={childName} />
 
-      <main className="mx-auto max-w-2xl space-y-6 px-6 py-6 md:max-w-4xl md:py-10">
-        <header className="animate-fade-in-up">
-          <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/25 text-primary-deep">
-            <Users className="h-5 w-5" />
-          </span>
-          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Family sharing</h1>
-          <p className="mt-1 text-[14px] text-muted-foreground">
-            {isOwner
+      <main className="mx-auto max-w-2xl space-y-6 px-6 py-6 md:max-w-6xl md:py-10">
+        <PageHero
+          icon={Users}
+          title="Family sharing"
+          subtitle={
+            isOwner
               ? `Invite a co-parent or grandparent to ${childName}'s journey.`
-              : `You're a guest in ${childName}'s journey.`}
-          </p>
-        </header>
+              : `You're a guest in ${childName}'s journey.`
+          }
+        />
 
         {/* Shared-with-me view */}
         {!isOwner && myShare && (
@@ -356,8 +352,8 @@ const Family = () => {
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-success/20 text-success">
                       <ShieldCheck className="h-4 w-4" />
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[14px] font-medium text-foreground">
+                    <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0">
+                      <div className="break-words text-[14px] font-medium text-foreground">
                         {isMe ? "You" : s.invite_email ?? "Family member"}
                         <span
                           className={cn(
@@ -376,7 +372,7 @@ const Family = () => {
                     </div>
 
                     {isOwner ? (
-                      <>
+                      <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
                         <Select
                           value={s.role}
                           onValueChange={(v) => updateRole(s.id, v as "viewer" | "editor")}
@@ -397,7 +393,7 @@ const Family = () => {
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
-                      </>
+                      </div>
                     ) : isMe ? (
                       <Button variant="ghost" size="sm" onClick={handleLeave}>
                         <LogOut className="h-4 w-4" /> Leave

@@ -58,7 +58,7 @@ const CookiePreferences = () => {
           <BackToApp />
         </div>
 
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Cookie Preferences</h1>
+        <h1 className="font-display mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">Cookie Preferences</h1>
         <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
           Your choice is stored on this device only and never leaves your browser. Under the DPDP Act, withdrawing
           consent must be as easy as giving it — so it is one button, right here.

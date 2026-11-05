@@ -182,7 +182,7 @@ const Checkout = () => {
         <Card className="mt-4 p-6 sm:p-8">
           {!submitted ? (
             <>
-              <h1 className="text-2xl font-bold text-foreground">Checkout</h1>
+              <h1 className="font-display text-2xl font-bold text-foreground">Checkout</h1>
               <p className="mt-1 text-sm text-muted-foreground">Secure payment powered by Razorpay.</p>
 
               <div className="mt-6 rounded-xl border border-border bg-muted/40 p-5">

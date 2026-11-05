@@ -22,6 +22,9 @@ const PRESETS: { name: string; colors: BookTemplateColors }[] = [
 
 const COLOR_KEYS: (keyof BookTemplateColors)[] = ["primary", "accent", "gold", "coral", "text"];
 
+/** A colour the native picker accepts (#rrggbb); templates can leave a colour empty. */
+const safeHex = (v?: string) => (/^#[0-9a-f]{6}$/i.test(v ?? "") ? (v as string) : "#000000");
+
 const BookCustomizer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -122,7 +125,7 @@ const BookCustomizer = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-32 md:pb-12">
+    <div className="min-h-screen bg-background pb-44 md:pb-44">
       <TopBar childName={child?.name ?? ""} />
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
         <Button variant="ghost" size="sm" onClick={() => navigate(`/books/${book.id}/memories`)} className="-ml-3 mb-3">
@@ -131,13 +134,13 @@ const BookCustomizer = () => {
 
         <div className="mb-6">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Step 2 of 4</div>
-          <h1 className="mt-1 text-[24px] font-bold tracking-tight md:text-[28px]">Customize your book</h1>
+          <h1 className="font-display mt-1 text-[24px] font-bold tracking-tight md:text-[28px]">Customize your book</h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
             Make it yours — change the title, colors, and reorder pages.
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Live preview */}
           <div>
             <div
@@ -254,12 +257,12 @@ const BookCustomizer = () => {
                     <label className="w-16 text-[12px] capitalize text-muted-foreground">{key}</label>
                     <input
                       type="color"
-                      value={colors[key]}
+                      value={safeHex(colors[key])}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
                       className="h-9 w-12 cursor-pointer rounded-lg border bg-transparent"
                     />
                     <Input
-                      value={colors[key]}
+                      value={colors[key] ?? ""}
                       onChange={(e) => setColors({ ...colors, [key]: e.target.value })}
                       className="h-9 font-mono text-[12px]"
                     />
@@ -315,14 +318,14 @@ const BookCustomizer = () => {
         </div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-card/95 backdrop-blur md:bottom-0">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <div className="text-[13px] text-muted-foreground">Step 2 of 4</div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => navigate(`/books/${book.id}/memories`)}>
+      <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 md:px-6">
+          <div className="hidden text-[13px] text-muted-foreground sm:block">Step 2 of 4</div>
+          <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none">
+            <Button variant="outline" size="sm" className="shrink-0 md:h-10 md:px-4" onClick={() => navigate(`/books/${book.id}/memories`)}>
               Back
             </Button>
-            <Button onClick={handlePreview} disabled={update.isPending || pageOrder.length === 0}>
+            <Button size="sm" className="min-w-0 flex-1 md:h-10 md:flex-none md:px-4" onClick={handlePreview} disabled={update.isPending || pageOrder.length === 0}>
               {update.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

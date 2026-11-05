@@ -21,7 +21,7 @@ const CompanyLegal = () => (
         <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[12px] font-medium text-primary-deep">
           <Scale className="h-3.5 w-3.5" /> Company &amp; Legal
         </span>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+        <h1 className="font-display mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
           How we handle your family's data
         </h1>
         <p className="mt-4 text-[15.5px] leading-relaxed text-muted-foreground">

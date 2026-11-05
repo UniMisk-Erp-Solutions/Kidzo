@@ -22,8 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LandingLayout } from "@/components/landing/LandingLayout";
 import { SEO } from "@/components/SEO";
 import heroImage from "@/assets/landing-hero.jpg";
-import heroImageDream from "@/assets/landing-hero-dream.jpg";
-import { useTheme } from "@/hooks/useTheme";
+import { Squiggle } from "@/components/childbook/Doodles";
 import { cn } from "@/lib/utils";
 import featMemories from "@/assets/landing-feature-memories.png";
 import featGrow from "@/assets/landing-feature-grow.png";
@@ -74,11 +73,17 @@ const features = [
   },
 ];
 
+// Feature-card colours (olive, mustard, coral, lilac) with readable ink on each; defined in index.css
+const TONES = [
+  { bg: "olive", fg: "cream" },
+  { bg: "mustard", fg: "ink" },
+  { bg: "coral", fg: "ink" },
+  { bg: "lilac", fg: "ink" },
+];
+
 const Landing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { theme, setTheme } = useTheme();
-  const hero = theme === "dream" ? heroImageDream : heroImage;
   const goApp = () => navigate(user ? "/home" : "/auth");
 
   return (
@@ -107,92 +112,61 @@ const Landing = () => {
           buildFaqJsonLd(HOME_FAQS),
         ]}
       />
-      {/* Hero */}
+      <div>
+      {/* Hero — "Wash House"-style: peach cream, terracotta, olive ink, organic blob photo and a spinning badge */}
       <section className="relative overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-primary/30 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -top-10 right-0 h-80 w-80 rounded-full bg-secondary/25 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-accent/25 blur-3xl" />
-
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-2 md:items-center md:gap-12 md:pt-20 md:pb-24">
+        <div className="relative mx-auto grid max-w-6xl gap-12 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-[1.05fr_1fr] md:items-center md:gap-8 md:pb-24 md:pt-16">
           <div className="min-w-0 animate-fade-in-up">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1 text-[12px] font-medium text-foreground/80 backdrop-blur">
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
+            <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-primary">
               A loving keepsake for every childhood
-            </span>
-            <h1 className="mt-4 text-[2rem] font-bold leading-[1.1] tracking-tight [hyphens:none] [overflow-wrap:normal] sm:text-4xl md:text-5xl lg:text-6xl">
-              The little{" "}
-              <span className="inline-block bg-gradient-celebrate bg-clip-text text-transparent [-webkit-background-clip:text]">
-                encyclopedia
-              </span>{" "}
-              of your child's life.
+            </p>
+            <h1 className="font-display mt-4 text-[2.6rem] font-extrabold leading-[1.02] text-foreground sm:text-6xl lg:text-7xl">
+              The little encyclopedia of your child's life.
             </h1>
-            <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-muted-foreground sm:text-[17px]">
-              Kidzopedia is a warm, private home for every photo, milestone, certificate and tiny moment —
-              gathered in one beautiful keepsake you'll cherish for decades.
+            <Squiggle className="mt-5 h-3 w-20 text-[hsl(var(--wash-lilac-deep))]" />
+            <p className="mt-5 max-w-md text-[16px] leading-relaxed text-foreground/75 sm:text-[17px]">
+              Thoughtful keepsakes. Serious memories. A warm, private home for every photo, milestone, certificate and
+              tiny moment — made for daily rituals and a happier family.
             </p>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Button variant="warm" size="lg" onClick={goApp} className="max-w-full whitespace-normal">
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <Button variant="warm" size="lg" onClick={goApp} className="max-w-full whitespace-normal rounded-lg">
                 <span className="hidden sm:inline">
                   {user ? "Open my Kidzopedia" : "Start free — capture your first memory"}
                 </span>
                 <span className="sm:hidden">{user ? "Open my Kidzopedia" : "Start free"}</span>
                 <ArrowRight className="h-4 w-4 shrink-0" />
               </Button>
-              <Link to="/features" className="text-sm font-medium text-primary-deep underline-offset-4 hover:underline">
+              <Link
+                to="/features"
+                className="text-sm font-semibold text-foreground underline decoration-primary decoration-2 underline-offset-[6px] hover:text-primary"
+              >
                 See how it works
               </Link>
             </div>
-
-            {/* Theme selector */}
-            <div className="mt-5 inline-flex items-center gap-1 rounded-full border border-border bg-card/70 p-1 shadow-soft backdrop-blur">
-              <span className="px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Theme
-              </span>
-              {([
-                { id: "legacy" as const, label: "Legacy" },
-                { id: "dream" as const, label: "Dream" },
-              ]).map((t) => {
-                const active = theme === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTheme(t.id)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                      active
-                        ? "bg-primary-deep text-primary-foreground shadow-soft"
-                        : "text-foreground/70 hover:bg-muted hover:text-foreground",
-                    )}
-                    aria-pressed={active}
-                  >
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <ul className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted-foreground">
-              <li className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Private by default</li>
-              <li className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> PDF keepsake export</li>
-              <li className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-success" /> Share with grandparents</li>
-            </ul>
           </div>
 
-          <div className="relative animate-fade-in">
-            <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-hero opacity-70 blur-2xl" aria-hidden />
-            <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card shadow-lift">
+          <div className="relative mx-auto w-full max-w-[560px] animate-fade-in">
+            <div
+              aria-hidden
+              className="absolute -right-5 -top-5 h-[90%] w-[90%] bg-[hsl(var(--wash-coral))]"
+              style={{ borderRadius: "58% 42% 46% 54% / 44% 56% 44% 56%" }}
+            />
+            <div
+              className="relative overflow-hidden bg-card shadow-lift"
+              style={{ borderRadius: "42% 58% 38% 62% / 52% 40% 60% 48%" }}
+            >
               <img
-                src={hero}
+                src={heroImage}
                 alt="A warm illustration of a family looking through their child's memory book together"
                 width={1280}
                 height={1024}
-                className="h-auto w-full object-cover"
+                className="aspect-square h-auto w-full object-cover"
               />
             </div>
-            <div className="absolute -left-4 top-6 hidden rounded-2xl border border-border bg-card px-3 py-2 shadow-soft md:flex md:items-center md:gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary/40 text-secondary-foreground">
+
+            <div className="absolute -left-2 top-8 hidden rounded-2xl border border-border bg-card px-3 py-2 shadow-soft md:flex md:items-center md:gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-foreground">
                 <Heart className="h-4 w-4" />
               </span>
               <div className="text-left">
@@ -200,8 +174,8 @@ const Landing = () => {
                 <div className="text-[13px] font-semibold">"Mama" — Day 287</div>
               </div>
             </div>
-            <div className="absolute -right-3 bottom-6 hidden rounded-2xl border border-border bg-card px-3 py-2 shadow-soft md:flex md:items-center md:gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/30 text-primary-deep">
+            <div className="absolute -left-4 bottom-10 hidden rounded-2xl border border-border bg-card px-3 py-2 shadow-soft md:flex md:items-center md:gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-foreground">
                 <Trophy className="h-4 w-4" />
               </span>
               <div className="text-left">
@@ -209,21 +183,39 @@ const Landing = () => {
                 <div className="text-[13px] font-semibold">Swim badge — Level 2</div>
               </div>
             </div>
+
+            {/* Spinning "made with love" badge */}
+            <div className="absolute -bottom-5 right-0 h-28 w-28 sm:h-32 sm:w-32" aria-hidden>
+              <svg viewBox="0 0 120 120" className="wash-spin h-full w-full">
+                <defs>
+                  <path id="badge-ring" d="M60,60 m-41,0 a41,41 0 1,1 82,0 a41,41 0 1,1 -82,0" />
+                </defs>
+                <circle cx="60" cy="60" r="58" fill="hsl(var(--accent))" />
+                <circle cx="60" cy="60" r="54" fill="none" stroke="hsl(var(--foreground))" strokeWidth="1" strokeDasharray="2 4" />
+                <text fontSize="10" fontWeight="700" fill="hsl(var(--foreground))">
+                  <textPath href="#badge-ring" textLength="252" lengthAdjust="spacing">MADE WITH LOVE · MADE TO KEEP ·</textPath>
+                </text>
+              </svg>
+              <Heart className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 fill-primary text-primary" />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Stats / belief strip */}
-      <section className="border-y border-border bg-muted/40">
-        <div className="mx-auto grid max-w-6xl gap-6 px-6 py-10 sm:grid-cols-3">
+      {/* Lilac band, like the reference's values strip */}
+      <section className="bg-[hsl(var(--wash-lilac))]">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-5 px-6 py-7 sm:grid-cols-4">
           {[
-            { k: "Every photo,", v: "kept beautifully" },
-            { k: "Every milestone,", v: "celebrated forever" },
-            { k: "Every record,", v: "safe and at hand" },
-          ].map((s) => (
-            <div key={s.k} className="text-center">
-              <div className="text-[13px] font-medium uppercase tracking-wider text-muted-foreground">{s.k}</div>
-              <div className="mt-1 text-xl font-semibold text-foreground md:text-2xl">{s.v}</div>
+            { icon: Lock, label: "Private by default" },
+            { icon: FileText, label: "PDF keepsake export" },
+            { icon: Users, label: "Share with grandparents" },
+            { icon: BookHeart, label: "Made for every family" },
+          ].map((v) => (
+            <div key={v.label} className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-foreground/70 text-foreground">
+                <v.icon className="h-[18px] w-[18px]" />
+              </span>
+              <span className="text-[12px] font-bold uppercase leading-tight tracking-wider text-foreground">{v.label}</span>
             </div>
           ))}
         </div>
@@ -233,26 +225,26 @@ const Landing = () => {
       <section className="mx-auto max-w-6xl px-6 py-16 md:py-24">
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-[12px] font-semibold uppercase tracking-wider text-primary-deep">Everything in one place</span>
-          <h2 className="mt-2 text-3xl font-bold md:text-4xl">A keepsake that grows with them</h2>
+          <h2 className="font-display mt-2 text-3xl font-bold md:text-4xl">A keepsake that grows with them</h2>
           <p className="mt-3 text-muted-foreground">
             Four warm, focused modules — designed to make remembering effortless and beautiful.
           </p>
         </div>
 
         <div className="mt-12 grid gap-6 md:grid-cols-2">
-          {features.map((f) => (
+          {features.map((f, i) => (
             <article
               key={f.title}
-              className="group relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift sm:p-7"
+              style={{ background: `hsl(var(--wash-${TONES[i % 4].bg}))`, color: `hsl(var(--wash-${TONES[i % 4].fg}))` }}
+              className="group relative overflow-hidden rounded-3xl p-6 shadow-soft transition-all hover:-translate-y-1 hover:shadow-lift sm:p-8"
             >
-              <div className={`pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-gradient-to-br ${f.accent} blur-2xl`} aria-hidden />
               <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
                 <div className="flex-1">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/30 text-primary-deep">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-[hsl(var(--wash-ink))]">
                     <f.icon className="h-5 w-5" />
                   </span>
-                  <h3 className="mt-3 text-xl font-semibold">{f.title}</h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{f.body}</p>
+                  <h3 className="font-display mt-3 text-2xl font-extrabold">{f.title}</h3>
+                  <p className="mt-2 text-[15px] leading-relaxed opacity-90">{f.body}</p>
                 </div>
                 <img
                   src={f.image}
@@ -279,7 +271,7 @@ const Landing = () => {
         <div className="mx-auto max-w-6xl px-6 py-16 md:py-24">
           <div className="mx-auto max-w-2xl text-center">
             <span className="text-[12px] font-semibold uppercase tracking-wider text-primary-deep">A peek inside</span>
-            <h2 className="mt-2 text-3xl font-bold md:text-4xl">Milestones, beautifully kept by year</h2>
+            <h2 className="font-display mt-2 text-3xl font-bold md:text-4xl">Milestones, beautifully kept by year</h2>
           </div>
 
           <div className="mt-12 grid items-start gap-8 md:grid-cols-5 md:gap-10">
@@ -375,7 +367,7 @@ const Landing = () => {
       <section className="mx-auto max-w-6xl px-6 py-16 md:py-24">
         <div className="mx-auto max-w-2xl text-center">
           <span className="text-[12px] font-semibold uppercase tracking-wider text-primary-deep">Loved by families</span>
-          <h2 className="mt-2 text-3xl font-bold md:text-4xl">A little love letter to childhood</h2>
+          <h2 className="font-display mt-2 text-3xl font-bold md:text-4xl">A little love letter to childhood</h2>
         </div>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {[
@@ -402,7 +394,7 @@ const Landing = () => {
           <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-60 w-60 rounded-full bg-secondary/40 blur-3xl" />
           <div aria-hidden className="pointer-events-none absolute -left-16 -bottom-16 h-60 w-60 rounded-full bg-primary/40 blur-3xl" />
           <img src={logo} alt="Kidzopedia logo" width={64} height={64} className="mx-auto mb-4 h-16 w-16" />
-          <h2 className="text-3xl font-bold md:text-4xl">Start your child's Kidzopedia today.</h2>
+          <h2 className="font-display text-3xl font-bold md:text-4xl">Start your child's Kidzopedia today.</h2>
           <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
             One photo, one tiny story — and a beautiful keepsake begins.
           </p>
@@ -419,6 +411,7 @@ const Landing = () => {
           </div>
         </div>
       </section>
+      </div>
     </LandingLayout>
   );
 };

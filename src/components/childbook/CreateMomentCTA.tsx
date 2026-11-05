@@ -7,7 +7,7 @@ export const CreateMomentCTA = () => {
   return (
     <section
       aria-label="Create a memory"
-      className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-7 animate-fade-in-up"
+      className="relative overflow-hidden rounded-3xl border border-border bg-card p-7 shadow-soft sm:p-9 animate-fade-in-up"
     >
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-secondary/20 blur-2xl" aria-hidden />
       <div className="relative flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">

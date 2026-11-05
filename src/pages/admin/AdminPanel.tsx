@@ -1,3 +1,4 @@
+import { useConfirm } from "@/components/ConfirmProvider";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ScrollText } from "lucide-react";
@@ -691,8 +692,9 @@ const CouponsTab = () => {
     if (error) return toast.error(error.message);
     load();
   };
+  const confirm = useConfirm();
   const remove = async (c: any) => {
-    if (!confirm(`Delete coupon ${c.code}?`)) return;
+    if (!(await confirm({ title: `Delete coupon ${c.code}?`, confirmLabel: "Delete", destructive: true }))) return;
     const { error } = await supabase.from("coupons").delete().eq("id", c.id);
     if (error) return toast.error(error.message);
     toast.success("Coupon deleted");
@@ -868,7 +870,7 @@ const AdminPanel = () => {
             <Link to="/home" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4" /> Back to app
             </Link>
-            <h1 className="mt-1 flex items-center gap-2 text-3xl font-bold text-foreground">
+            <h1 className="font-display mt-1 flex items-center gap-2 text-3xl font-bold text-foreground">
               <Shield className="h-7 w-7 text-primary-deep" /> Master admin
             </h1>
             <p className="text-sm text-muted-foreground">Signed in as {user?.email}</p>

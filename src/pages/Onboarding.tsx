@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveChild } from "@/hooks/useActiveChild";
+import { useAddChildGuard } from "@/hooks/useAddChildGuard";
 import { useCalendarMemory } from "@/hooks/useCalendarMemory";
 import { AgePreview } from "@/components/childbook/AgePreview";
 import { MilestoneTimelinePreview } from "@/components/childbook/MilestoneTimelinePreview";
@@ -27,6 +28,7 @@ const Onboarding = () => {
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
   const isAddingAnother = searchParams.get("addChild") === "1";
+  const canAddChild = useAddChildGuard();
 
   const [name, setName] = useState("");
   const [dob, setDob] = useState<Date | undefined>();
@@ -45,6 +47,8 @@ const Onboarding = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !dob) return;
+    // The form can be reached by link, so check the plan here too.
+    if (isAddingAnother && !canAddChild()) return;
     setSaving(true);
     const { data, error } = await supabase
       .from("child_profiles")
@@ -88,7 +92,7 @@ const Onboarding = () => {
             <Sparkles className="h-3.5 w-3.5 text-accent" />
             {isAddingAnother ? "Add another child" : "Step 1 of 1"}
           </span>
-          <h1 className="mt-3 text-3xl font-bold text-foreground">
+          <h1 className="font-display mt-3 text-3xl font-bold text-foreground">
             {isAddingAnother ? "Tell us about your next little one" : "Tell us about your little one"}
           </h1>
           <p className="mt-2 text-[15px] text-muted-foreground">

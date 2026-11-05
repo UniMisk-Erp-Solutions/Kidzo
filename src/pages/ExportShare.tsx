@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  ArrowUp,
-  ArrowDown,
+  ArrowRight,
   Download,
   Eye,
   Link2,
   Loader2,
+  Lock,
   Mail,
   Star,
 } from "lucide-react";
@@ -17,37 +17,80 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useMemories, type Memory } from "@/hooks/useMemories";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { useScreenGuard } from "@/lib/screenGuard";
+import { FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
+import { ExportPreviewDialog } from "@/components/books/ExportPreviewDialog";
+import { ExportYearGroup } from "@/components/books/ExportYearGroup";
+import { ExportActionBar } from "@/components/books/ExportActionBar";
+import { useYearGroups } from "@/hooks/useYearGroups";
+import { shareOrEmail } from "@/lib/shareLink";
 import { supabase } from "@/integrations/supabase/client";
-import { exportShareBook, type LayoutStyle } from "@/lib/exportShareBook";
+import type { LayoutStyle } from "@/lib/exportShareBook";
+import { clearOpenRequest, startExport, useExportJob } from "@/lib/exportJobStore";
 import { format } from "date-fns";
 
-const LAYOUTS: { id: LayoutStyle; title: string; desc: string }[] = [
+const LAYOUTS: { id: LayoutStyle; title: string; desc: string; swatches?: string[] }[] = [
+  { id: "scrapbook-kraft", title: "Burgundy Diary", desc: "Kraft paper, torn burgundy panels & a vintage camera — 4 photos a page.", swatches: ["#C8A57A", "#7A1F2B", "#E0B24A"] },
+  { id: "scrapbook-film", title: "Film Roll", desc: "A big hero photo with a film roll across the page and marker scribbles.", swatches: ["#E4DCCB", "#16161a", "#F0C84A"] },
+  { id: "scrapbook-news", title: "Newsprint Collage", desc: "Taped, tilted photos over vintage newspaper with cut-out headlines.", swatches: ["#E8E1D1", "#D4553F", "#F3C94C"] },
   { id: "classic", title: "Classic coffee-table", desc: "Bold hero photo with caption — warm and traditional." },
   { id: "minimal", title: "Minimal", desc: "Lots of whitespace, centered photo and title." },
   { id: "timeline", title: "Timeline-first", desc: "Dark date rail down the left with story alongside." },
 ];
+
+/** The finished PDF, only if it was built for this child. */
+const blobForChild = (job: { childId: string | null; blob: Blob | null }, childId?: string) =>
+  childId && job.childId === childId ? job.blob : null;
+
+/** 128 random bits as URL-safe text: unguessable, and carries no ids, names or server details. */
+const newShareToken = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return btoa(String.fromCharCode(...bytes)).replace(/[+/=]/g, (c) => ({ "+": "-", "/": "_", "=": "" })[c] ?? "");
+};
 
 const ExportShare = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: child } = useActiveChild();
   const { data: memories = [] } = useMemories(child?.id);
+  const { can, loading: entLoading } = useEntitlements();
+  const canDownload = can("pdf_export");
+  const goUpgrade = () => navigate("/pricing-plans");
 
   const [order, setOrder] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [coverOverrides, setCoverOverrides] = useState<Record<string, string>>({});
-  const [layout, setLayout] = useState<LayoutStyle>("classic");
-  const [busy, setBusy] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [layout, setLayout] = useState<LayoutStyle>("scrapbook-kraft");
+  const job = useExportJob();
+  const [sharing, setSharing] = useState(false);
+  const busy = job.busy || sharing;
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [lastBlob, setLastBlob] = useState<Blob | null>(null);
-  const [lastFilename, setLastFilename] = useState<string>("keepsake.pdf");
+  const lastBlob = blobForChild(job, child?.id);
+  const lastFilename = job.filename;
+  const previewUrl = previewOpen && lastBlob ? "open" : null;
+  const onPageRef = useRef(true);
+  useEffect(() => {
+    onPageRef.current = true;
+    return () => {
+      onPageRef.current = false;
+    };
+  }, []);
+  // A build finished (here or while the user was away): open its preview once.
+  useEffect(() => {
+    if (job.openRequested && lastBlob) {
+      setPreviewOpen(true);
+      clearOpenRequest();
+    }
+  }, [job.openRequested, lastBlob]);
+  // No plan may capture the PDF preview: blocks screenshots/recording in the Android app.
+  useScreenGuard(!!previewUrl);
 
   // Seed selection/order from memories on first load
   useEffect(() => {
@@ -72,12 +115,20 @@ const ExportShare = () => {
     [ordered, selected],
   );
 
-  const move = (idx: number, dir: -1 | 1) => {
+  // Swap two memories' positions in the global order (used to reorder within a year).
+  const swap = (a: number, b: number | undefined) => {
+    if (b === undefined || b < 0 || b >= order.length) return;
     const next = [...order];
-    const target = idx + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[idx], next[target]] = [next[target], next[idx]];
+    [next[a], next[b]] = [next[b], next[a]];
     setOrder(next);
+  };
+
+  const { yearGroups, openYears, toggleYear } = useYearGroups(ordered);
+
+  const setYearSelected = (ids: string[], on: boolean) => {
+    const next = new Set(selected);
+    ids.forEach((id) => (on ? next.add(id) : next.delete(id)));
+    setSelected(next);
   };
 
   const toggleSelected = (id: string) => {
@@ -92,43 +143,26 @@ const ExportShare = () => {
 
   const generate = async (mode: "preview" | "download") => {
     if (!child) return;
+    if (mode === "download" && !canDownload) {
+      toast.error("Upgrade to download", { action: { label: "See plans", onClick: goUpgrade } });
+      return;
+    }
     if (includedMemories.length === 0) {
       toast.error("Pick at least one memory to include.");
       return;
     }
-    setBusy(true);
-    const t = toast.loading("Building your photo book…");
-    try {
-      const { blob, filename, report } = await exportShareBook({
-        childName: child.name,
-        childDob: new Date(child.dob),
-        memories: includedMemories,
-        coverOverrides,
-        layout,
-        download: mode === "download",
-      });
-      setLastBlob(blob);
-      setLastFilename(filename);
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-      toast.success(
-        mode === "download" ? "Saved 💛" : "Preview ready",
-        {
-          id: t,
-          description: report.failedImages.length
-            ? `${report.imagesLoaded}/${report.imagesAttempted} photos embedded.`
-            : undefined,
-        },
-      );
-    } catch (e) {
-      toast.error("Couldn't generate PDF", {
-        id: t,
-        description: e instanceof Error ? e.message : String(e),
-      });
-    } finally {
-      setBusy(false);
-    }
+    void startExport({
+      childId: child.id,
+      childName: child.name,
+      childDob: new Date(child.dob),
+      memories: includedMemories,
+      coverOverrides,
+      layout,
+      mode,
+      maxPages: canDownload ? undefined : FREE_PREVIEW_PAGES,
+      isOnPage: () => onPageRef.current,
+      goToExport: () => navigate("/export"),
+    });
   };
 
   const downloadCurrent = () => {
@@ -140,31 +174,49 @@ const ExportShare = () => {
     URL.revokeObjectURL(a.href);
   };
 
-  const createShareLink = async () => {
+  const createShareLink = async (): Promise<string | null> => {
     if (!lastBlob || !user || !child) {
       toast.error("Generate the PDF first.");
-      return;
+      return null;
     }
-    setBusy(true);
+    setSharing(true);
     const t = toast.loading("Uploading your photo book…");
     try {
-      const path = `${user.id}/${child.id}-${Date.now()}-${lastFilename}`;
+      // The file name is random (no child name or ids). The folder must stay the user id for the storage
+      // policy, but that path is never put in the link: the link is just a random token on our own domain.
+      const path = `${user.id}/${crypto.randomUUID()}.pdf`;
       const { error } = await supabase.storage
         .from("shared-keepsakes")
         .upload(path, lastBlob, { contentType: "application/pdf", upsert: false });
       if (error) throw error;
-      const { data } = supabase.storage.from("shared-keepsakes").getPublicUrl(path);
-      setShareUrl(data.publicUrl);
-      await navigator.clipboard.writeText(data.publicUrl).catch(() => {});
+      const token = newShareToken();
+      const { error: linkError } = await supabase
+        .from("shared_keepsakes")
+        .insert({ token, user_id: user.id, child_id: child.id, storage_path: path });
+      if (linkError) {
+        await supabase.storage.from("shared-keepsakes").remove([path]);
+        throw linkError;
+      }
+      const url = `${window.location.origin}/k/${token}`;
+      setShareUrl(url);
+      await navigator.clipboard.writeText(url).catch(() => {});
       toast.success("Link ready & copied to clipboard 🔗", { id: t });
+      return url;
     } catch (e) {
       toast.error("Couldn't create share link", {
         id: t,
         description: e instanceof Error ? e.message : String(e),
       });
+      return null;
     } finally {
-      setBusy(false);
+      setSharing(false);
     }
+  };
+
+  // Phone bottom bar: make the link if needed, then hand it to the OS share sheet (email fallback).
+  const shareFromBar = async () => {
+    const url = shareUrl ?? (await createShareLink());
+    if (url) await shareOrEmail(`${child?.name ?? "Our"} keepsake photo book`, url);
   };
 
   const shareViaEmail = () => {
@@ -188,41 +240,51 @@ const ExportShare = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-32 md:pb-28">
       <TopBar childName={child.name} />
-      <main className="mx-auto max-w-3xl px-4 py-6 md:max-w-5xl md:py-10">
+      <main className="mx-auto max-w-3xl px-4 py-6 md:max-w-6xl md:py-10">
         <div className="mb-6 flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4" /> Back
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Export & share</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">Export & share</h1>
             <p className="text-sm text-muted-foreground">
               Build a printable photo book of {child.name}'s memories and share it with family.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[1fr,320px]">
-          <div className="space-y-6">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[minmax(0,1fr),320px]">
+          <div className="min-w-0 space-y-6">
             {/* Layout */}
             <Card className="rounded-2xl p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 1. Choose a layout
               </h2>
-              <RadioGroup value={layout} onValueChange={(v) => setLayout(v as LayoutStyle)} className="grid gap-2 md:grid-cols-3">
+              {/* Phones: a compact 2-up grid showing just the name + colours (descriptions are md and up). */}
+              <RadioGroup value={layout} onValueChange={(v) => setLayout(v as LayoutStyle)} className="grid grid-cols-2 gap-2 md:grid-cols-3">
                 {LAYOUTS.map((l) => (
                   <Label
                     key={l.id}
                     htmlFor={`layout-${l.id}`}
-                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                    className={`flex min-w-0 cursor-pointer items-start gap-2 rounded-xl border p-3 transition-colors md:gap-3 md:p-4 ${
                       layout === l.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
                     }`}
                   >
-                    <RadioGroupItem value={l.id} id={`layout-${l.id}`} className="mt-1" />
-                    <div>
-                      <div className="text-sm font-semibold text-foreground">{l.title}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{l.desc}</div>
+                    <RadioGroupItem value={l.id} id={`layout-${l.id}`} className="mt-0.5 shrink-0 md:mt-1" />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold leading-tight text-foreground md:text-sm">
+                        {l.title}
+                        {l.swatches && (
+                          <span className="flex -space-x-1" aria-hidden>
+                            {l.swatches.map((s) => (
+                              <span key={s} className="h-3.5 w-3.5 rounded-full border border-card" style={{ backgroundColor: s }} />
+                            ))}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 hidden text-xs text-muted-foreground md:block">{l.desc}</div>
                     </div>
                   </Label>
                 ))}
@@ -244,91 +306,30 @@ const ExportShare = () => {
               {ordered.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No memories yet — add some first.</p>
               ) : (
-                <ul className="space-y-2">
-                  {ordered.map((m, idx) => {
-                    const photos = m.photo_urls?.length ? m.photo_urls : m.photo_url ? [m.photo_url] : [];
-                    const currentCover = coverOverrides[m.id] ?? photos[0];
-                    const isSel = selected.has(m.id);
-                    return (
-                      <li
-                        key={m.id}
-                        className={`rounded-xl border p-3 transition-opacity ${
-                          isSel ? "border-border bg-card" : "border-dashed border-border bg-muted/30 opacity-60"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Checkbox
-                            checked={isSel}
-                            onCheckedChange={() => toggleSelected(m.id)}
-                            className="mt-1"
-                            aria-label={`Include ${m.title}`}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-baseline justify-between gap-3">
-                              <p className="truncate text-sm font-semibold text-foreground">{m.title}</p>
-                              <span className="shrink-0 text-[11px] text-muted-foreground">
-                                {format(new Date(m.happened_at), "MMM d, yyyy")}
-                              </span>
-                            </div>
-                            {photos.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                {photos.map((url) => {
-                                  const isCover = url === currentCover;
-                                  return (
-                                    <button
-                                      key={url}
-                                      type="button"
-                                      onClick={() => setCoverOverrides({ ...coverOverrides, [m.id]: url })}
-                                      title={isCover ? "Hero cover" : "Use as hero cover"}
-                                      className={`relative h-14 w-14 overflow-hidden rounded-md border-2 transition-all ${
-                                        isCover ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-border"
-                                      }`}
-                                    >
-                                      <img src={url} alt="" className="h-full w-full object-cover" />
-                                      {isCover && (
-                                        <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-0.5 bg-primary/90 py-0.5 text-[9px] font-semibold text-primary-foreground">
-                                          <Star className="h-2.5 w-2.5 fill-current" /> COVER
-                                        </span>
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 flex-col gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => move(idx, -1)}
-                              disabled={idx === 0}
-                              aria-label="Move up"
-                            >
-                              <ArrowUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => move(idx, 1)}
-                              disabled={idx === ordered.length - 1}
-                              aria-label="Move down"
-                            >
-                              <ArrowDown className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="space-y-3">
+                  {yearGroups.map(({ year, items }) => (
+                    <ExportYearGroup
+                      key={year}
+                      year={year}
+                      items={items}
+                      open={openYears.has(year)}
+                      selected={selected}
+                      coverOverrides={coverOverrides}
+                      onToggleOpen={() => toggleYear(year)}
+                      onSetAll={setYearSelected}
+                      onToggleSelected={toggleSelected}
+                      onCover={(id, url) => setCoverOverrides({ ...coverOverrides, [id]: url })}
+                      onSwap={swap}
+                    />
+                  ))}
+                </div>
               )}
             </Card>
           </div>
 
           {/* Right side: actions */}
-          <aside className="space-y-4 md:sticky md:top-6 md:self-start">
+          {/* Phones use the sticky bottom bar instead, so these don't sit at the end of a long page. */}
+          <aside className="hidden space-y-4 md:sticky md:top-6 md:block md:self-start">
             <Card className="rounded-2xl p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 3. Preview & generate
@@ -342,9 +343,15 @@ const ExportShare = () => {
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
                   Preview PDF
                 </Button>
-                <Button variant="outline" onClick={() => generate("download")} disabled={busy}>
-                  <Download className="h-4 w-4" /> Download
-                </Button>
+                {!entLoading && !canDownload ? (
+                  <Button variant="outline" onClick={goUpgrade}>
+                    <Lock className="h-4 w-4" /> Upgrade to download
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => generate("download")} disabled={busy || entLoading}>
+                    <Download className="h-4 w-4" /> Download
+                  </Button>
+                )}
               </div>
             </Card>
 
@@ -373,36 +380,28 @@ const ExportShare = () => {
         </div>
       </main>
 
-      <Dialog
+      <ExportActionBar
+        count={includedMemories.length}
+        busy={busy}
+        planLoading={entLoading}
+        canDownload={canDownload}
+        canShare={!!lastBlob}
+        onPreview={() => generate("preview")}
+        onDownload={() => generate("download")}
+        onUpgrade={goUpgrade}
+        onShare={shareFromBar}
+      />
+
+      <ExportPreviewDialog
         open={!!previewUrl}
-        onOpenChange={(o) => {
-          if (!o) {
-            if (previewUrl) URL.revokeObjectURL(previewUrl);
-            setPreviewUrl(null);
-          }
-        }}
-      >
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Preview — {lastFilename}</DialogTitle>
-          </DialogHeader>
-          {previewUrl && (
-            <iframe
-              src={previewUrl}
-              title="PDF preview"
-              className="h-[70vh] w-full rounded-md border border-border"
-            />
-          )}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={downloadCurrent}>
-              <Download className="h-4 w-4" /> Download
-            </Button>
-            <Button variant="warm" onClick={createShareLink} disabled={busy}>
-              <Link2 className="h-4 w-4" /> Share link
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        filename={lastFilename}
+        blob={lastBlob}
+        canDownload={canDownload}
+        locked={!entLoading && !canDownload}
+        onClose={() => setPreviewOpen(false)}
+        onDownload={downloadCurrent}
+        onUpgrade={goUpgrade}
+      />
 
       <BottomNav />
     </div>

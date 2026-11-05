@@ -1,6 +1,6 @@
 /** Editor element model — elements are positioned on the 600×800 design canvas. */
 
-import { BOOK_PAGE_H, BOOK_PAGE_W } from "../BookPages";
+import { BOOK_PAGE_H, BOOK_PAGE_W } from "../pageTypes";
 
 export const EDITOR_CANVAS_W = BOOK_PAGE_W;
 export const EDITOR_CANVAS_H = BOOK_PAGE_H;
@@ -30,6 +30,8 @@ export type TextElement = ElementBase & {
   type: "text";
   text: string;
   font: "handwritten" | "marker" | "printed" | "serif";
+  /** A Google Fonts family picked from the font library; when set it wins over `font`. */
+  fontFamily?: string;
   size: number;
   color: string;
   bg?: string;
@@ -155,15 +157,22 @@ export type CustomPageData = {
   elements: EditorElement[];
   hideNative?: boolean;
   nativeEditable?: boolean;
+  /** User edits to the page's built-in text, keyed by field (see editor/pageText.ts). */
+  textOverrides?: Record<string, string>;
 };
 
 export type CustomPagesMap = Record<string, EditorElement[] | CustomPageData>;
 
 /** Helpers to read/write the new shape while staying back-compatible. */
 export function readPageData(raw: EditorElement[] | CustomPageData | undefined): CustomPageData {
-  if (!raw) return { elements: [], hideNative: false };
-  if (Array.isArray(raw)) return { elements: raw, hideNative: false };
-  return { elements: raw.elements ?? [], hideNative: !!raw.hideNative, nativeEditable: !!raw.nativeEditable };
+  if (!raw) return { elements: [], hideNative: false, textOverrides: {} };
+  if (Array.isArray(raw)) return { elements: raw, hideNative: false, textOverrides: {} };
+  return {
+    elements: raw.elements ?? [],
+    hideNative: !!raw.hideNative,
+    nativeEditable: !!raw.nativeEditable,
+    textOverrides: raw.textOverrides ?? {},
+  };
 }
 
 /** Build a stable key for a BookPage so edits persist across reloads. */

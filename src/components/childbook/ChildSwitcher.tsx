@@ -10,12 +10,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useActiveChildId } from "@/hooks/useChildren";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAddChildGuard } from "@/hooks/useAddChildGuard";
 import { cn } from "@/lib/utils";
 
 export const ChildSwitcher = ({ childName }: { childName?: string }) => {
   const { user } = useAuth();
   const { activeId, setActive, children } = useActiveChildId();
   const navigate = useNavigate();
+  const canAddChild = useAddChildGuard();
 
   // Always render so users can add another child even if they only have one.
   const owned = children.filter((c) => c.user_id === user?.id);
@@ -27,10 +29,10 @@ export const ChildSwitcher = ({ childName }: { childName?: string }) => {
       {/* The whole name is the trigger — not just the chevron. */}
       <DropdownMenuTrigger
         aria-label="Switch child"
-        className="group -mx-1.5 flex h-8 items-center gap-1 rounded-lg px-1.5 text-left transition-colors hover:bg-muted data-[state=open]:bg-muted"
+        className="group -mx-1.5 flex h-8 max-w-full items-center gap-1 rounded-lg px-1.5 text-left transition-colors hover:bg-muted data-[state=open]:bg-muted"
       >
         {childName && (
-          <span className="whitespace-nowrap text-[14px] font-semibold text-foreground">{childName}'s journey</span>
+          <span className="truncate text-[13px] font-semibold text-foreground sm:text-[14px]">{childName}'s journey</span>
         )}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
         <span className="sr-only">Switch child ({active?.name})</span>
@@ -73,7 +75,7 @@ export const ChildSwitcher = ({ childName }: { childName?: string }) => {
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => navigate("/onboarding?addChild=1")}
+          onClick={() => canAddChild() && navigate("/onboarding?addChild=1")}
           className="flex items-center gap-2 rounded-lg text-primary-deep focus:text-primary-deep"
         >
           <Plus className="h-4 w-4" /> Add another child

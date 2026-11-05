@@ -13,8 +13,16 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
       },
       colors: {
+        lavender: "hsl(var(--lavender))",
+        coral: "hsl(var(--coral))",
+        butter: "hsl(var(--butter))",
+        mint: "hsl(var(--mint))",
+        sky: "hsl(var(--sky))",
+        peach: "hsl(var(--peach))",
+        plum: "hsl(var(--plum))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

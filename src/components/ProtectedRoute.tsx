@@ -4,15 +4,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// The suspension check hits the network; remember a clean result per user so moving between pages is instant.
+let verifiedUserId: string | null = null;
+
 export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(() => !(user && verifiedUserId === user.id));
   const [suspended, setSuspended] = useState(false);
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
+      setChecking(false);
+      return;
+    }
+    if (verifiedUserId === user.id) {
       setChecking(false);
       return;
     }
@@ -28,6 +35,8 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
         });
         await supabase.auth.signOut();
         setSuspended(true);
+      } else {
+        verifiedUserId = user.id;
       }
       setChecking(false);
     })();

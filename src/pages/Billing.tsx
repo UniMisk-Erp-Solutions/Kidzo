@@ -59,7 +59,7 @@ const Billing = () => {
           <ArrowLeft className="h-4 w-4" /> Back to home
         </Link>
 
-        <h1 className="mt-4 text-3xl font-bold text-foreground">Billing</h1>
+        <h1 className="font-display mt-4 text-3xl font-bold text-foreground">Billing</h1>
         <p className="mt-1 text-muted-foreground">Manage your plan and review past invoices.</p>
 
         <Card className="mt-6 p-6">

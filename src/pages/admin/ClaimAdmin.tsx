@@ -47,7 +47,7 @@ const ClaimAdmin = () => {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/20">
             <Shield className="h-7 w-7 text-primary-deep" />
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-foreground">Claim master admin</h1>
+          <h1 className="font-display mt-4 text-2xl font-bold text-foreground">Claim master admin</h1>
           {exists === null ? (
             <p className="mt-2 text-sm text-muted-foreground">Checking…</p>
           ) : exists ? (

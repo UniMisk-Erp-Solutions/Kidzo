@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Download, Loader2, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Loader2, Lock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
@@ -9,16 +9,45 @@ import { useBookTemplates, type BookTemplateColors } from "@/hooks/useBookTempla
 import { useMemories } from "@/hooks/useMemories";
 import { useChildren } from "@/hooks/useChildren";
 import { BookPageFrame, buildPages } from "@/components/books/BookPages";
-import { exportBookPdf, type PdfProgress } from "@/lib/exportBookPdf";
-import { PdfExportDialog } from "@/components/books/PdfExportDialog";
 import { PageEditorDialog } from "@/components/books/PageEditorDialog";
 import { pageKeyFor, readPageData, type CustomPagesMap, type EditorElement } from "@/components/books/editor/types";
+import { applyTextOverrides, type TextOverrides } from "@/components/books/editor/pageText";
 import { calculatePrice, formatCurrency, type BookSize, type PaperQuality, type BindingType } from "@/lib/bookPricing";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useScreenGuard } from "@/lib/screenGuard";
 import { isPageLocked, FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
 import { LockedBookPage } from "@/components/books/LockedBookPage";
 import { ScreenshotShield } from "@/components/books/ScreenshotShield";
+
+interface OrderButtonProps {
+  planLoading: boolean;
+  fullAccess: boolean;
+  onContinue: () => void;
+  onUpgrade: () => void;
+}
+
+/** Continue to order / Upgrade. While the plan is loading it stays neutral, so paying users never see "Upgrade". */
+const OrderButton = ({ planLoading, fullAccess, onContinue, onUpgrade }: OrderButtonProps) => {
+  if (planLoading) {
+    return (
+      <Button size="sm" disabled>
+        <Loader2 className="h-4 w-4 animate-spin" /> Continue to order
+      </Button>
+    );
+  }
+  if (!fullAccess) {
+    return (
+      <Button size="sm" variant="warm" onClick={onUpgrade}>
+        <Lock className="h-4 w-4" /> Upgrade to export
+      </Button>
+    );
+  }
+  return (
+    <Button size="sm" onClick={onContinue}>
+      Continue to order <ArrowRight className="h-4 w-4" />
+    </Button>
+  );
+};
 
 const BookPreview = () => {
   const { id } = useParams();
@@ -36,11 +65,6 @@ const BookPreview = () => {
 
   const [pageIndex, setPageIndex] = useState(0);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [pdfState, setPdfState] = useState<{ open: boolean; progress: PdfProgress | null; error: string | null }>({
-    open: false,
-    progress: null,
-    error: null,
-  });
 
   const child = children?.find((c) => c.id === book?.child_id);
   const template = templates?.find((t) => t.id === book?.template_id);
@@ -84,10 +108,10 @@ const BookPreview = () => {
     setPageIndex(0);
   }, [book?.id]);
 
-  const handleSavePageEdits = async (els: EditorElement[], hideNative: boolean, nativeEditable: boolean) => {
+  const handleSavePageEdits = async (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides) => {
     if (!book || !pages[pageIndex]) return;
     const key = pageKeyFor(pages[pageIndex] as { kind: string; memory?: { id: string }; number?: number; spreadKey?: string });
-    const next: CustomPagesMap = { ...customPages, [key]: { elements: els, hideNative, nativeEditable } };
+    const next: CustomPagesMap = { ...customPages, [key]: { elements: els, hideNative, nativeEditable, textOverrides } };
     try {
       await updateBook.mutateAsync({
         id: book.id,
@@ -111,41 +135,6 @@ const BookPreview = () => {
       }),
     [book?.book_size, book?.paper_quality, book?.binding_type, book?.quantity],
   );
-
-  const promptUpgrade = () =>
-    toast.error("Upgrade to export", {
-      description: "The free plan previews the first 2 pages. Family and Premium unlock the full book.",
-      action: { label: "See plans", onClick: () => navigate("/pricing-plans") },
-    });
-
-  const handleDownload = async () => {
-    if (!book || !template || !colors || !child) return;
-    if (!fullAccess) return promptUpgrade();
-    setPdfState({ open: true, progress: { phase: "preparing", current: 0, total: pages.length }, error: null });
-    try {
-      await exportBookPdf({
-        title: book.title,
-        subtitle: book.subtitle,
-        childName: child.name,
-        childDob: child.dob,
-        template,
-        colors,
-        memories: orderedMemories,
-        customPages,
-        filename: `${child.name.replace(/\s+/g, "_")}_${template.slug}.pdf`,
-        onProgress: (p) => setPdfState((s) => ({ ...s, progress: p })),
-      });
-      setPdfState((s) => ({ ...s, progress: { phase: "done", current: pages.length, total: pages.length } }));
-      toast.success("PDF downloaded");
-      // auto-close after a brief moment so user sees "done"
-      setTimeout(() => setPdfState({ open: false, progress: null, error: null }), 1200);
-    } catch (e) {
-      console.error(e);
-      const msg = e instanceof Error ? e.message : "Could not generate PDF";
-      setPdfState((s) => ({ ...s, error: msg }));
-      toast.error("Could not generate PDF");
-    }
-  };
 
   if (isLoading || !book || !template || !colors || !child) {
     return (
@@ -187,7 +176,7 @@ const BookPreview = () => {
               <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Step 3 of 4
               </div>
-              <h1 className="truncate text-[15px] font-bold leading-tight md:text-[17px]">
+              <h1 className="font-display truncate text-[15px] font-bold leading-tight md:text-[17px]">
                 Preview your book
               </h1>
             </div>
@@ -203,17 +192,18 @@ const BookPreview = () => {
 
       {/* Main viewer fills remaining height — uses CSS grid so the page area
           gets exactly the leftover space, no horizontal/vertical scroll. */}
-      <main className="grid min-h-0 flex-1 grid-rows-[1fr_auto] overflow-hidden">
+      <main className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[1fr_auto] overflow-hidden">
         {/* Page area — page is auto-sized to fit container while keeping 3:4 aspect */}
-        <div className="relative min-h-0 overflow-hidden px-3 py-3">
-          <div className="relative mx-auto flex h-full w-full max-w-5xl items-center justify-center">
-            {/* The page itself — uses aspect-ratio + max-h so it never overflows */}
+        {/* The cell is a size container, so the page is sized from the space it actually has:
+            the largest 3:4 box that fits both width and height (works on any phone). */}
+        <div className="relative grid min-h-0 place-items-center overflow-hidden px-3 py-3 [container-type:size]">
+          <div className="contents">
+            {/* The page itself */}
             <div
-              className="relative max-h-full overflow-hidden rounded-2xl border shadow-lift"
+              className="relative overflow-hidden rounded-2xl border shadow-lift"
               style={{
                 aspectRatio: "3 / 4",
-                height: "100%",
-                maxWidth: "100%",
+                width: "min(100cqw, 75cqh)",
                 backgroundColor: colors.primary,
               }}
             >
@@ -222,7 +212,7 @@ const BookPreview = () => {
                   (currentLocked ? (
                     <LockedBookPage colors={colors} pageNumber={pageIndex + 1} />
                   ) : (
-                    <BookPageFrame page={current} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
+                    <BookPageFrame page={applyTextOverrides(current, currentData.textOverrides)} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
                   ))}
               </ScreenshotShield>
             </div>
@@ -254,7 +244,7 @@ const BookPreview = () => {
         </div>
 
         {/* Bottom strip — thumbnails + actions */}
-        <div className="border-t bg-card">
+        <div className="min-w-0 border-t bg-card">
           {/* Thumbnail strip */}
           <div className="overflow-x-auto px-4 py-2 scrollbar-hide">
             <div className="mx-auto flex w-max gap-1.5">
@@ -295,37 +285,23 @@ const BookPreview = () => {
 
           {/* Action bar */}
           <div className="border-t">
-            <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2.5 md:px-6">
+            <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 px-3 py-2.5 md:px-6">
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={handleDownload}>
-                  <Download className="h-4 w-4" />
-                  <span className="hidden sm:inline">Download PDF</span>
-                </Button>
                 <Button size="sm" variant="secondary" disabled={currentLocked} onClick={() => setEditorOpen(true)}>
                   <Pencil className="h-4 w-4" />
                   <span className="hidden sm:inline">Edit page</span>
                 </Button>
               </div>
-              {fullAccess ? (
-                <Button size="sm" onClick={() => navigate(`/books/${book.id}/checkout`)}>
-                  Continue to order <ArrowRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button size="sm" variant="warm" onClick={() => navigate("/pricing-plans")}>
-                  <Lock className="h-4 w-4" /> Upgrade to export
-                </Button>
-              )}
+              <OrderButton
+                planLoading={entLoading}
+                fullAccess={fullAccess}
+                onContinue={() => navigate(`/books/${book.id}/checkout`)}
+                onUpgrade={() => navigate("/pricing-plans")}
+              />
             </div>
           </div>
         </div>
       </main>
-
-      <PdfExportDialog
-        open={pdfState.open}
-        progress={pdfState.progress}
-        error={pdfState.error}
-        onClose={() => setPdfState({ open: false, progress: null, error: null })}
-      />
 
       <PageEditorDialog
         open={editorOpen}
@@ -334,6 +310,7 @@ const BookPreview = () => {
         initialElements={currentOverlay}
         initialHideNative={currentHideNative}
         initialNativeEditable={currentNativeEditable}
+        initialTextOverrides={currentData.textOverrides}
         bookId={book?.id}
         saving={updateBook.isPending}
         onSave={handleSavePageEdits}

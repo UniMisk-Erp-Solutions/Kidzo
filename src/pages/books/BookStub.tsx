@@ -38,7 +38,7 @@ export const BookStub = ({ step, title, description }: Props) => {
           <div className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             Step {STEP_NUM[step]} of 4
           </div>
-          <h1 className="mt-2 text-[22px] font-bold tracking-tight">{title}</h1>
+          <h1 className="font-display mt-2 text-[22px] font-bold tracking-tight">{title}</h1>
           <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-muted-foreground">
             {description}
           </p>

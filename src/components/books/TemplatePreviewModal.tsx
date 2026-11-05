@@ -1,16 +1,61 @@
-import { BookOpen, Sparkles } from "lucide-react";
+import { BookOpen, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { BookTemplate } from "@/hooks/useBookTemplates";
 
 interface Props {
   template: BookTemplate | null;
+  /** Premium template on a plan that can't use it — the CTA becomes "Upgrade". */
+  locked?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSelect: (t: BookTemplate) => void;
 }
 
-export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }: Props) => {
+type Colors = BookTemplate["color_scheme"];
+
+/** The template's palette as labelled swatches. */
+const ColorScheme = ({ colors, ink }: { colors: Colors; ink: string }) => (
+  <div>
+    <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Color scheme</div>
+    <div className="flex flex-wrap gap-2">
+      {[
+        { label: "Primary", c: colors.primary },
+        { label: "Accent", c: colors.accent },
+        { label: "Gold", c: colors.gold },
+        { label: "Coral", c: colors.coral },
+        { label: "Ink", c: ink },
+      ].map((s) => (
+        <div key={s.label} className="flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1 text-[12px]">
+          <span className="h-4 w-4 rounded-full border border-border" style={{ backgroundColor: s.c }} />
+          {s.label}
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+/** Up to three sample page layouts. */
+const SamplePages = ({ layouts, colors, ink }: { layouts: BookTemplate["page_layouts"]; colors: Colors; ink: string }) => (
+  <div>
+    <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">Sample pages</div>
+    <div className="grid grid-cols-3 gap-4">
+      {layouts.map((p, i) => (
+        <div key={i} className="rounded-xl border border-border bg-card p-3 text-center shadow-soft">
+          <div className="mx-auto mb-2 flex h-16 w-full items-center justify-center rounded-lg" style={{ backgroundColor: colors.primary }}>
+            <BookOpen className="h-5 w-5" style={{ color: ink }} />
+          </div>
+          <div className="text-[11px] font-semibold">{p.title}</div>
+          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            {p.type} · {p.photos} {p.photos === 1 ? "photo" : "photos"}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export const TemplatePreviewModal = ({ template, locked = false, open, onOpenChange, onSelect }: Props) => {
   if (!template) return null;
   const c = template.color_scheme;
   const ink = c.ink ?? c.text ?? "#3E3E42";
@@ -64,65 +109,22 @@ export const TemplatePreviewModal = ({ template, open, onOpenChange, onSelect }:
           </div>
         </div>
 
-        {/* Color scheme */}
-        <div>
-          <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Color scheme
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: "Primary", c: c.primary },
-              { label: "Accent", c: c.accent },
-              { label: "Gold", c: c.gold },
-              { label: "Coral", c: c.coral },
-              { label: "Ink", c: ink },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1 text-[12px]"
-              >
-                <span
-                  className="h-4 w-4 rounded-full border border-border"
-                  style={{ backgroundColor: s.c }}
-                />
-                {s.label}
-              </div>
-            ))}
-          </div>
-        </div>
+        <ColorScheme colors={c} ink={ink} />
 
-        {/* Sample pages */}
-        <div>
-          <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Sample pages
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            {template.page_layouts.slice(0, 3).map((p, i) => (
-              <div
-                key={i}
-                className="rounded-xl border border-border bg-card p-3 text-center shadow-soft"
-              >
-                <div
-                  className="mx-auto mb-2 flex h-16 w-full items-center justify-center rounded-lg"
-                  style={{ backgroundColor: c.primary }}
-                >
-                  <BookOpen className="h-5 w-5" style={{ color: ink }} />
-                </div>
-                <div className="text-[11px] font-semibold">{p.title}</div>
-                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {p.type} · {p.photos} {p.photos === 1 ? "photo" : "photos"}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <SamplePages layouts={template.page_layouts.slice(0, 3)} colors={c} ink={ink} />
 
         <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button variant="warm" size="lg" onClick={() => onSelect(template)}>
-            Select this template
+            {locked ? (
+              <>
+                <Lock className="h-4 w-4" /> Upgrade to use
+              </>
+            ) : (
+              "Select this template"
+            )}
           </Button>
         </div>
       </DialogContent>

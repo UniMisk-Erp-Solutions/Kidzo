@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { TopBar } from "@/components/childbook/TopBar";
+import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/ConfirmProvider";
+import { AchievementDetail } from "@/components/childbook/AchievementDetail";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useAchievements, type AchievementType, type Achievement } from "@/hooks/useAchievements";
@@ -45,6 +48,9 @@ const TYPES: { id: AchievementType | "all"; label: string; icon: any; tone: stri
   { id: "certifications", label: "Certifications", icon: Award, tone: "bg-success/25 text-success" },
 ];
 
+const growSubtitle = (count: number) =>
+  count > 0 ? `${count} achievement${count === 1 ? "" : "s"} this year ✨` : "Celebrate every milestone, big or small.";
+
 const Grow = () => {
   const { user } = useAuth();
   const { data: child } = useActiveChild();
@@ -54,6 +60,7 @@ const Grow = () => {
 
   const [filter, setFilter] = useState<AchievementType | "all">("all");
   const [open, setOpen] = useState(false);
+  const [viewing, setViewing] = useState<Achievement | null>(null);
 
   // form
   const [type, setType] = useState<AchievementType>("academics");
@@ -135,11 +142,13 @@ const Grow = () => {
     setOpen(false);
   };
 
+  const confirm = useConfirm();
   const handleDelete = async (id: string) => {
-    if (!confirm("Remove this achievement?")) return;
+    if (!(await confirm({ title: "Remove this achievement?", confirmLabel: "Remove", destructive: true }))) return;
     const { error } = await supabase.from("achievements").delete().eq("id", id);
     if (error) return toast.error(error.message);
     qc.invalidateQueries({ queryKey: ["achievements"] });
+    setViewing(null);
     toast.success("Removed.");
   };
 
@@ -147,25 +156,40 @@ const Grow = () => {
     <div className="min-h-screen bg-background pb-28">
       <TopBar childName={child?.name ?? "Your child"} />
 
-      <main className="mx-auto max-w-4xl px-6 py-6 space-y-6">
-        <header className="flex items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">Grow</h1>
-            <p className="mt-1 text-[14px] text-muted-foreground">
-              {yearCount > 0
-                ? `${yearCount} achievement${yearCount === 1 ? "" : "s"} this year ✨`
-                : "Celebrate every milestone, big or small."}
-            </p>
-          </div>
-          {canEdit && (
-            <Button variant="warm" size="sm" onClick={() => setOpen(true)}>
-              <Plus className="h-4 w-4" /> Add
-            </Button>
-          )}
-        </header>
+      <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">
+        <PageHero
+          icon={Award}
+          title="Grow"
+          subtitle={growSubtitle(yearCount)}
+          actions={
+            canEdit && (
+              <Button variant="outline" size="sm" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => setOpen(true)}>
+                <Plus className="h-4 w-4" /> Add
+              </Button>
+            )
+          }
+        />
 
-        {/* Type filter chips */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-6 px-6 pb-1">
+        {/* Type filter: one dropdown on phones, chips from sm up */}
+        <Select value={filter} onValueChange={(v) => setFilter(v as AchievementType | "all")}>
+          <SelectTrigger className="h-11 rounded-full border-border bg-card px-4 text-[14px] sm:hidden" aria-label="Filter by type">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {TYPES.map((t) => {
+              const Icon = t.icon;
+              return (
+                <SelectItem key={t.id} value={t.id}>
+                  <span className="flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5" />
+                    {t.label}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+        <div className="-mx-6 hidden gap-2 overflow-x-auto px-6 pb-1 scrollbar-hide sm:flex">
           {TYPES.map((t) => {
             const Icon = t.icon;
             const active = filter === t.id;
@@ -189,7 +213,7 @@ const Grow = () => {
 
         {/* List */}
         {isLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="h-28 animate-pulse rounded-2xl bg-muted" />
             ))}
@@ -197,17 +221,31 @@ const Grow = () => {
         ) : filtered.length === 0 ? (
           <EmptyState onAdd={() => setOpen(true)} />
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((a) => (
-              <AchievementCard key={a.id} a={a} onDelete={canEdit ? () => handleDelete(a.id) : undefined} />
+              <AchievementCard
+                key={a.id}
+                a={a}
+                onOpen={() => setViewing(a)}
+                onDelete={canEdit ? () => handleDelete(a.id) : undefined}
+              />
             ))}
           </ul>
         )}
       </main>
 
+      <AchievementDetail
+        achievement={viewing}
+        onClose={() => setViewing(null)}
+        onDelete={canEdit ? (a) => handleDelete(a.id) : undefined}
+      />
+
       {/* Add dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl">
+        {/* Phones: a narrower bottom sheet that slides up and is as tall as the form needs, so nothing has to scroll. Larger screens: centered dialog. */}
+        <DialogContent
+          className="sheet-up scrollbar-hide w-[88%] max-w-sm overflow-y-auto rounded-3xl max-sm:bottom-0 max-sm:top-auto max-sm:max-h-[calc(100dvh_-_1rem)] max-sm:translate-y-0 max-sm:rounded-b-none sm:max-h-[90vh] sm:max-w-md"
+        >
           <DialogHeader>
             <DialogTitle>Add achievement</DialogTitle>
           </DialogHeader>
@@ -282,10 +320,10 @@ const Grow = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-11 w-full justify-start rounded-xl font-normal"
+                      className="h-11 w-full justify-start gap-2 rounded-xl px-3 font-normal"
                     >
-                      <CalendarIcon className="h-4 w-4" />
-                      {format(date, "PPP")}
+                      <CalendarIcon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{format(date, "PP")}</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -293,6 +331,7 @@ const Grow = () => {
                       mode="single"
                       selected={date}
                       onSelect={(d) => d && setDate(d)}
+                      disabled={(d) => d > new Date()}
                       initialFocus
                       className={cn("p-3 pointer-events-auto")}
                     />
@@ -354,11 +393,17 @@ const Grow = () => {
   );
 };
 
-const AchievementCard = ({ a, onDelete }: { a: Achievement; onDelete?: () => void }) => {
+const AchievementCard = ({ a, onOpen, onDelete }: { a: Achievement; onOpen: () => void; onDelete?: () => void }) => {
   const meta = TYPES.find((t) => t.id === a.type);
   const Icon = meta?.icon ?? Sparkles;
   return (
-    <li className="overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:shadow-lift animate-fade-in-up">
+    <li
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
+      className="cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift animate-fade-in-up"
+    >
       {a.photo_url && (
         <img src={a.photo_url} alt={a.subject} className="h-36 w-full object-cover" loading="lazy" />
       )}
@@ -375,7 +420,10 @@ const AchievementCard = ({ a, onDelete }: { a: Achievement; onDelete?: () => voi
           </span>
           {onDelete && (
             <button
-              onClick={onDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               aria-label="Delete"
               className="text-muted-foreground hover:text-destructive"
             >

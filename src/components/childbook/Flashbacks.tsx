@@ -35,10 +35,10 @@ export const Flashbacks = ({ memories, variant = "card" }: Props) => {
             <Sparkles className="h-4.5 w-4.5" />
           </span>
           <div className="min-w-0">
-            <h2 className="truncate text-[15px] font-semibold text-foreground sm:text-base">
+            <h2 className={cn("truncate text-[15px] font-semibold sm:text-base", variant === "card" ? "text-[hsl(var(--on-celebrate))]" : "text-foreground")}>
               Flashbacks · {format(new Date(), "MMMM")}
             </h2>
-            <p className="truncate text-[12px] text-muted-foreground">{active.label} this month</p>
+            <p className={cn("truncate text-[12px]", variant === "card" ? "text-[hsl(var(--on-celebrate)/0.75)]" : "text-muted-foreground")}>{active.label} this month</p>
           </div>
         </div>
 
@@ -80,7 +80,7 @@ export const Flashbacks = ({ memories, variant = "card" }: Props) => {
         )}
       </header>
 
-      <ul className="-mx-6 mt-3 flex gap-3 overflow-x-auto scroll-smooth scrollbar-hide px-6 pb-5">
+      <ul className="mt-4 flex gap-4 overflow-x-auto scroll-smooth scrollbar-hide px-5 pb-6 sm:px-6">
         {active.memories.map((m) => {
           const cover = m.photo_url ?? m.photo_urls?.[0] ?? null;
           const extra = Math.max(0, (m.photo_urls?.length ?? (cover ? 1 : 0)) - 1);
@@ -89,9 +89,9 @@ export const Flashbacks = ({ memories, variant = "card" }: Props) => {
               <button
                 type="button"
                 onClick={() => setOpen(m)}
-                className="group block w-44 overflow-hidden rounded-2xl border border-border/70 bg-card text-left shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift sm:w-48"
+                className="group block w-44 overflow-hidden rounded-2xl border border-border/70 bg-card p-2 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift sm:w-48"
               >
-                <div className="relative h-28 w-full overflow-hidden bg-gradient-warm sm:h-32">
+                <div className="relative h-28 w-full overflow-hidden rounded-xl bg-gradient-warm sm:h-32">
                   {cover ? (
                     <img
                       src={cover}
@@ -110,7 +110,7 @@ export const Flashbacks = ({ memories, variant = "card" }: Props) => {
                     </span>
                   )}
                 </div>
-                <div className="space-y-0.5 p-2.5">
+                <div className="space-y-0.5 px-1.5 pb-1 pt-2.5">
                   <h3 className="line-clamp-1 text-[13px] font-semibold text-foreground">{m.title}</h3>
                   <p className="text-[11px] text-muted-foreground">
                     {format(new Date(m.happened_at), "MMM d, yyyy")}

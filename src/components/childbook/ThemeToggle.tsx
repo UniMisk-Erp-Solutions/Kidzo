@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
-import { Moon, Sparkles } from "lucide-react";
+import { Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/hooks/useTheme";
+import { THEMES, useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 interface ThemeToggleProps {
@@ -9,41 +9,29 @@ interface ThemeToggleProps {
   size?: "sm" | "default" | "icon";
 }
 
+/** Cycles Colorful Daydream → Little Explorer → Timeless Tales. */
 export const ThemeToggle = forwardRef<HTMLButtonElement, ThemeToggleProps>(function ThemeToggle(
   { className, size = "icon" },
   ref,
 ) {
   const { theme, setTheme } = useTheme();
-  const next = theme === "dream" ? "legacy" : "dream";
-  const label = theme === "dream" ? "Switch to Legacy theme" : "Switch to Soft Pastel Dream theme";
+  const idx = THEMES.findIndex((t) => t.id === theme);
+  const next = THEMES[(idx + 1) % THEMES.length];
+  const label = `Switch to ${next.name} theme`;
 
-  if (size === "icon") {
-    return (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        aria-label={label}
-        title={label}
-        onClick={() => setTheme(next)}
-        className={cn(className)}
-        ref={ref}
-      >
-        {theme === "dream" ? <Moon className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
-      </Button>
-    );
-  }
   return (
     <Button
       type="button"
       variant="ghost"
-      size="sm"
-      onClick={() => setTheme(next)}
+      size={size}
+      aria-label={label}
+      title={label}
+      onClick={() => setTheme(next.id)}
       className={cn(className)}
       ref={ref}
     >
-      {theme === "dream" ? <Moon className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-      {theme === "dream" ? "Legacy" : "Dream"}
+      <Palette className={size === "icon" ? "h-5 w-5" : "h-4 w-4"} />
+      {size !== "icon" && next.name}
     </Button>
   );
 });

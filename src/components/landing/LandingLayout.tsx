@@ -1,12 +1,12 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useState } from "react";
 import { ArrowRight, Github, Instagram, Mail, MapPin, Menu, Phone, Twitter, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/childbook/ThemeToggle";
+import { LandingBackdrop } from "@/components/landing/LandingBackdrop";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -18,11 +18,48 @@ const NAV = [
   { to: "/contact", label: "Contact" },
 ];
 
+/** Footer column listing every legal document (not hidden behind a hub page) plus the company's contact details. */
+const LegalColumn = () => (
+    <div className="lg:col-span-2">
+      <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Legal</h3>
+      <ul className="mt-3 grid gap-x-8 gap-y-2 text-[14px] text-muted-foreground sm:grid-cols-2">
+        {LEGAL_DOCS.map((d) => (
+          <li key={d.slug}>
+            <Link to={d.slug} className="hover:text-foreground">{d.title}</Link>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+        <Mail className="h-4 w-4 shrink-0" />
+        <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
+      </p>
+      {LEGAL.phone && (
+        <p className="mt-2 flex items-center gap-2 text-[13.5px] text-muted-foreground">
+          <Phone className="h-4 w-4 shrink-0" />
+          <a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a>
+        </p>
+      )}
+      {LEGAL.registeredAddress && (
+        <p className="mt-2 flex items-start gap-2 text-[13.5px] leading-relaxed text-muted-foreground">
+          <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{LEGAL.entity}, {LEGAL.registeredAddress}</span>
+        </p>
+      )}
+    </div>
+);
+
 export const LandingLayout = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+
+  // All public marketing pages share the "Wash House" look (see [data-landing="wash"] in index.css),
+  // independent of the in-app theme.
+  useLayoutEffect(() => {
+    document.documentElement.setAttribute("data-landing", "wash");
+    return () => document.documentElement.removeAttribute("data-landing");
+  }, []);
 
   // Close mobile menu and scroll to top on route change
   useEffect(() => {
@@ -57,7 +94,6 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
           </nav>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <ThemeToggle />
             {!loading && user ? (
               <Button variant="warm" size="sm" onClick={() => navigate("/home")} className="px-2.5 sm:px-4">
                 <span className="hidden sm:inline">Open my Kidzopedia</span>
@@ -65,14 +101,9 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <>
-                <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => navigate("/auth")}>
-                  Sign in
-                </Button>
-                <Button variant="warm" size="sm" onClick={goApp} className="px-2.5 sm:px-4">
-                  Get started
-                </Button>
-              </>
+              <Button variant="warm" size="sm" onClick={goApp} className="px-2.5 sm:px-4">
+                Get started
+              </Button>
             )}
             <Button
               variant="ghost"
@@ -108,7 +139,10 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
         )}
       </header>
 
-      <main>{children}</main>
+      <main className="relative isolate">
+        <LandingBackdrop />
+        {children}
+      </main>
 
       <footer className="border-t border-border bg-muted/30">
         <div className="mx-auto max-w-6xl px-6 py-12">
@@ -154,33 +188,7 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
               </ul>
             </div>
 
-            {/* Every legal document, listed on its own — not hidden behind a hub page */}
-            <div className="lg:col-span-2">
-              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Legal</h3>
-              <ul className="mt-3 grid gap-x-8 gap-y-2 text-[14px] text-muted-foreground sm:grid-cols-2">
-                {LEGAL_DOCS.map((d) => (
-                  <li key={d.slug}>
-                    <Link to={d.slug} className="hover:text-foreground">{d.title}</Link>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-4 flex items-center gap-2 text-[13.5px] text-muted-foreground">
-                <Mail className="h-4 w-4 shrink-0" />
-                <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
-              </p>
-              {LEGAL.phone && (
-                <p className="mt-2 flex items-center gap-2 text-[13.5px] text-muted-foreground">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a>
-                </p>
-              )}
-              {LEGAL.registeredAddress && (
-                <p className="mt-2 flex items-start gap-2 text-[13.5px] leading-relaxed text-muted-foreground">
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{LEGAL.entity}, {LEGAL.registeredAddress}</span>
-                </p>
-              )}
-            </div>
+            <LegalColumn />
           </div>
 
           <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-muted-foreground sm:flex-row">

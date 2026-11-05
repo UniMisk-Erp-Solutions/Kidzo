@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { WashShell } from "@/components/landing/WashShell";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -54,11 +55,11 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
+    <WashShell className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandLogo className="mb-3 h-20 w-20" />
-          <h1 className="text-3xl font-bold text-foreground">Set a new password</h1>
+          <h1 className="font-display text-3xl font-bold text-foreground">Set a new password</h1>
           <p className="mt-2 text-[15px] text-muted-foreground">Choose something memorable and strong.</p>
         </div>
 
@@ -85,7 +86,7 @@ const ResetPassword = () => {
           )}
         </div>
       </div>
-    </div>
+    </WashShell>
   );
 };
 

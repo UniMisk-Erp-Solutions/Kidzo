@@ -32,7 +32,7 @@ export const NotificationsBell = () => {
       <PopoverTrigger asChild>
         <button
           aria-label={`Notifications${unread > 0 ? ` (${unread} unread)` : ""}`}
-          className="relative flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:h-10 sm:w-10"
         >
           <Bell className="h-[18px] w-[18px]" strokeWidth={2} />
           {unread > 0 && (

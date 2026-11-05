@@ -2,27 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export type Memory = {
-  id: string;
-  user_id: string;
-  child_id: string;
-  title: string;
-  story: string | null;
-  happened_at: string;
-  category: string;
-  who_was_there: string[];
-  tags: string[];
-  photo_url: string | null;
-  photo_urls: string[];
-  reaction: string | null;
-  created_at: string;
-  // Present when this memory appears on a child's timeline via a SIBLING link
-  // (i.e. it primarily belongs to another child). Undefined for direct memories.
-  is_linked?: boolean;
-  relation_label?: string | null;
-  // The child this memory primarily belongs to (= child_id of the source memory).
-  primary_child_id?: string;
-};
+import type { Memory } from "@/lib/types/memory";
+export type { Memory };
 
 export const useMemories = (childId?: string) => {
   const { user } = useAuth();

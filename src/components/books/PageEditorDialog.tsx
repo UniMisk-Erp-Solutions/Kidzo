@@ -1,9 +1,10 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageEditor } from "./editor/PageEditor";
 import { BookPageView, BOOK_PAGE_H, BOOK_PAGE_W } from "./BookPages";
 import type { BookPage } from "./BookPages";
 import type { BookTemplateColors } from "@/hooks/useBookTemplates";
 import type { EditorElement } from "./editor/types";
+import type { TextOverrides } from "./editor/pageText";
 
 interface PageEditorDialogProps {
   open: boolean;
@@ -12,10 +13,11 @@ interface PageEditorDialogProps {
   initialElements: EditorElement[];
   initialHideNative?: boolean;
   initialNativeEditable?: boolean;
+  initialTextOverrides?: TextOverrides;
   saving?: boolean;
   /** Stable id (book id) — scopes recents & saved swatches per book. */
   bookId?: string;
-  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean) => void;
+  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides) => void;
   onClose: () => void;
 }
 
@@ -27,6 +29,7 @@ export function PageEditorDialog({
   initialElements,
   initialHideNative,
   initialNativeEditable,
+  initialTextOverrides,
   saving,
   bookId,
   onSave,
@@ -35,18 +38,20 @@ export function PageEditorDialog({
   if (!page) return null;
   return (
     <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
-      <DialogContent className="flex h-[95vh] max-h-[95vh] max-w-[98vw] flex-col gap-3 p-3 sm:max-w-[98vw]">
+      <DialogContent className="flex h-[95dvh] max-h-[95dvh] max-w-[98vw] max-sm:w-[98vw] flex-col gap-2 overflow-hidden p-3 sm:max-w-[98vw]">
         <DialogHeader className="shrink-0">
           <DialogTitle>Edit page</DialogTitle>
+          <DialogDescription className="sr-only">Edit the text, photos and stickers on this page.</DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-hidden">
           <PageEditor
             page={page}
-            renderBackground={() => (
+            renderBackground={(p) => (
               <div style={{ width: BOOK_PAGE_W, height: BOOK_PAGE_H }}>
-                <BookPageView page={page} colors={colors} />
+                <BookPageView page={p ?? page} colors={colors} />
               </div>
             )}
+            initialTextOverrides={initialTextOverrides}
             initialElements={initialElements}
             initialHideNative={!!initialHideNative}
             initialNativeEditable={!!initialNativeEditable}

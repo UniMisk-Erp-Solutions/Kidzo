@@ -10,9 +10,44 @@ export type FeatureKey =
   | "photo_book_orders"
   | "share_links"
   | "family_invites"
-  | "ai_suggestions";
+  | "document_limits";
 
 type FeatureRow = { key: string; value_int: number | null; value_bool: boolean | null; value_text: string | null };
+
+/** The user's plan and its features, or null when they have no subscription row. */
+async function loadEntitlements(userId: string) {
+  const { data: sub } = await supabase
+    .from("user_subscriptions")
+    .select("plan_id, plans(slug, name)")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!sub) return null;
+  const plan = (sub as any).plans;
+  const { data: feats } = await supabase
+    .from("plan_features")
+    .select("key, value_int, value_bool, value_text")
+    .eq("plan_id", (sub as any).plan_id);
+  const features: Record<string, FeatureRow> = {};
+  (feats ?? []).forEach((f: any) => (features[f.key] = f));
+  return { planSlug: (plan?.slug ?? null) as string | null, planName: (plan?.name ?? null) as string | null, features };
+}
+
+/** A numeric limit for a feature; null means unlimited (or the plan has no such feature). */
+const featureLimit = (features: Record<string, FeatureRow>, key: FeatureKey): number | null => features[key]?.value_int ?? null;
+
+/**
+ * Max files for a document folder on this plan: a number (0 = locked) or null = unlimited.
+ * Stored as JSON in the `document_limits` feature, e.g. {"marksheet":20,"school":7}.
+ */
+function documentFolderLimit(features: Record<string, FeatureRow>, category: string): number | null {
+  try {
+    const raw = features["document_limits"]?.value_text;
+    const n = raw ? JSON.parse(raw)?.[category] : null;
+    return typeof n === "number" ? n : null;
+  } catch {
+    return null;
+  }
+}
 
 export const useEntitlements = () => {
   const { user, loading: authLoading } = useAuth();
@@ -23,45 +58,25 @@ export const useEntitlements = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
     let cancelled = false;
-    (async () => {
-      const { data: sub } = await supabase
-        .from("user_subscriptions")
-        .select("plan_id, plans(slug, name)")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!sub) {
-        setLoading(false);
-        return;
+    const pending = user ? loadEntitlements(user.id) : Promise.resolve(null);
+    pending.then((loaded) => {
+      if (cancelled && loaded) return;
+      if (loaded) {
+        setPlanSlug(loaded.planSlug);
+        setPlanName(loaded.planName);
+        setFeatures(loaded.features);
       }
-      const plan = (sub as any).plans;
-      const { data: feats } = await supabase
-        .from("plan_features")
-        .select("key, value_int, value_bool, value_text")
-        .eq("plan_id", (sub as any).plan_id);
-      if (cancelled) return;
-      setPlanSlug(plan?.slug ?? null);
-      setPlanName(plan?.name ?? null);
-      const m: Record<string, FeatureRow> = {};
-      (feats ?? []).forEach((f: any) => (m[f.key] = f));
-      setFeatures(m);
       setLoading(false);
-    })();
+    });
     return () => {
       cancelled = true;
     };
   }, [user, authLoading]);
 
   const can = (key: FeatureKey) => features[key]?.value_bool === true;
-  const limit = (key: FeatureKey): number | null => {
-    const f = features[key];
-    if (!f) return null;
-    return f.value_int; // null means unlimited
-  };
+  const limit = (key: FeatureKey) => featureLimit(features, key);
+  const documentLimit = (category: string) => documentFolderLimit(features, category);
 
-  return { planSlug, planName, features, can, limit, loading };
+  return { planSlug, planName, features, can, limit, documentLimit, loading };
 };
