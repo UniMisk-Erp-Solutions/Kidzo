@@ -167,7 +167,7 @@ const Auth = () => {
   };
 
   return (
-    <WashShell className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
+    <WashShell polaroids={false} className="flex min-h-screen items-center justify-center bg-gradient-warm px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandLogo className="mb-3 h-20 w-20" />
@@ -334,9 +334,6 @@ const Auth = () => {
           </Tabs>
         </div>
 
-        <p className="mt-6 text-center text-[12px] text-muted-foreground">
-          Your family's memories stay private — never sold, never used for ads.
-        </p>
       </div>
     </WashShell>
   );

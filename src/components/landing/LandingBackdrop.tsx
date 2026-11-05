@@ -28,7 +28,7 @@ const POLAROIDS = [
   { top: "68%", left: "16%", tone: "--wash-mustard", rot: "6deg", delay: "-2s" },
 ];
 
-export const LandingBackdrop = () => (
+export const LandingBackdrop = ({ polaroids = true }: { polaroids?: boolean }) => (
   <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
     {/* soft drifting colour pools */}
     <div className="blob drift left-[-8%] top-[4%] h-80 w-80 opacity-50" style={{ background: "hsl(var(--wash-coral) / 0.45)" }} />
@@ -46,7 +46,7 @@ export const LandingBackdrop = () => (
       </span>
     ))}
 
-    {POLAROIDS.map((p, i) => (
+    {polaroids && POLAROIDS.map((p, i) => (
       <span
         key={i}
         className="float-slow absolute block h-16 w-14 bg-white/70 p-1 pb-4 shadow-soft"

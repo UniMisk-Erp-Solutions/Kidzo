@@ -681,6 +681,41 @@ const Settings = () => {
           </div>
         </section>
 
+        {/* Sign out — phones only; larger screens have it in the top bar */}
+        <section className="mb-6 rounded-3xl border border-border bg-card p-6 sm:hidden">
+          <h2 className="mb-1 text-lg font-semibold text-foreground">Sign out</h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            You'll need to sign in again to see {activeChild.name}'s memories.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <LogOut className="h-4 w-4" /> Sign out
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="max-w-sm rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Sign out?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You'll need to sign in again to see {activeChild.name}'s memories.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Stay signed in</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    await signOut();
+                    toast.success("Signed out — see you soon!");
+                    navigate("/auth", { replace: true });
+                  }}
+                >
+                  Sign out
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </section>
+
         {/* Danger zone */}
         <section className="rounded-3xl border border-destructive/40 bg-destructive/5 p-6">
           <div className="mb-1 flex items-center gap-2">
