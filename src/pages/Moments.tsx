@@ -20,6 +20,7 @@ import { ViewToggle } from "@/components/childbook/ViewToggle";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { MemoryDetail } from "@/components/childbook/MemoryDetail";
 import { MemoryTimeline } from "@/components/childbook/MemoryTimeline";
+import { MemoryRoute } from "@/components/childbook/MemoryRoute";
 import { Flashbacks } from "@/components/childbook/Flashbacks";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,10 @@ const FILTER_MENU = {
   avoidCollisions: false,
   className: "max-h-[min(18rem,var(--radix-select-content-available-height))]",
 } as const;
+
+/** A search term matches a whole word, allowing a plural ("mom" finds "moms", never "moment"); longer terms may match a word prefix so typing still narrows live. */
+const matchesWord = (word: string, term: string) =>
+  word === term || (term.length >= 4 ? word.startsWith(term) : word === term + "s");
 
 const sortMemories = (list: Memory[], dir: "asc" | "desc") =>
   [...list].sort((a, b) => {
@@ -70,10 +75,8 @@ const Moments = () => {
   const [view, setView] = useState<"grid" | "timeline">(
     () => (typeof window !== "undefined" && (localStorage.getItem("moments:view") as "grid" | "timeline")) || "grid",
   );
-  const [showMonths, setShowMonths] = useState<boolean>(
-    () => typeof window !== "undefined" && localStorage.getItem("moments:showMonths") === "1",
-  );
   const [yearFilter, setYearFilter] = useState("all");
+  const [yearOpen, setYearOpen] = useState(false);
 
   const linkedLabelFor = (m: Memory) =>
     m.is_linked
@@ -88,20 +91,31 @@ const Moments = () => {
   useEffect(() => {
     localStorage.setItem("moments:view", view);
   }, [view]);
+
+  // Timeline: the year cards page only offers Filter; once a year is open, categories appear. The year filter is never needed there.
+  const onYearCards = view === "timeline" && !yearOpen;
+  const showCategory = !onYearCards;
+  const showYear = view !== "timeline";
   useEffect(() => {
-    localStorage.setItem("moments:showMonths", showMonths ? "1" : "0");
-  }, [showMonths]);
+    if (view !== "timeline") return;
+    if (yearFilter !== "all") setYearFilter("all");
+    if (onYearCards && category !== "All") setCategory("All");
+    if (onYearCards && search) setSearch("");
+  }, [view, onYearCards, yearFilter, category, search]);
 
   const filtered = useMemo(() => {
-    const cutoff = !/^d+$/.test(range) ? null : Date.now() - parseInt(range) * 24 * 60 * 60 * 1000;
-    const q = search.toLowerCase().trim();
+    const cutoff = !/^\d+$/.test(range) ? null : Date.now() - parseInt(range) * 24 * 60 * 60 * 1000;
+    const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
     return memories.filter((m) => {
       if (category !== "All" && m.category !== category) return false;
       if (cutoff && new Date(m.happened_at).getTime() < cutoff) return false;
       if (yearFilter !== "all" && new Date(m.happened_at).getFullYear() !== Number(yearFilter)) return false;
-      if (q) {
-        const hay = `${m.title} ${m.story ?? ""} ${m.tags.join(" ")} ${m.who_was_there.join(" ")}`.toLowerCase();
-        if (!hay.includes(q)) return false;
+      if (terms.length) {
+        const words = `${m.title} ${m.story ?? ""} ${m.tags.join(" ")} ${m.who_was_there.join(" ")}`
+          .toLowerCase()
+          .split(/[^\p{L}\p{N}]+/u)
+          .filter(Boolean);
+        if (!terms.every((t) => words.some((w) => matchesWord(w, t)))) return false;
       }
       return true;
     });
@@ -133,7 +147,7 @@ const Moments = () => {
       {/* Sticky filter bar */}
       <div className="sticky top-[var(--topbar-h,72px)] z-30 mt-2 border-b border-border/60 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto max-w-6xl space-y-3 px-6 py-3">
-          <div className="relative">
+          {!onYearCards && <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -141,9 +155,9 @@ const Moments = () => {
               placeholder="Search memories, people, tags..."
               className="h-11 rounded-xl pl-9"
             />
-          </div>
-          <div className="grid grid-cols-3 gap-2 sm:hidden">
-            <Select value={category} onValueChange={setCategory}>
+          </div>}
+          <div className="flex gap-2 sm:hidden [&>*]:flex-1">
+            {showCategory && <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="h-10 rounded-full border-border px-3 text-[12px]" aria-label="Category">
                 <SelectValue />
               </SelectTrigger>
@@ -152,8 +166,8 @@ const Moments = () => {
                   <SelectItem key={c} value={c}>{c === "All" ? "All categories" : c}</SelectItem>
                 ))}
               </SelectContent>
-            </Select>
-            <Select value={yearFilter} onValueChange={setYearFilter}>
+            </Select>}
+            {showYear && <Select value={yearFilter} onValueChange={setYearFilter}>
               <SelectTrigger className="h-10 rounded-full border-border px-3 text-[12px]" aria-label="Year">
                 <SelectValue />
               </SelectTrigger>
@@ -163,10 +177,10 @@ const Moments = () => {
                   <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                 ))}
               </SelectContent>
-            </Select>
+            </Select>}
             <Select value={range} onValueChange={setRange}>
-              <SelectTrigger className="h-10 rounded-full border-border px-3 text-[12px]" aria-label="Time">
-                <SelectValue />
+              <SelectTrigger className="h-10 rounded-full border-primary-deep bg-primary/25 px-3 text-[12px] font-medium text-primary-deep" aria-label="Filter">
+                <span>Filter</span>
               </SelectTrigger>
               <SelectContent {...FILTER_MENU}>
                 {RANGES.map((r) => (
@@ -176,7 +190,7 @@ const Moments = () => {
             </Select>
           </div>
           <div className="-mx-6 -my-1 hidden gap-2 overflow-x-auto px-6 py-2 scrollbar-hide sm:flex">
-            {CATEGORIES.map((c) => (
+            {showCategory && CATEGORIES.map((c) => (
               <button
                 key={c}
                 onClick={() => setCategory(c)}
@@ -191,7 +205,7 @@ const Moments = () => {
               </button>
             ))}
             <div className="ml-auto flex flex-shrink-0 gap-2">
-              <Select value={yearFilter} onValueChange={setYearFilter}>
+              {showYear && <Select value={yearFilter} onValueChange={setYearFilter}>
                 <SelectTrigger className="h-9 w-[130px] rounded-full border-border text-[13px]">
                   <CalendarDays className="h-3.5 w-3.5" />
                   <SelectValue />
@@ -202,11 +216,11 @@ const Moments = () => {
                     <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                   ))}
                 </SelectContent>
-              </Select>
+              </Select>}
               <Select value={range} onValueChange={setRange}>
-                <SelectTrigger className="h-9 w-[140px] rounded-full border-border text-[13px]">
+                <SelectTrigger className="h-9 w-[110px] rounded-full border-primary-deep bg-primary/25 text-[13px] font-medium text-primary-deep">
                   <Filter className="h-3.5 w-3.5" />
-                  <SelectValue />
+                  <span>Filter</span>
                 </SelectTrigger>
                 <SelectContent {...FILTER_MENU}>
                   {RANGES.map((r) => (
@@ -220,36 +234,28 @@ const Moments = () => {
       </div>
 
       <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">
-        {memories.length > 0 && <Flashbacks memories={memories} variant="strip" />}
+        {memories.length > 0 && !(view === "timeline" && yearOpen) && <Flashbacks memories={memories} variant="strip" />}
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="aspect-square animate-pulse rounded-2xl bg-muted" />
             ))}
           </div>
+        ) : view === "timeline" && memories.length > 0 ? (
+          <MemoryRoute
+            memories={sortMemories(filtered, range === "newest" ? "desc" : "asc")}
+            onOpen={setOpen}
+            linkedLabelFor={linkedLabelFor}
+            onYearOpenChange={setYearOpen}
+            category={category}
+            onCreate={canEdit ? () => navigate("/moments/new") : undefined}
+            fallback={<EmptyState hasAny onCreate={canEdit ? () => navigate("/moments/new") : undefined} />}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             hasAny={memories.length > 0}
             onCreate={canEdit ? () => navigate("/moments/new") : undefined}
           />
-        ) : view === "timeline" ? (
-          <div className="space-y-4">
-            <label className="ml-auto flex w-fit cursor-pointer items-center gap-1.5 text-[12px] text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={showMonths}
-                onChange={(e) => setShowMonths(e.target.checked)}
-                className="h-3.5 w-3.5 accent-[hsl(var(--primary))]"
-              />
-              Month markers
-            </label>
-            <MemoryTimeline
-              memories={sortMemories(filtered, range === "newest" ? "desc" : "asc")}
-              onOpen={setOpen}
-              showMonths={showMonths}
-              linkedLabelFor={linkedLabelFor}
-            />
-          </div>
         ) : (
           // Grid: the same year-by-year rows as the timeline, newest year first.
           <MemoryTimeline
