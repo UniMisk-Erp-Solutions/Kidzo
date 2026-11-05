@@ -9,6 +9,7 @@
 //            output = hex(iv) + hex(ciphertext || 16-byte tag).
 //            Initiate URL: https://secure.ccavenue.com/gTransaction.do?command=initiateTransaction
 // Which one applies is a property of the merchant account, so CCAVENUE_AES_MODE has NO default.
+import { Buffer } from "node:buffer";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 export type AesMode = "aes128" | "aes256";
