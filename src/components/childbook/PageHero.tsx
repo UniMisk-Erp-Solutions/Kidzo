@@ -23,8 +23,6 @@ export const PageHero = ({ title, subtitle, icon: Icon, actions, className }: Pr
       className,
     )}
   >
-    <Sparkle className="twinkle absolute right-[18%] top-4 h-5 w-5 text-white/90" />
-    <Sparkle className="twinkle absolute bottom-4 right-[8%] h-3.5 w-3.5 text-butter" />
     <div className="absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-white/25" aria-hidden />
 
     <div className="relative flex flex-wrap items-center justify-between gap-4">

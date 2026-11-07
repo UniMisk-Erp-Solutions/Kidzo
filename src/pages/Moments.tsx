@@ -13,7 +13,9 @@ import {
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useChildren } from "@/hooks/useChildren";
-import { useMemories, type Memory } from "@/hooks/useMemories";
+import { type Memory } from "@/hooks/useMemories";
+import { useMemoryYears, useMemoriesInYears, useMonthFlashbackMemories, YEARS_PER_PAGE } from "@/hooks/useMemoryPages";
+import { YearPager } from "@/components/childbook/YearPager";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
 import { ViewToggle } from "@/components/childbook/ViewToggle";
@@ -43,9 +45,8 @@ const FILTER_MENU = {
   className: "max-h-[min(18rem,var(--radix-select-content-available-height))]",
 } as const;
 
-/** A search term matches a whole word, allowing a plural ("mom" finds "moms", never "moment"); longer terms may match a word prefix so typing still narrows live. */
-const matchesWord = (word: string, term: string) =>
-  word === term || (term.length >= 4 ? word.startsWith(term) : word === term + "s");
+/** The timeline shows 6 years a page, the grid 3. */
+const yearsPerPage = (view: "grid" | "timeline") => (view === "timeline" ? 6 : YEARS_PER_PAGE);
 
 const sortMemories = (list: Memory[], dir: "asc" | "desc") =>
   [...list].sort((a, b) => {
@@ -60,7 +61,6 @@ const Moments = () => {
   const navigate = useNavigate();
   const { data: child } = useActiveChild();
   const { canEdit } = useCanEditChild(child?.id);
-  const { data: memories = [], isLoading } = useMemories(child?.id);
   const { data: allKids = [] } = useChildren();
   const nameById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -78,15 +78,53 @@ const Moments = () => {
   const [yearFilter, setYearFilter] = useState("all");
   const [yearOpen, setYearOpen] = useState(false);
 
+  // ── Server-side paging: the year index and every page of memories come from the server, filtered there. ──
+  const [page, setPage] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const since = useMemo(
+    () => (/^\d+$/.test(range) ? new Date(Date.now() - parseInt(range) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) : null),
+    [range],
+  );
+  const filters = useMemo(() => ({ since, query: debouncedSearch, category }), [since, debouncedSearch, category]);
+
+  // Unfiltered index: banner count, the year picker, and the Flashbacks candidates.
+  const { data: allIndex, isLoading: indexLoading } = useMemoryYears(child?.id);
+  // Filtered index: which years have matches, newest first (oldest first for "Oldest to newest").
+  const { data: filteredIndex, isLoading: filteredIndexLoading } = useMemoryYears(child?.id, filters);
+  const allTotal = allIndex?.total ?? 0;
+  const flashbackMemories = useMonthFlashbackMemories(child?.id, allIndex?.rows).data ?? [];
+
+  const filteredYears = useMemo(() => {
+    let ys = filteredIndex?.years ?? [];
+    if (yearFilter !== "all") ys = ys.filter((y) => y === Number(yearFilter));
+    return range === "oldest" ? [...ys].reverse() : ys;
+  }, [filteredIndex, yearFilter, range]);
+  const perPage = yearsPerPage(view);
+  const pageCount = Math.max(1, Math.ceil(filteredYears.length / perPage));
+  const safePage = Math.min(page, pageCount - 1);
+  const pageYears = filteredYears.slice(safePage * perPage, (safePage + 1) * perPage);
+  useEffect(() => {
+    setPage(0);
+  }, [since, debouncedSearch, category, yearFilter, range, view]);
+  const { data: pageMemories = [], isLoading: pageLoading } = useMemoriesInYears(
+    child?.id,
+    pageYears.length ? Math.min(...pageYears) : undefined,
+    pageYears.length ? Math.max(...pageYears) : undefined,
+    filters,
+  );
+  const isLoading = indexLoading || filteredIndexLoading || (pageLoading && pageYears.length > 0);
+
   const linkedLabelFor = (m: Memory) =>
     m.is_linked
       ? `${m.primary_child_id && nameById[m.primary_child_id] ? `From ${nameById[m.primary_child_id]}` : "Sibling's memory"}${m.relation_label ? ` · ${m.relation_label}` : ""}`
       : undefined;
 
-  const years = useMemo(
-    () => Array.from(new Set(memories.map((m) => new Date(m.happened_at).getFullYear()))).sort((a, b) => b - a),
-    [memories],
-  );
+  const years = allIndex?.years ?? [];
 
   useEffect(() => {
     localStorage.setItem("moments:view", view);
@@ -103,23 +141,8 @@ const Moments = () => {
     if (onYearCards && search) setSearch("");
   }, [view, onYearCards, yearFilter, category, search]);
 
-  const filtered = useMemo(() => {
-    const cutoff = !/^\d+$/.test(range) ? null : Date.now() - parseInt(range) * 24 * 60 * 60 * 1000;
-    const terms = search.toLowerCase().split(/\s+/).filter(Boolean);
-    return memories.filter((m) => {
-      if (category !== "All" && m.category !== category) return false;
-      if (cutoff && new Date(m.happened_at).getTime() < cutoff) return false;
-      if (yearFilter !== "all" && new Date(m.happened_at).getFullYear() !== Number(yearFilter)) return false;
-      if (terms.length) {
-        const words = `${m.title} ${m.story ?? ""} ${m.tags.join(" ")} ${m.who_was_there.join(" ")}`
-          .toLowerCase()
-          .split(/[^\p{L}\p{N}]+/u)
-          .filter(Boolean);
-        if (!terms.every((t) => words.some((w) => matchesWord(w, t)))) return false;
-      }
-      return true;
-    });
-  }, [memories, category, range, yearFilter, search]);
+  // Search is applied by the server (see applyFilters), so the page is shown as it arrives.
+  const filtered = pageMemories;
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -130,7 +153,7 @@ const Moments = () => {
         <PageHero
           icon={Camera}
           title="Moments"
-          subtitle={momentsSubtitle(memories.length)}
+          subtitle={momentsSubtitle(allTotal)}
           actions={
             <>
               <ViewToggle view={view} onChange={setView} />
@@ -234,14 +257,14 @@ const Moments = () => {
       </div>
 
       <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">
-        {memories.length > 0 && !(view === "timeline" && yearOpen) && <Flashbacks memories={memories} variant="strip" />}
+        {allTotal > 0 && !(view === "timeline" && yearOpen) && <Flashbacks memories={flashbackMemories} variant="strip" />}
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="aspect-square animate-pulse rounded-2xl bg-muted" />
             ))}
           </div>
-        ) : view === "timeline" && memories.length > 0 ? (
+        ) : view === "timeline" && allTotal > 0 ? (
           <MemoryRoute
             memories={sortMemories(filtered, range === "newest" ? "desc" : "asc")}
             onOpen={setOpen}
@@ -253,7 +276,7 @@ const Moments = () => {
           />
         ) : filtered.length === 0 ? (
           <EmptyState
-            hasAny={memories.length > 0}
+            hasAny={allTotal > 0}
             onCreate={canEdit ? () => navigate("/moments/new") : undefined}
           />
         ) : (
@@ -263,6 +286,9 @@ const Moments = () => {
             onOpen={setOpen}
             linkedLabelFor={linkedLabelFor}
           />
+        )}
+        {!(view === "timeline" && yearOpen) && (
+          <YearPager page={safePage} pageCount={pageCount} years={pageYears} loading={pageLoading} onPage={setPage} />
         )}
       </main>
 

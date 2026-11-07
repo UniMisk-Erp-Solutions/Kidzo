@@ -5,11 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Memory } from "@/lib/types/memory";
 export type { Memory };
 
-export const useMemories = (childId?: string) => {
+export const useMemories = (childId?: string, opts?: { enabled?: boolean }) => {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["memories", user?.id, childId],
-    enabled: !!user && !!childId,
+    enabled: !!user && !!childId && (opts?.enabled ?? true),
     queryFn: async (): Promise<Memory[]> => {
       // 1) Memories that belong directly to this child.
       const direct = await supabase

@@ -9,6 +9,7 @@ export type ShippingAddress = {
   name: string;
   phone: string;
   street: string;
+  landmark: string;
   city: string;
   state: string;
   zip: string;

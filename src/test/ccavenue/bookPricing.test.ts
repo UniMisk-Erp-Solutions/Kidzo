@@ -22,7 +22,7 @@ describe("input validation", () => {
     expect(hasValidOptions({ size: "constructor", paper: "matte", binding: "soft" })).toBe(false);
     expect(hasValidOptions({ size: "8x10", paper: "gold", binding: "soft" })).toBe(false);
   });
-  const good = { name: "A B", phone: "9876543210", street: "1 Main", city: "Pune", state: "MH", zip: "411001" };
+  const good = { name: "A B", phone: "9876543210", street: "1 Main", landmark: "Park", city: "Pune", state: "MH", zip: "411001" };
   it("accepts a valid address and forces country to India", () => {
     expect(parseAddress({ ...good, country: "US" }).address?.country).toBe("India");
   });
@@ -30,5 +30,6 @@ describe("input validation", () => {
     expect(parseAddress({ ...good, zip: "01234" }).error).toBeTruthy();
     expect(parseAddress({ ...good, phone: "12345" }).error).toBeTruthy();
     expect(parseAddress({ ...good, city: "" }).error).toBeTruthy();
+    expect(parseAddress({ ...good, landmark: "" }).error).toBeTruthy();
   });
 });

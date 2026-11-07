@@ -56,7 +56,7 @@ function blockedMessage(cat: AllowedDocCategory, rules: FolderRules) {
       description:
         cat === "achievement"
           ? "Upgrade to Premium to store achievement certificates."
-          : "The Free plan keeps one birth certificate. Upgrade to add more documents.",
+          : "Upgrade to Premium to store achievement certificates.",
     };
   }
   if (!rules.isFull(cat)) return null;
@@ -183,6 +183,49 @@ export function useDocumentPreview() {
   };
 
   return { preview, loading, failed, setFailed, close, view, download };
+}
+
+/** Downloads every stored document as one zip, grouped into a folder per category. */
+export function useBulkDownload(documents: ChildDocument[], childName?: string) {
+  const docActions = useDocumentActions();
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (!documents.length || busy) return;
+    setBusy(true);
+    const t = toast.loading(`Preparing ${documents.length} document${documents.length === 1 ? "" : "s"}…`);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      const used = new Set<string>();
+      let failed = 0;
+      for (const d of documents) {
+        try {
+          const blob = await docActions.fetchBlob(d.file_path);
+          const ext = d.file_path.includes(".") ? d.file_path.split(".").pop() : "";
+          const base = d.title.replace(/[\/:*?"<>|]+/g, "_").trim() || "document";
+          let name = `${categoryLabel(d.category)}/${base}${ext ? "." + ext : ""}`;
+          for (let i = 2; used.has(name); i++) name = `${categoryLabel(d.category)}/${base} (${i})${ext ? "." + ext : ""}`;
+          used.add(name);
+          zip.file(name, blob);
+        } catch {
+          failed++;
+        }
+      }
+      if (failed === documents.length) throw new Error("none");
+      const out = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(out);
+      a.download = `${(childName ?? "documents").replace(/\s+/g, "_")}_documents.zip`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast.success(failed ? `Downloaded (${failed} couldn't be fetched)` : "Downloaded all documents ✓", { id: t });
+    } catch {
+      toast.error("Couldn't download your documents.", { id: t });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, run };
 }
 
 export function useDeleteDocument() {

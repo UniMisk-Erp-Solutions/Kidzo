@@ -33,17 +33,17 @@ export function priceBook(o: BookOptions) {
 const clean = (v: unknown, max = 200) => String(v ?? "").trim().slice(0, max);
 
 export interface Address {
-  name: string; phone: string; street: string; city: string; state: string; zip: string; country: string;
+  name: string; phone: string; street: string; landmark: string; city: string; state: string; zip: string; country: string;
 }
 
 /** Returns the sanitised address, or an error message for the customer. */
 export function parseAddress(a: Record<string, unknown> | undefined): { address?: Address; error?: string } {
   const x = a ?? {};
   const address: Address = {
-    name: clean(x.name, 100), phone: clean(x.phone, 20), street: clean(x.street, 250),
+    name: clean(x.name, 100), phone: clean(x.phone, 20), street: clean(x.street, 250), landmark: clean(x.landmark, 100),
     city: clean(x.city, 100), state: clean(x.state, 100), zip: clean(x.zip, 10), country: "India",
   };
-  if (!address.name || !address.street || !address.city || !address.state) return { error: "Please complete your delivery address" };
+  if (!address.name || !address.street || !address.landmark || !address.city || !address.state) return { error: "Please complete your delivery address" };
   if (!/^[1-9][0-9]{5}$/.test(address.zip)) return { error: "Enter a valid 6-digit PIN code" };
   if (!/^(\+?91)?[6-9][0-9]{9}$/.test(address.phone.replace(/[\s-]/g, ""))) return { error: "Enter a valid 10-digit mobile number" };
   return { address };

@@ -15,12 +15,24 @@ const iconButton = "rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:
 
 /** One stored document: title, date and the preview / download / delete buttons. */
 export const DocRow = ({ doc, actions }: { doc: ChildDocument; actions: DocActions }) => (
-  <li className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/60">
+  <li
+    role="button"
+    tabIndex={0}
+    aria-label={`Open ${doc.title}`}
+    onClick={() => !actions.busy && actions.onView(doc)}
+    onKeyDown={(e) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+        e.preventDefault();
+        if (!actions.busy) actions.onView(doc);
+      }
+    }}
+    className="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/60"
+  >
     <div className="min-w-0 flex-1">
       <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
       <p className="text-[11px] text-muted-foreground">Added {format(new Date(doc.created_at), "MMM d, yyyy")}</p>
     </div>
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
       <button onClick={() => actions.onView(doc)} disabled={actions.busy} aria-label="Preview" className={`${iconButton} disabled:opacity-50`}>
         {actions.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
       </button>

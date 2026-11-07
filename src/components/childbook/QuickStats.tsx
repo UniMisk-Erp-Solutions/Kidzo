@@ -36,7 +36,6 @@ export const QuickStats = ({ memoriesCount, achievementsCount, documentsCount }:
             }}
             className={`group relative overflow-hidden rounded-3xl p-4 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:rotate-0 hover:shadow-lift sm:p-7 animate-fade-in-up ${s.tilt}`}
           >
-            <Sparkle className="twinkle absolute right-2 top-2 h-3.5 w-3.5 text-white/90" />
             <div className="absolute -bottom-6 -right-6 h-20 w-20 rounded-full bg-white/30" aria-hidden />
             <div
               className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 shadow-soft transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6"

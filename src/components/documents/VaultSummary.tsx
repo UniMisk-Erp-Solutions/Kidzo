@@ -3,9 +3,9 @@ import { Button } from "@/components/ui/button";
 
 const PLAN_BLURB: Record<string, string> = {
   premium: "Premium: unlimited files in every folder, including achievement certificates.",
-  family: "Family: marksheets hold up to 20 files and school certificates up to 7. Upgrade to Premium for unlimited files and achievement certificates.",
+  family: "Family: 1 birth certificate, 3 vaccination records, 20 marksheets and 7 school certificates. Upgrade to Premium for unlimited files and achievement certificates.",
 };
-const FREE_BLURB = "Free plan: keeps one birth certificate. Upgrade to Family or Premium for marksheet and school folders and more.";
+const FREE_BLURB = "Free plan: every folder except achievement certificates, with smaller limits (1 birth certificate, 1 vaccination record, 5 marksheets, 2 school certificates). Upgrade for more space.";
 
 interface Props {
   total: number;

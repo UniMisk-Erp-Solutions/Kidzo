@@ -44,6 +44,7 @@ export type StartExportArgs = {
   layout: LayoutStyle;
   mode: "preview" | "download";
   maxPages?: number;
+  watermark?: boolean;
   /** True while the Export page is on screen. */
   isOnPage: () => boolean;
   goToExport: () => void;
@@ -64,6 +65,7 @@ export async function startExport(a: StartExportArgs) {
       layout: a.layout,
       download: a.mode === "download",
       maxPages: a.maxPages,
+      watermark: a.watermark,
     });
     const away = !a.isOnPage();
     set({ childId: a.childId, blob, filename, openRequested: true });

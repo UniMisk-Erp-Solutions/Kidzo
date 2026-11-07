@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import { format } from "date-fns";
 import type { Memory } from "@/hooks/useMemories";
 import { exportBookPdf } from "@/lib/exportBookPdf";
+import { stampWatermark } from "@/lib/pdfWatermark";
 import { SCRAPBOOK_EXPORT_PRESETS, type ScrapbookExportLayout } from "@/lib/scrapbookExportPresets";
 
 export type LayoutStyle = "classic" | "minimal" | "timeline" | ScrapbookExportLayout;
@@ -321,6 +322,8 @@ type ShareBookOptions = {
   download?: boolean;
   /** Cap the PDF at this many pages (free-plan preview). The rest is never generated. */
   maxPages?: number;
+  /** Stamp a watermark across every page (free plan). */
+  watermark?: boolean;
 };
 
 type ShareBookResult = { blob: Blob; filename: string; report: ShareBookReport };
@@ -340,6 +343,7 @@ async function exportScrapbook(opts: ShareBookOptions, layout: ScrapbookExportLa
     colors: template.color_scheme,
     memories: withCovers,
     maxPages,
+    watermark: opts.watermark,
     filename: download ? filename : undefined,
   });
   return {
@@ -388,6 +392,12 @@ export async function exportShareBook(opts: ShareBookOptions): Promise<ShareBook
 
   if (maxPages) {
     while (doc.getNumberOfPages() > maxPages) doc.deletePage(doc.getNumberOfPages());
+  }
+  if (opts.watermark) {
+    for (let p = 1; p <= doc.getNumberOfPages(); p++) {
+      doc.setPage(p);
+      stampWatermark(doc, PAGE_W, doc.internal.pageSize.getHeight(), childName);
+    }
   }
   const filename = `${childName.replace(/\s+/g, "_")}_keepsake_${layout}_${format(new Date(), "yyyy-MM-dd")}.pdf`;
   const blob = doc.output("blob");

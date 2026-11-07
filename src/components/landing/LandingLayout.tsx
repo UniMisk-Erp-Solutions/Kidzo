@@ -19,32 +19,39 @@ const NAV = [
 ];
 
 /** Footer column listing every legal document (not hidden behind a hub page) plus the company's contact details. */
+const ContactInfo = ({ className = "" }: { className?: string }) => (
+  <div className={className}>
+    <p className="flex items-center gap-2 text-[13px] text-muted-foreground md:text-[13.5px]">
+      <Mail className="h-4 w-4 shrink-0" />
+      <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
+    </p>
+    {LEGAL.phone && (
+      <p className="mt-1.5 flex items-center gap-2 text-[13px] text-muted-foreground md:mt-2 md:text-[13.5px]">
+        <Phone className="h-4 w-4 shrink-0" />
+        <a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a>
+      </p>
+    )}
+    {LEGAL.registeredAddress && (
+      <p className="mt-1.5 flex items-start gap-2 text-[12.5px] leading-snug text-muted-foreground md:mt-2 md:text-[13.5px] md:leading-relaxed">
+        <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>{LEGAL.entity}, {LEGAL.registeredAddress}</span>
+      </p>
+    )}
+  </div>
+);
+
 const LegalColumn = () => (
     <div className="lg:col-span-2">
-      <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Legal</h3>
-      <ul className="mt-3 grid gap-x-8 gap-y-2 text-[14px] text-muted-foreground sm:grid-cols-2">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-foreground md:text-[12px]">Legal</h3>
+      <ul className="mt-2 grid gap-x-8 gap-y-1.5 text-[12.5px] leading-snug text-muted-foreground sm:grid-cols-2 md:mt-3 md:gap-y-2 md:text-[14px]">
         {LEGAL_DOCS.map((d) => (
           <li key={d.slug}>
             <Link to={d.slug} className="hover:text-foreground">{d.title}</Link>
           </li>
         ))}
       </ul>
-      <p className="mt-4 flex items-center gap-2 text-[13.5px] text-muted-foreground">
-        <Mail className="h-4 w-4 shrink-0" />
-        <a href={`mailto:${LEGAL.contactEmail}`} className="hover:text-foreground">{LEGAL.contactEmail}</a>
-      </p>
-      {LEGAL.phone && (
-        <p className="mt-2 flex items-center gap-2 text-[13.5px] text-muted-foreground">
-          <Phone className="h-4 w-4 shrink-0" />
-          <a href={`tel:${String(LEGAL.phone).replace(/\s/g, "")}`} className="hover:text-foreground">{LEGAL.phone}</a>
-        </p>
-      )}
-      {LEGAL.registeredAddress && (
-        <p className="mt-2 flex items-start gap-2 text-[13.5px] leading-relaxed text-muted-foreground">
-          <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{LEGAL.entity}, {LEGAL.registeredAddress}</span>
-        </p>
-      )}
+      {/* on phones the contact details sit below the columns (see footer) */}
+      <ContactInfo className="mt-4 hidden md:block" />
     </div>
 );
 
@@ -145,17 +152,17 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
       </main>
 
       <footer className="border-t border-border bg-muted/30">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <div className="grid gap-10 md:grid-cols-3 lg:grid-cols-5">
-            <div className="md:col-span-1">
+        <div className="mx-auto max-w-6xl px-6 py-8 md:py-12">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-6 md:grid-cols-3 md:gap-10 lg:grid-cols-5">
+            <div className="col-span-2 md:col-span-1">
               <Link to={user ? "/home" : "/"} className="flex items-center gap-2">
                 <BrandLogo className="h-9 w-9" />
                 <span className="text-[17px] font-bold tracking-tight">Kidzopedia</span>
               </Link>
-              <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground">
+              <p className="mt-2 text-[12.5px] leading-relaxed text-muted-foreground md:mt-3 md:text-[13px]">
                 The little encyclopedia of your child's life — private, warm, and made to last.
               </p>
-              <div className="mt-4 flex items-center gap-3 text-muted-foreground">
+              <div className="mt-2 flex items-center gap-1 text-muted-foreground md:mt-4 md:gap-3">
                 <a href="#" aria-label="Twitter" className="rounded-lg p-2 transition-colors hover:bg-muted hover:text-foreground">
                   <Twitter className="h-4 w-4" />
                 </a>
@@ -168,9 +175,10 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
               </div>
             </div>
 
+            <div className="space-y-5 md:contents">
             <div>
-              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Product</h3>
-              <ul className="mt-3 space-y-2 text-[14px] text-muted-foreground">
+              <h3 className="text-[11px] font-semibold md:text-[12px] uppercase tracking-wider text-foreground">Product</h3>
+              <ul className="mt-2 space-y-1.5 text-[12.5px] md:mt-3 md:space-y-2 md:text-[14px] text-muted-foreground">
                 <li><Link to="/features" className="hover:text-foreground">Features</Link></li>
                 <li><Link to="/how-it-works" className="hover:text-foreground">How it works</Link></li>
                 <li><Link to="/families" className="hover:text-foreground">For families</Link></li>
@@ -179,23 +187,22 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
             </div>
 
             <div>
-              <h3 className="text-[12px] font-semibold uppercase tracking-wider text-foreground">Company</h3>
-              <ul className="mt-3 space-y-2 text-[14px] text-muted-foreground">
+              <h3 className="text-[11px] font-semibold md:text-[12px] uppercase tracking-wider text-foreground">Company</h3>
+              <ul className="mt-2 space-y-1.5 text-[12.5px] md:mt-3 md:space-y-2 md:text-[14px] text-muted-foreground">
                 <li><Link to="/about" className="hover:text-foreground">About</Link></li>
                 <li><Link to="/contact" className="hover:text-foreground">Contact</Link></li>
                 <li><Link to="/legal" className="hover:text-foreground">Company &amp; Legal</Link></li>
                 <li><Link to={user ? "/home" : "/auth"} className="hover:text-foreground">{user ? "My Kidzopedia" : "Sign in"}</Link></li>
               </ul>
             </div>
+            </div>
 
             <LegalColumn />
+            <ContactInfo className="col-span-2 md:hidden" />
           </div>
 
-          <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-[12px] text-muted-foreground sm:flex-row">
+          <div className="mt-6 flex flex-col items-center justify-between gap-2 border-t border-border pt-4 text-[11.5px] md:mt-10 md:gap-3 md:pt-6 md:text-[12px] text-muted-foreground sm:flex-row">
             <span>© {new Date().getFullYear()} Kidzopedia. Made with love for families.</span>
-            <span>
-              {LEGAL.entity} is the Data Fiduciary for {LEGAL.product} under India&apos;s DPDP Act, 2023.
-            </span>
           </div>
         </div>
       </footer>

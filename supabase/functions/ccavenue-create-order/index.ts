@@ -128,9 +128,9 @@ async function bookTarget(admin: Admin, user: { id: string; email?: string }, bo
     kind: "book", amount: cost.total, bookOrderId: order.id,
     billing: {
       billing_name: address.name, billing_email: user.email ?? "", billing_tel: address.phone.replace(/[^\d]/g, "").slice(-10),
-      billing_address: address.street, billing_city: address.city, billing_state: address.state,
+      billing_address: `${address.street}, Near ${address.landmark}`, billing_city: address.city, billing_state: address.state,
       billing_zip: address.zip, billing_country: "India",
-      delivery_name: address.name, delivery_address: address.street, delivery_city: address.city,
+      delivery_name: address.name, delivery_address: `${address.street}, Near ${address.landmark}`, delivery_city: address.city,
       delivery_state: address.state, delivery_zip: address.zip, delivery_country: "India", delivery_tel: address.phone.replace(/[^\d]/g, "").slice(-10),
     },
   };

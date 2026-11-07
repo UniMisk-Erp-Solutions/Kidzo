@@ -11,7 +11,9 @@ import {
   X,
   Camera,
   Sparkles,
+  FileText,
 } from "lucide-react";
+import { isPdfUrl } from "@/lib/fileKind";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
@@ -83,6 +85,11 @@ const Grow = () => {
   }, [achievements]);
 
   const handlePhoto = (file: File | null) => {
+    const problem = file && attachmentProblem(file);
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : null);
@@ -114,7 +121,7 @@ const Grow = () => {
         .upload(path, photoFile, { contentType: photoFile.type });
       if (upErr) {
         setSaving(false);
-        toast.error("Couldn't upload that photo.");
+        toast.error("Couldn't upload that file.");
         return;
       }
       const { data: pub } = supabase.storage.from("achievement-photos").getPublicUrl(path);
@@ -257,45 +264,7 @@ const Grow = () => {
             }}
             className="space-y-4"
           >
-            <div className="space-y-1.5">
-              <Label>Photo / certificate (optional)</Label>
-              <label
-                htmlFor="ach-photo"
-                className={cn(
-                  "relative flex cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted/40 transition-all hover:border-primary/40",
-                  photoPreview ? "aspect-[4/3]" : "h-32",
-                )}
-              >
-                {photoPreview ? (
-                  <>
-                    <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handlePhoto(null);
-                      }}
-                      className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-soft hover:bg-background"
-                      aria-label="Remove photo"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
-                    <Camera className="h-5 w-5" />
-                    <span className="text-[13px] font-medium">Tap to upload</span>
-                  </div>
-                )}
-                <input
-                  id="ach-photo"
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={(e) => handlePhoto(e.target.files?.[0] ?? null)}
-                />
-              </label>
-            </div>
+            <AttachmentField file={photoFile} preview={photoPreview} onPick={handlePhoto} />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -393,6 +362,59 @@ const Grow = () => {
   );
 };
 
+/** Why a chosen attachment can't be used (photos and PDFs up to 10 MB), or null when it is fine. */
+const attachmentProblem = (f: File) => {
+  if (f.type !== "application/pdf" && !f.type.startsWith("image/")) return "Please choose a photo or a PDF.";
+  return f.size > 10 * 1024 * 1024 ? "That file is over 10 MB." : null;
+};
+
+const AttachmentPreview = ({ file, preview }: { file: File | null; preview: string }) =>
+  file?.type === "application/pdf" ? (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
+      <FileText className="h-10 w-10" />
+      <span className="max-w-full truncate text-[13px] font-medium text-foreground">{file.name}</span>
+    </div>
+  ) : (
+    <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+  );
+
+/** The "Photo / certificate" picker of the achievement form: a photo or a PDF. */
+const AttachmentField = ({ file, preview, onPick }: { file: File | null; preview: string | null; onPick: (f: File | null) => void }) => (
+  <div className="space-y-1.5">
+    <Label>Photo / certificate — image or PDF (optional)</Label>
+    <label
+      htmlFor="ach-photo"
+      className={cn(
+        "relative flex cursor-pointer items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-border bg-muted/40 transition-all hover:border-primary/40",
+        preview ? "aspect-[4/3]" : "h-32",
+      )}
+    >
+      {preview ? (
+        <>
+          <AttachmentPreview file={file} preview={preview} />
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onPick(null);
+            }}
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-soft hover:bg-background"
+            aria-label="Remove file"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
+          <Camera className="h-5 w-5" />
+          <span className="text-[13px] font-medium">Tap to upload a photo or PDF</span>
+        </div>
+      )}
+      <input id="ach-photo" type="file" accept="image/*,application/pdf" className="sr-only" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+    </label>
+  </div>
+);
+
 const AchievementCard = ({ a, onOpen, onDelete }: { a: Achievement; onOpen: () => void; onDelete?: () => void }) => {
   const meta = TYPES.find((t) => t.id === a.type);
   const Icon = meta?.icon ?? Sparkles;
@@ -404,9 +426,15 @@ const AchievementCard = ({ a, onOpen, onDelete }: { a: Achievement; onOpen: () =
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
       className="cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift animate-fade-in-up"
     >
-      {a.photo_url && (
-        <img src={a.photo_url} alt={a.subject} className="h-36 w-full object-cover" loading="lazy" />
-      )}
+      {a.photo_url &&
+        (isPdfUrl(a.photo_url) ? (
+          <div className="flex h-36 w-full items-center justify-center gap-2 bg-muted/60 text-muted-foreground">
+            <FileText className="h-8 w-8" />
+            <span className="text-[13px] font-medium">PDF certificate</span>
+          </div>
+        ) : (
+          <img src={a.photo_url} alt={a.subject} className="h-36 w-full object-cover" loading="lazy" />
+        ))}
       <div className="space-y-1.5 p-4">
         <div className="flex items-start justify-between gap-2">
           <span

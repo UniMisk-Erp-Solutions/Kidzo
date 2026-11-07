@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Eye,
   Link2,
@@ -24,11 +27,11 @@ import { useMemories, type Memory } from "@/hooks/useMemories";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useScreenGuard } from "@/lib/screenGuard";
-import { FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
 import { ExportPreviewDialog } from "@/components/books/ExportPreviewDialog";
 import { ExportYearGroup } from "@/components/books/ExportYearGroup";
 import { ExportActionBar } from "@/components/books/ExportActionBar";
-import { useYearGroups } from "@/hooks/useYearGroups";
+import type { YearItem } from "@/hooks/useYearGroups";
+import { useMemoryYears, useMemoriesInYears, YEARS_PER_PAGE } from "@/hooks/useMemoryPages";
 import { shareOrEmail } from "@/lib/shareLink";
 import { supabase } from "@/integrations/supabase/client";
 import type { LayoutStyle } from "@/lib/exportShareBook";
@@ -58,13 +61,22 @@ const ExportShare = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: child } = useActiveChild();
-  const { data: memories = [] } = useMemories(child?.id);
+  // Years are paged (6 per page) and each page of memories is fetched from the server on demand.
+  const { data: yearIndex } = useMemoryYears(child?.id);
+  const allMemories = useMemories(child?.id, { enabled: false }); // only fetched when building the book
+  const qc = useQueryClient();
   const { can, loading: entLoading } = useEntitlements();
   const canDownload = can("pdf_export");
   const goUpgrade = () => navigate("/pricing-plans");
 
-  const [order, setOrder] = useState<string[]>([]);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(0);
+  // Selection survives page changes. Default: everything selected (`off` lists exceptions); after "None":
+  // nothing selected (`on` lists exceptions).
+  const [allDefault, setAllDefault] = useState(true);
+  const [off, setOff] = useState<Set<string>>(new Set());
+  const [on, setOn] = useState<Set<string>>(new Set());
+  const [orderByYear, setOrderByYear] = useState<Record<number, string[]>>({});
+  const [openYearsState, setOpenYearsState] = useState<{ page: number; years: Set<number> } | null>(null);
   const [coverOverrides, setCoverOverrides] = useState<Record<string, string>>({});
   const [layout, setLayout] = useState<LayoutStyle>("scrapbook-kraft");
   const job = useExportJob();
@@ -92,54 +104,119 @@ const ExportShare = () => {
   // No plan may capture the PDF preview: blocks screenshots/recording in the Android app.
   useScreenGuard(!!previewUrl);
 
-  // Seed selection/order from memories on first load
-  useEffect(() => {
-    if (memories.length && order.length === 0) {
-      setOrder(memories.map((m) => m.id));
-      setSelected(new Set(memories.map((m) => m.id)));
+  const years = yearIndex?.years ?? [];
+  const totalMemories = yearIndex?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(years.length / YEARS_PER_PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const pageYears = years.slice(safePage * YEARS_PER_PAGE, (safePage + 1) * YEARS_PER_PAGE);
+  const { data: pageMemories = [], isFetching: pageLoading } = useMemoriesInYears(
+    child?.id,
+    pageYears[pageYears.length - 1],
+    pageYears[0],
+  );
+
+  const isSel = (id: string) => (allDefault ? !off.has(id) : on.has(id));
+  const setSel = (ids: string[], value: boolean) => {
+    const target = allDefault ? off : on;
+    const next = new Set(target);
+    // `off` holds the deselected ids, `on` the selected ones
+    ids.forEach((id) => (allDefault ? (value ? next.delete(id) : next.add(id)) : value ? next.add(id) : next.delete(id)));
+    (allDefault ? setOff : setOn)(next);
+  };
+  const includedCount = allDefault ? totalMemories - off.size : on.size;
+
+  // This page's memories, newest year first, each year in the user's own order.
+  const orderedPage = useMemo(() => {
+    const byYear = new Map<number, Memory[]>();
+    for (const m of pageMemories) {
+      const y = new Date(m.happened_at).getFullYear();
+      byYear.set(y, [...(byYear.get(y) ?? []), m]);
     }
-  }, [memories, order.length]);
+    const out: Memory[] = [];
+    for (const y of [...byYear.keys()].sort((a, b) => b - a)) {
+      let list = byYear.get(y)!;
+      const ord = orderByYear[y];
+      if (ord) {
+        const idx = new Map(ord.map((id, i) => [id, i]));
+        list = [...list].sort((a, b) => (idx.get(a.id) ?? 1e9) - (idx.get(b.id) ?? 1e9));
+      }
+      out.push(...list);
+    }
+    return out;
+  }, [pageMemories, orderByYear]);
 
-  const byId = useMemo(() => {
-    const map = new Map<string, Memory>();
-    for (const m of memories) map.set(m.id, m);
-    return map;
-  }, [memories]);
+  const yearGroups = useMemo(() => {
+    const map = new Map<number, YearItem<Memory>[]>();
+    orderedPage.forEach((m, idx) => {
+      const y = new Date(m.happened_at).getFullYear();
+      map.set(y, [...(map.get(y) ?? []), { m, idx }]);
+    });
+    return [...map.entries()].sort((a, b) => b[0] - a[0]).map(([year, items]) => ({ year, items }));
+  }, [orderedPage]);
 
-  const ordered = useMemo(
-    () => order.map((id) => byId.get(id)).filter((m): m is Memory => !!m),
-    [order, byId],
+  const openYears =
+    openYearsState && openYearsState.page === safePage
+      ? openYearsState.years
+      : new Set(yearGroups.length ? [yearGroups[0].year] : []);
+  const toggleYear = (year: number) => {
+    const next = new Set(openYears);
+    if (!next.delete(year)) next.add(year);
+    setOpenYearsState({ page: safePage, years: next });
+  };
+
+  const selectedOnPage = useMemo(
+    () => new Set(orderedPage.filter((m) => (allDefault ? !off.has(m.id) : on.has(m.id))).map((m) => m.id)),
+    [orderedPage, allDefault, off, on],
   );
-  const includedMemories = useMemo(
-    () => ordered.filter((m) => selected.has(m.id)),
-    [ordered, selected],
-  );
 
-  // Swap two memories' positions in the global order (used to reorder within a year).
+  // Swap two neighbours (same year) of this page; idx refers to `orderedPage`.
   const swap = (a: number, b: number | undefined) => {
-    if (b === undefined || b < 0 || b >= order.length) return;
-    const next = [...order];
-    [next[a], next[b]] = [next[b], next[a]];
-    setOrder(next);
+    if (b === undefined || b < 0 || b >= orderedPage.length) return;
+    const ma = orderedPage[a];
+    const mb = orderedPage[b];
+    const y = new Date(ma.happened_at).getFullYear();
+    if (y !== new Date(mb.happened_at).getFullYear()) return;
+    const ids = orderedPage.filter((m) => new Date(m.happened_at).getFullYear() === y).map((m) => m.id);
+    const ia = ids.indexOf(ma.id);
+    const ib = ids.indexOf(mb.id);
+    [ids[ia], ids[ib]] = [ids[ib], ids[ia]];
+    setOrderByYear({ ...orderByYear, [y]: ids });
   };
 
-  const { yearGroups, openYears, toggleYear } = useYearGroups(ordered);
+  const setYearSelected = (ids: string[], value: boolean) => setSel(ids, value);
+  const toggleSelected = (id: string) => setSel([id], !isSel(id));
 
-  const setYearSelected = (ids: string[], on: boolean) => {
-    const next = new Set(selected);
-    ids.forEach((id) => (on ? next.add(id) : next.delete(id)));
-    setSelected(next);
+  const selectAll = () => {
+    setAllDefault(true);
+    setOff(new Set());
+    setOn(new Set());
+  };
+  const selectNone = () => {
+    setAllDefault(false);
+    setOff(new Set());
+    setOn(new Set());
   };
 
-  const toggleSelected = (id: string) => {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelected(next);
+  /** Every selected memory across ALL pages (fetched from the server), year by year in the user's order. */
+  const collectIncluded = async (): Promise<Memory[]> => {
+    const all = (await allMemories.refetch()).data ?? [];
+    const byYear = new Map<number, Memory[]>();
+    for (const m of all) {
+      const y = new Date(m.happened_at).getFullYear();
+      byYear.set(y, [...(byYear.get(y) ?? []), m]);
+    }
+    const out: Memory[] = [];
+    for (const y of years) {
+      let list = byYear.get(y) ?? [];
+      const ord = orderByYear[y];
+      if (ord) {
+        const idx = new Map(ord.map((id, i) => [id, i]));
+        list = [...list].sort((a, b) => (idx.get(a.id) ?? 1e9) - (idx.get(b.id) ?? 1e9));
+      }
+      out.push(...list.filter((m) => isSel(m.id)));
+    }
+    return out;
   };
-
-  const selectAll = () => setSelected(new Set(memories.map((m) => m.id)));
-  const selectNone = () => setSelected(new Set());
 
   const generate = async (mode: "preview" | "download") => {
     if (!child) return;
@@ -147,6 +224,11 @@ const ExportShare = () => {
       toast.error("Upgrade to download", { action: { label: "See plans", onClick: goUpgrade } });
       return;
     }
+    if (includedCount <= 0) {
+      toast.error("Pick at least one memory to include.");
+      return;
+    }
+    const includedMemories = await collectIncluded();
     if (includedMemories.length === 0) {
       toast.error("Pick at least one memory to include.");
       return;
@@ -159,7 +241,7 @@ const ExportShare = () => {
       coverOverrides,
       layout,
       mode,
-      maxPages: canDownload ? undefined : FREE_PREVIEW_PAGES,
+      watermark: !canDownload,
       isOnPage: () => onPageRef.current,
       goToExport: () => navigate("/export"),
     });
@@ -303,7 +385,7 @@ const ExportShare = () => {
                   <button onClick={selectNone} className="text-muted-foreground hover:underline">None</button>
                 </div>
               </div>
-              {ordered.length === 0 ? (
+              {years.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No memories yet — add some first.</p>
               ) : (
                 <div className="space-y-3">
@@ -313,7 +395,7 @@ const ExportShare = () => {
                       year={year}
                       items={items}
                       open={openYears.has(year)}
-                      selected={selected}
+                      selected={selectedOnPage}
                       coverOverrides={coverOverrides}
                       onToggleOpen={() => toggleYear(year)}
                       onSetAll={setYearSelected}
@@ -322,6 +404,45 @@ const ExportShare = () => {
                       onSwap={swap}
                     />
                   ))}
+                  {pageLoading && yearGroups.length === 0 && (
+                    <div className="flex justify-center py-10">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary-deep" />
+                    </div>
+                  )}
+                  {years.length > YEARS_PER_PAGE && (
+                    <nav aria-label="Year pages" className="flex items-center justify-between gap-3 pt-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-full"
+                        aria-label="Previous years"
+                        disabled={safePage === 0 || pageLoading}
+                        onClick={() => setPage(safePage - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <div className="text-center">
+                        <div className="text-sm font-semibold text-foreground">
+                          Page {safePage + 1} of {pageCount}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {pageYears[0] === pageYears[pageYears.length - 1]
+                            ? pageYears[0]
+                            : `${pageYears[0]} – ${pageYears[pageYears.length - 1]}`}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 rounded-full"
+                        aria-label="Next years"
+                        disabled={safePage >= pageCount - 1 || pageLoading}
+                        onClick={() => setPage(safePage + 1)}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </nav>
+                  )}
                 </div>
               )}
             </Card>
@@ -335,8 +456,8 @@ const ExportShare = () => {
                 3. Preview & generate
               </h2>
               <p className="mb-4 text-sm text-foreground">
-                <span className="font-semibold">{includedMemories.length}</span> memor
-                {includedMemories.length === 1 ? "y" : "ies"} included.
+                <span className="font-semibold">{includedCount}</span> memor
+                {includedCount === 1 ? "y" : "ies"} included.
               </p>
               <div className="flex flex-col gap-2">
                 <Button variant="warm" onClick={() => generate("preview")} disabled={busy}>
@@ -381,7 +502,7 @@ const ExportShare = () => {
       </main>
 
       <ExportActionBar
-        count={includedMemories.length}
+        count={includedCount}
         busy={busy}
         planLoading={entLoading}
         canDownload={canDownload}

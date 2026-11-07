@@ -1,12 +1,8 @@
 import { Download, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
 import { ScreenshotShield } from "@/components/books/ScreenshotShield";
 import { PdfPagesView } from "@/components/books/PdfPagesView";
-import { LockedBookPage } from "@/components/books/LockedBookPage";
-
-const LOCKED_COLORS = { primary: "#fcfaf7", accent: "#a8c5ba", gold: "#e8c98a", coral: "#e9b4a0", mint: "#a8c5ba" };
 
 interface Props {
   open: boolean;
@@ -31,13 +27,7 @@ export const ExportPreviewDialog = (p: Props) => (
       {p.blob && (
         <div className="h-[70vh] overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
           <ScreenshotShield>
-            <PdfPagesView blob={p.blob}>
-              {p.locked && (
-                <div className="mx-auto aspect-[3/4] w-full max-w-[560px] overflow-hidden rounded-md border border-border">
-                  <LockedBookPage colors={LOCKED_COLORS} pageNumber={FREE_PREVIEW_PAGES + 1} />
-                </div>
-              )}
-            </PdfPagesView>
+            <PdfPagesView blob={p.blob} />
           </ScreenshotShield>
         </div>
       )}

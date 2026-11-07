@@ -32,6 +32,8 @@ export const ScreenshotShield = ({ children }: { children: ReactNode }) => {
     };
     const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
+      // Windows/Cmd key (Win+Shift+S snipping, Cmd+Shift+3/4/5): hide before the capture tool starts
+      if (k === "meta" || k === "os" || e.metaKey) hideFor(4000);
       const mod = e.ctrlKey || e.metaKey;
       // print / save / Win+Shift+S / Mac Cmd+Shift+3|4|5
       if ((mod && (k === "p" || k === "s")) || (e.shiftKey && (e.metaKey || e.getModifierState?.("OS")) && (k === "s" || ["3", "4", "5"].includes(k)))) {
@@ -68,7 +70,7 @@ export const ScreenshotShield = ({ children }: { children: ReactNode }) => {
 
   return (
     <div
-      className="screenshot-shield relative h-full w-full select-none [-webkit-touch-callout:none]"
+      className="screenshot-shield relative min-h-full w-full select-none [-webkit-touch-callout:none]"
       onContextMenu={(e) => e.preventDefault()}
       onDragStart={(e) => e.preventDefault()}
     >
@@ -76,17 +78,19 @@ export const ScreenshotShield = ({ children }: { children: ReactNode }) => {
 
       {/* faint repeating watermark carrying the viewer's email */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -inset-1/2 flex rotate-[-24deg] flex-wrap content-start gap-x-10 gap-y-12 opacity-[0.10]">
-          {Array.from({ length: 60 }).map((_, i) => (
-            <span key={i} className="whitespace-nowrap text-[13px] font-semibold text-foreground">
-              {mark}
-            </span>
-          ))}
-        </div>
+        {/* tiled SVG so the mark covers the full height of every page, however many */}
+        <div
+          className="absolute inset-0 text-foreground opacity-[0.10]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(
+              `<svg xmlns='http://www.w3.org/2000/svg' width='260' height='140'><text x='130' y='70' text-anchor='middle' transform='rotate(-24 130 70)' font-family='sans-serif' font-size='13' font-weight='600' fill='currentColor'>${mark.replace(/[<>&'"]/g, "")}</text></svg>`,
+            ).replace(/currentColor/g, "%23000")}")`,
+          }}
+        />
       </div>
 
       {hidden && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-background text-center">
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-2 bg-background text-center">
           <EyeOff className="h-6 w-6 text-muted-foreground" />
           <p className="max-w-[16rem] text-[13px] text-muted-foreground">
             Preview hidden. Book pages can't be captured — upgrade and order a printed copy to keep your book.
