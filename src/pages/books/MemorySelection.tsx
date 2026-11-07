@@ -34,7 +34,6 @@ const MemorySelection = () => {
   const { data: memories = [], isLoading: memoriesLoading } = useMemories(book?.child_id);
   const update = useUpdateUserBook();
   const { can, loading: entLoading } = useEntitlements();
-  const canBuild = can("photo_book_orders");
 
   const child = children?.find((c) => c.id === book?.child_id);
   const template = templates?.find((t) => t.id === book?.template_id);
@@ -48,13 +47,6 @@ const MemorySelection = () => {
 
   const handleContinue = async () => {
     if (!book) return;
-    if (!canBuild) {
-      toast.error("Upgrade to move ahead", {
-        description: "Building, previewing and ordering a book is available on the Family and Premium plans.",
-        action: { label: "See plans", onClick: () => navigate("/pricing-plans") },
-      });
-      return;
-    }
     try {
       await update.mutateAsync({ id: book.id, patch: { memories_selected: selected } });
       navigate(`/books/${book.id}/customize`);
@@ -75,8 +67,8 @@ const MemorySelection = () => {
     <div className="min-h-screen overflow-x-hidden bg-background pb-44 md:pb-44">
       <TopBar childName={child?.name ?? ""} />
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-10">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/books")} className="-ml-3 mb-3">
-          <ArrowLeft className="h-4 w-4" /> My books
+        <Button variant="ghost" size="sm" onClick={() => navigate("/books/templates")} className="-ml-3 mb-3">
+          <ArrowLeft className="h-4 w-4" /> Templates
         </Button>
 
         <StepHeader templateName={template?.name} target={target} selectedCount={selected.length} />
@@ -152,12 +144,12 @@ const MemorySelection = () => {
             <span className="font-semibold text-foreground">{selected.length}</span> of {target} selected
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button variant="outline" size="sm" className="md:h-10 md:px-4" onClick={() => navigate("/books")}>
+            <Button variant="outline" size="sm" className="md:h-10 md:px-4" onClick={() => navigate("/books/templates")}>
               Back
             </Button>
             <NextButton
               pending={update.isPending}
-              needsUpgrade={!entLoading && !canBuild}
+              needsUpgrade={false}
               disabled={selected.length === 0 || update.isPending || entLoading}
               onClick={handleContinue}
             />

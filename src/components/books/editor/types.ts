@@ -157,6 +157,8 @@ export type CustomPageData = {
   elements: EditorElement[];
   hideNative?: boolean;
   nativeEditable?: boolean;
+  /** Photos/text of the original design that were turned into movable elements (and are hidden in place). */
+  nativeMoved?: { imgs: number[]; texts: number[] };
   /** User edits to the page's built-in text, keyed by field (see editor/pageText.ts). */
   textOverrides?: Record<string, string>;
 };
@@ -171,6 +173,7 @@ export function readPageData(raw: EditorElement[] | CustomPageData | undefined):
     elements: raw.elements ?? [],
     hideNative: !!raw.hideNative,
     nativeEditable: !!raw.nativeEditable,
+    nativeMoved: raw.nativeMoved,
     textOverrides: raw.textOverrides ?? {},
   };
 }

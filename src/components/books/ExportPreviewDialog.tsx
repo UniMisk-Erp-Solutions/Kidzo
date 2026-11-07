@@ -26,7 +26,7 @@ export const ExportPreviewDialog = (p: Props) => (
       </DialogHeader>
       {p.blob && (
         <div className="h-[70vh] overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
-          <ScreenshotShield>
+          <ScreenshotShield extended>
             <PdfPagesView blob={p.blob} />
           </ScreenshotShield>
         </div>

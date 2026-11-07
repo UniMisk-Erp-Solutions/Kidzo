@@ -1,4 +1,4 @@
-import { ImagePlus, Tag, Type } from "lucide-react";
+import { ImagePlus, Move, Tag, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
@@ -9,10 +9,13 @@ interface Props {
   /** True for pages saved earlier with the original design hidden: offers a switch to bring it back. */
   canShowOriginal: boolean;
   onShowOriginal: () => void;
+  /** The page's own photos/text haven't been made movable yet. */
+  canMakeMovable: boolean;
+  onMakeMovable: () => void;
 }
 
 /** The three things people most want to do on a page: add text, a badge or an image. */
-export const QuickAddSection = ({ onText, onBadge, onImage, canShowOriginal, onShowOriginal }: Props) => (
+export const QuickAddSection = ({ onText, onBadge, onImage, canShowOriginal, onShowOriginal, canMakeMovable, onMakeMovable }: Props) => (
   <section className="rounded-md border bg-muted/30 p-2">
     <div className="mb-2 text-xs font-bold uppercase tracking-wide">Add to this page</div>
     <div className="grid grid-cols-3 gap-2">
@@ -26,6 +29,16 @@ export const QuickAddSection = ({ onText, onBadge, onImage, canShowOriginal, onS
         <ImagePlus className="h-3.5 w-3.5 shrink-0" /> Image
       </Button>
     </div>
+    {canMakeMovable && (
+      <div className="mt-2 rounded-md border-2 border-primary/60 bg-primary/10 p-2 shadow-soft">
+        <Button size="sm" variant="warm" className="w-full font-semibold ring-2 ring-primary/40 ring-offset-2 ring-offset-background animate-pulse hover:animate-none" onClick={onMakeMovable}>
+          <Move className="h-3.5 w-3.5 shrink-0" /> Make photos &amp; text movable
+        </Button>
+        <p className="mt-1.5 text-[11px] leading-snug text-foreground/80">
+          Lets you drag, resize and rewrite this page's own photos and text. The decorations (tape, frames, stickers) stay in place.
+        </p>
+      </div>
+    )}
     {canShowOriginal && (
       <div className="mt-2 flex items-center justify-between rounded-md bg-background/50 px-2 py-1.5">
         <span className="text-[11px] text-muted-foreground">Show original design behind</span>

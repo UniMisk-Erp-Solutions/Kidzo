@@ -10,7 +10,6 @@ import { ShippingForm, validateAddress, focusFirstAddressError, type AddressErro
 import { OrderSummary } from "@/components/books/checkout/OrderSummary";
 import { PaymentCard } from "@/components/books/checkout/PaymentCard";
 import { CheckoutBar } from "@/components/books/checkout/CheckoutBar";
-import { UpgradeGate } from "@/components/books/checkout/UpgradeGate";
 import { useUserBook } from "@/hooks/useUserBooks";
 import { useChildren } from "@/hooks/useChildren";
 import { useBookPayment, type ShippingAddress } from "@/hooks/useBookPayment";
@@ -67,9 +66,6 @@ const BookCheckout = () => {
 
   const toPreview = () => navigate(`/books/${book.id}/preview`);
 
-  if (!can("photo_book_orders")) {
-    return <UpgradeGate childName={child?.name ?? ""} onBack={toPreview} onSeePlans={() => navigate("/pricing-plans")} />;
-  }
 
   return (
     <div className="min-h-screen bg-background pb-56 md:pb-56">
@@ -114,7 +110,14 @@ const BookCheckout = () => {
         </div>
       </main>
 
-      <CheckoutBar total={price.total} placing={placing} onEdit={toPreview} onPay={handlePlaceOrder} />
+      <CheckoutBar
+        total={price.total}
+        placing={placing}
+        onEdit={toPreview}
+        onPay={handlePlaceOrder}
+        needsUpgrade={!can("photo_book_orders")}
+        onUpgrade={() => navigate("/pricing-plans")}
+      />
       <BottomNav />
     </div>
   );

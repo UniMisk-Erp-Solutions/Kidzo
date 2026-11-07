@@ -10,13 +10,12 @@ import { useMemories } from "@/hooks/useMemories";
 import { useChildren } from "@/hooks/useChildren";
 import { BookPageFrame, buildPages } from "@/components/books/BookPages";
 import { PageEditorDialog } from "@/components/books/PageEditorDialog";
+import type { NativeMoved } from "@/components/books/editor/nativeParts";
 import { pageKeyFor, readPageData, type CustomPagesMap, type EditorElement } from "@/components/books/editor/types";
 import { applyTextOverrides, type TextOverrides } from "@/components/books/editor/pageText";
 import { calculatePrice, formatCurrency, type BookSize, type PaperQuality, type BindingType } from "@/lib/bookPricing";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { useScreenGuard } from "@/lib/screenGuard";
-import { isPageLocked, FREE_PREVIEW_PAGES } from "@/lib/bookAccess";
-import { LockedBookPage } from "@/components/books/LockedBookPage";
 import { ScreenshotShield } from "@/components/books/ScreenshotShield";
 
 interface OrderButtonProps {
@@ -38,7 +37,7 @@ const OrderButton = ({ planLoading, fullAccess, onContinue, onUpgrade }: OrderBu
   if (!fullAccess) {
     return (
       <Button size="sm" variant="warm" onClick={onUpgrade}>
-        <Lock className="h-4 w-4" /> Upgrade to export
+        <Lock className="h-4 w-4" /> Upgrade to purchase
       </Button>
     );
   }
@@ -108,10 +107,25 @@ const BookPreview = () => {
     setPageIndex(0);
   }, [book?.id]);
 
-  const handleSavePageEdits = async (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides) => {
+  // ← / → turn the page (not while the page editor is open or a text field has focus).
+  useEffect(() => {
+    if (editorOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      setPageIndex((i) => (e.key === "ArrowRight" ? Math.min(pages.length - 1, i + 1) : Math.max(0, i - 1)));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editorOpen, pages.length]);
+
+  const handleSavePageEdits = async (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides, nativeMoved?: NativeMoved) => {
     if (!book || !pages[pageIndex]) return;
     const key = pageKeyFor(pages[pageIndex] as { kind: string; memory?: { id: string }; number?: number; spreadKey?: string });
-    const next: CustomPagesMap = { ...customPages, [key]: { elements: els, hideNative, nativeEditable, textOverrides } };
+    const next: CustomPagesMap = { ...customPages, [key]: { elements: els, hideNative, nativeEditable, textOverrides, nativeMoved } };
     try {
       await updateBook.mutateAsync({
         id: book.id,
@@ -146,7 +160,6 @@ const BookPreview = () => {
 
   const total = pages.length;
   const current = pages[pageIndex];
-  const currentLocked = isPageLocked(pageIndex, fullAccess);
   const currentKey = current
     ? pageKeyFor(current as { kind: string; memory?: { id: string }; number?: number; spreadKey?: string })
     : "";
@@ -208,12 +221,9 @@ const BookPreview = () => {
               }}
             >
               <ScreenshotShield>
-                {current &&
-                  (currentLocked ? (
-                    <LockedBookPage colors={colors} pageNumber={pageIndex + 1} />
-                  ) : (
-                    <BookPageFrame page={applyTextOverrides(current, currentData.textOverrides)} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} />
-                  ))}
+                {current && (
+                  <BookPageFrame page={applyTextOverrides(current, currentData.textOverrides)} colors={colors} className="h-full w-full" overlay={currentOverlay} hideNative={currentHideNative} nativeMoved={currentData.nativeMoved} />
+                )}
               </ScreenshotShield>
             </div>
 
@@ -238,7 +248,6 @@ const BookPreview = () => {
             {/* Page counter overlay */}
             <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-card/90 px-3 py-0.5 text-[11px] font-medium text-muted-foreground shadow-soft backdrop-blur">
               {pageIndex + 1} / {total}
-              {!fullAccess && !entLoading && ` · free preview: ${FREE_PREVIEW_PAGES} pages`}
             </div>
           </div>
         </div>
@@ -264,19 +273,11 @@ const BookPreview = () => {
                   >
                     {idx + 1}
                   </span>
-                  {isPageLocked(idx, fullAccess) ? (
-                    <span className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-[2px]">
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                    </span>
-                  ) : (
-                    <>
-                      {p.kind === "memory" && p.memory.photo_url && (
-                        <img src={p.memory.photo_url} alt="" draggable={false} className="h-full w-full object-cover opacity-80" />
-                      )}
-                      {p.kind === "memory-spread" && p.memories[0]?.photo_url && (
-                        <img src={p.memories[0].photo_url} alt="" draggable={false} className="h-full w-full object-cover opacity-80" />
-                      )}
-                    </>
+                  {p.kind === "memory" && p.memory.photo_url && (
+                    <img src={p.memory.photo_url} alt="" draggable={false} className="h-full w-full object-cover opacity-80" />
+                  )}
+                  {p.kind === "memory-spread" && p.memories[0]?.photo_url && (
+                    <img src={p.memories[0].photo_url} alt="" draggable={false} className="h-full w-full object-cover opacity-80" />
                   )}
                 </button>
               ))}
@@ -287,7 +288,7 @@ const BookPreview = () => {
           <div className="border-t">
             <div className="mx-auto flex max-w-6xl items-center justify-end gap-2 px-3 py-2.5 md:px-6">
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="secondary" disabled={currentLocked} onClick={() => setEditorOpen(true)}>
+                <Button size="sm" variant="secondary" onClick={() => setEditorOpen(true)}>
                   <Pencil className="h-4 w-4" />
                   <span className="hidden sm:inline">Edit page</span>
                 </Button>
@@ -310,6 +311,7 @@ const BookPreview = () => {
         initialElements={currentOverlay}
         initialHideNative={currentHideNative}
         initialNativeEditable={currentNativeEditable}
+        initialNativeMoved={currentData.nativeMoved}
         initialTextOverrides={currentData.textOverrides}
         bookId={book?.id}
         saving={updateBook.isPending}
