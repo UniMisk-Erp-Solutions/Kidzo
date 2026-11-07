@@ -56,9 +56,10 @@ const describeDocumentLimits = (text?: string | null) => {
   if (!Object.values(limits).some((n) => typeof n === "number")) {
     return "Unlimited documents in every folder, incl. achievement certificates";
   }
+  const v = limits.vaccination ?? 0;
   const m = limits.marksheet ?? 0;
   const s = limits.school ?? 0;
-  if (m > 0 || s > 0) return `Document folders — up to ${m} marksheets & ${s} school certificates`;
+  if (m > 0 || s > 0 || v > 0) return `Document folders — up to ${v} vaccination, ${m} marksheets & ${s} school certificates`;
   return "Birth certificate vault (1 document)";
 };
 

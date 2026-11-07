@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { FolderLock } from "lucide-react";
+import { FolderLock, Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
@@ -8,6 +9,7 @@ import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { isAllowedCategory, useDocuments } from "@/hooks/useDocuments";
 import { CATEGORIES } from "@/components/documents/documentCategories";
 import {
+  useBulkDownload,
   useDeleteDocument,
   useDocumentPreview,
   useFolderRules,
@@ -37,6 +39,7 @@ const Documents = () => {
   const upload = useUploadForm(rules, child);
   const viewer = useDocumentPreview();
   const deleteDoc = useDeleteDocument();
+  const bulk = useBulkDownload(documents, child?.name);
 
   const actions = { canEdit, busy: viewer.loading, onView: viewer.view, onDownload: viewer.download, onDelete: deleteDoc };
   const legacy = documents.filter((d) => !isAllowedCategory(d.category));
@@ -60,7 +63,15 @@ const Documents = () => {
         />
 
         <section className="space-y-3">
-          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Folders</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted-foreground">Folders</h2>
+            {documents.length > 0 && (
+              <Button variant="soft" size="sm" onClick={bulk.run} disabled={bulk.busy}>
+                {bulk.busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                Download all
+              </Button>
+            )}
+          </div>
           {isLoading ? (
             <FolderSkeletons />
           ) : (

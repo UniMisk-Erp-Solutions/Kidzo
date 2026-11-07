@@ -77,7 +77,7 @@ const sections: Section[] = [
             ],
             [
               "Payment data",
-              "Name, email, plan chosen, and the payment/transaction identifiers returned by Razorpay",
+              "Name, email, plan chosen, and the payment/transaction identifiers returned by CCAvenue",
               "To take payment and issue an invoice",
             ],
             [
@@ -439,8 +439,8 @@ const sections: Section[] = [
           disclosure of price, refunds and grievance handling for paid plans.
         </li>
         <li>
-          <strong>Payment and card data</strong> — handled entirely by Razorpay, a PCI-DSS compliant payment
-          aggregator. Card numbers never reach our servers.
+          <strong>Payment and card data</strong> — handled entirely by CCAvenue, a PCI-DSS compliant payment
+          gateway. Card numbers never reach our servers.
         </li>
         <li>
           <strong>GDPR</strong> — if you use {LEGAL.product} from the European Economic Area or the UK, we will honour

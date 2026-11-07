@@ -128,9 +128,6 @@ export const AgeHero = ({ childId, childName, dob, avatarUrl, canEdit = true }: 
       <div className="blob -right-10 -top-12 h-52 w-52 bg-butter/60" aria-hidden />
       <div className="blob -bottom-16 -left-10 h-56 w-56 bg-sky/60" aria-hidden />
       <div className="blob right-1/3 top-1/2 h-40 w-40 bg-coral/30" aria-hidden />
-      <Sparkle className="twinkle absolute left-[46%] top-5 h-6 w-6 text-white/90" />
-      <Sparkle className="twinkle absolute bottom-6 left-[38%] h-4 w-4 text-butter" />
-      <ThemeAccent className="float-med absolute right-[44%] top-1/2 hidden h-6 w-6 text-coral/80 sm:block" />
 
       <div className="relative grid items-center gap-8 sm:grid-cols-[1fr_auto]">
         <div>

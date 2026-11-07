@@ -1,4 +1,4 @@
-import { Loader2, ShoppingBag } from "lucide-react";
+import { Loader2, Lock, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/bookPricing";
 
@@ -7,10 +7,13 @@ interface Props {
   placing: boolean;
   onEdit: () => void;
   onPay: () => void;
+  /** The plan can't order printed books: the Pay button becomes an upgrade button. */
+  needsUpgrade?: boolean;
+  onUpgrade?: () => void;
 }
 
 /** Fixed bottom bar: the total, Edit book, and the Pay button. */
-export const CheckoutBar = ({ total, placing, onEdit, onPay }: Props) => (
+export const CheckoutBar = ({ total, placing, onEdit, onPay, needsUpgrade, onUpgrade }: Props) => (
   <div className="fixed inset-x-0 bottom-0 z-[60] border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
     <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 md:px-6">
       {/* Phones: the amount is already on the Pay button, so the separate total is hidden. */}
@@ -21,15 +24,21 @@ export const CheckoutBar = ({ total, placing, onEdit, onPay }: Props) => (
         <Button variant="outline" size="sm" className="shrink-0 md:h-10 md:px-4" onClick={onEdit}>
           Edit book
         </Button>
-        <Button size="sm" className="min-w-0 flex-1 md:h-10 md:flex-none md:px-4" onClick={onPay} disabled={placing}>
-          {placing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <>
-              <ShoppingBag className="h-4 w-4" /> Pay {formatCurrency(total)}
-            </>
-          )}
-        </Button>
+        {needsUpgrade ? (
+          <Button size="sm" variant="warm" className="min-w-0 flex-1 md:h-10 md:flex-none md:px-4" onClick={onUpgrade}>
+            <Lock className="h-4 w-4" /> Upgrade to purchase
+          </Button>
+        ) : (
+          <Button size="sm" className="min-w-0 flex-1 md:h-10 md:flex-none md:px-4" onClick={onPay} disabled={placing}>
+            {placing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <ShoppingBag className="h-4 w-4" /> Pay {formatCurrency(total)}
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   </div>

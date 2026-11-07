@@ -56,7 +56,7 @@ function blockedMessage(cat: AllowedDocCategory, rules: FolderRules) {
       description:
         cat === "achievement"
           ? "Upgrade to Premium to store achievement certificates."
-          : "The Free plan keeps one birth certificate. Upgrade to add more documents.",
+          : "Upgrade to Premium to store achievement certificates.",
     };
   }
   if (!rules.isFull(cat)) return null;
@@ -183,6 +183,64 @@ export function useDocumentPreview() {
   };
 
   return { preview, loading, failed, setFailed, close, view, download };
+}
+
+const safeName = (title: string) => title.replace(/[\\/:*?"<>|]+/g, "_").trim() || "document";
+
+/** A zip entry path such as "Marksheet / report card/Term 1.pdf" that no earlier entry already uses. */
+function uniqueEntryName(d: ChildDocument, used: Set<string>) {
+  const ext = d.file_path.includes(".") ? `.${d.file_path.split(".").pop()}` : "";
+  const folder = categoryLabel(d.category);
+  let name = `${folder}/${safeName(d.title)}${ext}`;
+  for (let i = 2; used.has(name); i++) name = `${folder}/${safeName(d.title)} (${i})${ext}`;
+  used.add(name);
+  return name;
+}
+
+/** Fetches every document into a zip (one folder per category). Returns the zip and how many files failed. */
+async function zipDocuments(documents: ChildDocument[], fetchBlob: (path: string) => Promise<Blob>) {
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  const used = new Set<string>();
+  let failed = 0;
+  for (const d of documents) {
+    try {
+      zip.file(uniqueEntryName(d, used), await fetchBlob(d.file_path));
+    } catch {
+      failed++;
+    }
+  }
+  if (failed === documents.length) throw new Error("none fetched");
+  return { blob: await zip.generateAsync({ type: "blob" }), failed };
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/** Downloads every stored document as one zip, grouped into a folder per category. */
+export function useBulkDownload(documents: ChildDocument[], childName?: string) {
+  const docActions = useDocumentActions();
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (!documents.length || busy) return;
+    setBusy(true);
+    const t = toast.loading(`Preparing ${documents.length} document${documents.length === 1 ? "" : "s"}…`);
+    try {
+      const { blob, failed } = await zipDocuments(documents, docActions.fetchBlob);
+      saveBlob(blob, `${(childName ?? "documents").replace(/\s+/g, "_")}_documents.zip`);
+      toast.success(failed ? `Downloaded (${failed} couldn't be fetched)` : "Downloaded all documents ✓", { id: t });
+    } catch {
+      toast.error("Couldn't download your documents.", { id: t });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { busy, run };
 }
 
 export function useDeleteDocument() {

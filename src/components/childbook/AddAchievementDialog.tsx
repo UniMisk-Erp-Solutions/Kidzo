@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { CalendarIcon, Loader2, X, Camera } from "lucide-react";
+import { CalendarIcon, Loader2, X, Camera, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,9 +19,19 @@ export interface AchievementFormValues {
   notes: string;
 }
 
-const PhotoPicker = ({ preview, onPhoto }: { preview: string | null; onPhoto: (file: File | null) => void }) => (
+const AttachmentPreview = ({ file, preview }: { file: File | null; preview: string }) =>
+  file?.type === "application/pdf" ? (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
+      <FileText className="h-10 w-10" />
+      <span className="max-w-full truncate text-[13px] font-medium text-foreground">{file.name}</span>
+    </div>
+  ) : (
+    <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+  );
+
+const PhotoPicker = ({ file, preview, onPhoto }: { file: File | null; preview: string | null; onPhoto: (file: File | null) => void }) => (
   <div className="space-y-1.5">
-    <Label>Photo / certificate (optional)</Label>
+    <Label>Photo / certificate — image or PDF (optional)</Label>
     <label
       htmlFor="ach-photo"
       className={cn(
@@ -31,7 +41,7 @@ const PhotoPicker = ({ preview, onPhoto }: { preview: string | null; onPhoto: (f
     >
       {preview ? (
         <>
-          <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+          <AttachmentPreview file={file} preview={preview} />
           <button
             type="button"
             onClick={(e) => {
@@ -39,7 +49,7 @@ const PhotoPicker = ({ preview, onPhoto }: { preview: string | null; onPhoto: (f
               onPhoto(null);
             }}
             className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-soft hover:bg-background"
-            aria-label="Remove photo"
+            aria-label="Remove file"
           >
             <X className="h-4 w-4" />
           </button>
@@ -47,10 +57,10 @@ const PhotoPicker = ({ preview, onPhoto }: { preview: string | null; onPhoto: (f
       ) : (
         <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
           <Camera className="h-5 w-5" />
-          <span className="text-[13px] font-medium">Tap to upload</span>
+          <span className="text-[13px] font-medium">Tap to upload a photo or PDF</span>
         </div>
       )}
-      <input id="ach-photo" type="file" accept="image/*" className="sr-only" onChange={(e) => onPhoto(e.target.files?.[0] ?? null)} />
+      <input id="ach-photo" type="file" accept="image/*,application/pdf" className="sr-only" onChange={(e) => onPhoto(e.target.files?.[0] ?? null)} />
     </label>
   </div>
 );
@@ -142,13 +152,14 @@ interface AddAchievementDialogProps {
   onOpenChange: (open: boolean) => void;
   values: AchievementFormValues;
   onChange: (patch: Partial<AchievementFormValues>) => void;
+  photoFile: File | null;
   photoPreview: string | null;
   onPhoto: (file: File | null) => void;
   saving: boolean;
   onSubmit: () => void;
 }
 
-export const AddAchievementDialog = ({ open, onOpenChange, values, onChange, photoPreview, onPhoto, saving, onSubmit }: AddAchievementDialogProps) => (
+export const AddAchievementDialog = ({ open, onOpenChange, values, onChange, photoFile, photoPreview, onPhoto, saving, onSubmit }: AddAchievementDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
     {/* Phones: a narrower bottom sheet that slides up and is as tall as the form needs, so nothing has to scroll. Larger screens: centered dialog. */}
     <DialogContent
@@ -165,7 +176,7 @@ export const AddAchievementDialog = ({ open, onOpenChange, values, onChange, pho
         }}
         className="space-y-4"
       >
-        <PhotoPicker preview={photoPreview} onPhoto={onPhoto} />
+        <PhotoPicker file={photoFile} preview={photoPreview} onPhoto={onPhoto} />
         <TypeAndDate values={values} onChange={onChange} />
         <TextFields values={values} onChange={onChange} />
 

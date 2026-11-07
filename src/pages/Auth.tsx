@@ -192,11 +192,11 @@ const Auth = () => {
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="signin-email">Email</Label>
-                      <Input id="signin-email" type="email" required value={signinEmail} onChange={(e) => setSigninEmail(e.target.value)} className="h-11 rounded-xl" />
+                      <Input id="signin-email" name="email" type="email" autoComplete="username" required value={signinEmail} onChange={(e) => setSigninEmail(e.target.value)} className="h-11 rounded-xl" />
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="signin-password">Password</Label>
-                      <Input id="signin-password" type="password" required value={signinPassword} onChange={(e) => setSigninPassword(e.target.value)} className="h-11 rounded-xl" />
+                      <Input id="signin-password" name="password" type="password" autoComplete="current-password" required value={signinPassword} onChange={(e) => setSigninPassword(e.target.value)} className="h-11 rounded-xl" />
                     </div>
                     <Button type="submit" variant="default" size="lg" className="w-full" disabled={loading}>
                       {loading ? "Signing in..." : "Sign in"}
@@ -215,11 +215,11 @@ const Auth = () => {
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="signup-email">Email</Label>
-                        <Input id="signup-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" />
+                        <Input id="signup-email" name="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl" />
                       </div>
                       <div className="space-y-1.5">
                         <Label htmlFor="signup-password">Password</Label>
-                        <Input id="signup-password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl" />
+                        <Input id="signup-password" name="password" type="password" autoComplete="new-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl" />
                         <p className="text-[12px] text-muted-foreground">At least 6 characters</p>
                       </div>
                       <AcceptTerms id="accept-email" checked={agreedEmail} onChange={setAgreedEmail} />
@@ -334,9 +334,6 @@ const Auth = () => {
           </Tabs>
         </div>
 
-        <p className="mt-6 text-center text-[12px] text-muted-foreground">
-          Your family's memories stay private — never sold, never used for ads.
-        </p>
       </div>
     </WashShell>
   );

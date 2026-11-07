@@ -1,5 +1,6 @@
 import { format } from "date-fns";
-import { GraduationCap, Trophy, Music, Award, Plus, X, Sparkles, type LucideIcon } from "lucide-react";
+import { GraduationCap, Trophy, Music, Award, Plus, X, Sparkles, FileText, type LucideIcon } from "lucide-react";
+import { isPdfUrl } from "@/lib/fileKind";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { AchievementType, Achievement } from "@/hooks/useAchievements";
@@ -64,9 +65,15 @@ export const AchievementCard = ({ a, onOpen, onDelete }: { a: Achievement; onOpe
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
       className="cursor-pointer overflow-hidden rounded-2xl border border-border bg-card shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift animate-fade-in-up"
     >
-      {a.photo_url && (
-        <img src={a.photo_url} alt={a.subject} className="h-36 w-full object-cover" loading="lazy" />
-      )}
+      {a.photo_url &&
+        (isPdfUrl(a.photo_url) ? (
+          <div className="flex h-36 w-full items-center justify-center gap-2 bg-muted/60 text-muted-foreground">
+            <FileText className="h-8 w-8" />
+            <span className="text-[13px] font-medium">PDF certificate</span>
+          </div>
+        ) : (
+          <img src={a.photo_url} alt={a.subject} className="h-36 w-full object-cover" loading="lazy" />
+        ))}
       <div className="space-y-1.5 p-4">
         <div className="flex items-start justify-between gap-2">
           <span

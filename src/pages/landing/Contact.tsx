@@ -194,9 +194,6 @@ const Contact = () => {
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {sending ? "Opening your email…" : "Send message"}
             </Button>
-            <p className="text-center text-[12px] text-muted-foreground">
-              By sending, you agree to our friendly use of your email to reply.
-            </p>
           </form>
         </div>
       </section>

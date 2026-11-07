@@ -11,24 +11,58 @@ async function renderPageToCanvas(page: pdfjs.PDFPageProxy, scale: number): Prom
   const canvas = document.createElement("canvas");
   canvas.width = viewport.width;
   canvas.height = viewport.height;
-  canvas.className = "mx-auto mb-3 w-full max-w-[560px] rounded-md border border-border bg-white shadow-sm";
+  canvas.className = "w-full rounded-md border border-border bg-white shadow-sm";
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is not available");
   await page.render({ canvasContext: ctx, viewport }).promise;
   return canvas;
 }
 
-/** Draws every page of the PDF into `host`, stopping quietly if `isCancelled()` turns true. */
+/**
+ * Lays out a placeholder per page right away and only draws a page when it scrolls near the view,
+ * so a long book shows its first pages immediately instead of after every page is drawn.
+ */
 async function renderAllPages(host: HTMLElement, blob: Blob, isCancelled: () => boolean) {
   const doc = await pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) }).promise;
-  const scale = Math.min(2, (window.devicePixelRatio || 1) * 1.25);
+  const scale = Math.min(1.5, (window.devicePixelRatio || 1) * 1.25);
+  const first = await doc.getPage(1);
+  const vp = first.getViewport({ scale: 1 });
+  const ratio = vp.height / vp.width;
+  if (isCancelled()) return;
+
+  const root = host.closest(".overflow-y-auto") as HTMLElement | null;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const slot = e.target as HTMLElement;
+        observer.unobserve(slot);
+        const n = Number(slot.dataset.page);
+        void doc
+          .getPage(n)
+          .then((pg) => renderPageToCanvas(pg, scale))
+          .then((canvas) => {
+            if (!isCancelled()) slot.replaceChildren(canvas);
+          })
+          .catch(() => {});
+      }
+    },
+    { root, rootMargin: "600px 0px" },
+  );
   for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    if (isCancelled()) return;
-    const canvas = await renderPageToCanvas(page, scale);
-    if (isCancelled()) return;
-    host.appendChild(canvas);
+    const slot = document.createElement("div");
+    slot.dataset.page = String(i);
+    slot.className = "mx-auto mb-3 w-full max-w-[560px]";
+    slot.style.aspectRatio = `1 / ${ratio}`;
+    host.appendChild(slot);
+    observer.observe(slot);
   }
+  const stop = setInterval(() => {
+    if (isCancelled()) {
+      observer.disconnect();
+      clearInterval(stop);
+    }
+  }, 500);
 }
 
 /**

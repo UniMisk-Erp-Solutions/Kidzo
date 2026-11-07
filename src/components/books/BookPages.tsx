@@ -1,3 +1,4 @@
+import { NativeHider, type NativeMoved } from "./editor/nativeParts";
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import type { Memory } from "@/hooks/useMemories";
@@ -253,6 +254,13 @@ export const BookPageView = ({ page, colors }: PageProps) => {
   }
 };
 
+/** A page's original design with any photos/text that were turned into movable elements hidden in place. */
+export const BookPageWithMoved = ({ page, colors, moved }: { page: BookPage; colors: BookTemplateColors; moved?: NativeMoved }) => (
+  <NativeHider moved={moved}>
+    <BookPageView page={page} colors={colors} />
+  </NativeHider>
+);
+
 /* ─────────────────────────────────────────── Frame wrapper ──────────── */
 
 /**
@@ -266,12 +274,14 @@ export const BookPageFrame = ({
   className = "",
   overlay,
   hideNative = false,
+  nativeMoved,
 }: {
   page: BookPage;
   colors: BookTemplateColors;
   className?: string;
   overlay?: EditorElement[];
   hideNative?: boolean;
+  nativeMoved?: NativeMoved;
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -304,7 +314,7 @@ export const BookPageFrame = ({
           transformOrigin: "center center",
         }}
       >
-        {!hideNative && <BookPageView page={page} colors={colors} />}
+        {!hideNative && <BookPageWithMoved page={page} colors={colors} moved={nativeMoved} />}
         {overlay && overlay.length > 0 && <ElementsOverlay elements={overlay} />}
       </div>
     </div>

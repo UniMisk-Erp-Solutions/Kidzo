@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Trash2,
@@ -35,6 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import { MemoryPhotoPicker } from "./MemoryPhotoPicker";
+import { NativeHider, extractNativeParts, type NativeMoved } from "./nativeParts";
 import { applyTextOverrides, getPageTextFields, withFieldText, type TextOverrides } from "./pageText";
 import { PageTextSection } from "./PageTextSection";
 import { QuickAddSection } from "./QuickAddSection";
@@ -131,12 +133,13 @@ interface PageEditorProps {
   initialElements: EditorElement[];
   initialHideNative: boolean;
   initialNativeEditable: boolean;
+  initialNativeMoved?: NativeMoved;
   /** Saved edits to the page's built-in text (see pageText.ts). */
   initialTextOverrides?: TextOverrides;
   colors: BookTemplateColors;
   /** Stable id used to scope recents & saved swatches. */
   bookId?: string;
-  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides) => void;
+  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides, nativeMoved?: NativeMoved) => void;
   onCancel: () => void;
   saving?: boolean;
 }
@@ -149,6 +152,7 @@ export function PageEditor({
   initialElements,
   initialHideNative,
   initialNativeEditable,
+  initialNativeMoved,
   initialTextOverrides = {},
   colors,
   bookId,
@@ -171,6 +175,9 @@ export function PageEditor({
   // "Show original design behind" to hide it for a blank canvas.
   const [hideNative, setHideNative] = useState(initialHideNative ?? false);
   const [nativeEditable, setNativeEditable] = useState(initialNativeEditable);
+  // Which photos/text of the original design were turned into movable elements (see nativeParts.tsx).
+  const [nativeMoved, setNativeMoved] = useState<NativeMoved | undefined>(initialNativeMoved);
+  const bgRef = useRef<HTMLDivElement>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -218,6 +225,21 @@ export function PageEditor({
     },
     [],
   );
+
+  /** Copies the page's own photos and text into movable elements; the rest of the design stays as drawn. */
+  const makeNativeMovable = useCallback(() => {
+    const root = bgRef.current?.firstElementChild?.firstElementChild as HTMLElement | null | undefined;
+    if (!root) return;
+    const { elements: found, moved } = extractNativeParts(root);
+    if (found.length === 0) {
+      toast.info("This page has no photos or text to move.");
+      return;
+    }
+    commit((prev) => [...prev, ...found]);
+    setNativeMoved(moved);
+    setNativeEditable(true);
+    toast.success("Photos and text are now movable");
+  }, [commit]);
 
   const undo = useCallback(() => {
     const h = historyRef.current;
@@ -882,7 +904,9 @@ export function PageEditor({
              *  we always show the original underneath so the user can see what
              *  the editable layers look like vs the source design. */}
             {(!hideNative || compareMode) && (
-              <div className="pointer-events-none absolute inset-0">{renderBackground(effectivePage)}</div>
+              <div ref={bgRef} className="pointer-events-none absolute inset-0">
+                <NativeHider moved={nativeMoved}>{renderBackground(effectivePage)}</NativeHider>
+              </div>
             )}
 
             {/* Compare-mode banner */}
@@ -1091,6 +1115,8 @@ export function PageEditor({
                   onBadge={addBadge}
                   onImage={() => setPhotoPickerOpen(true)}
                   canShowOriginal={hideNative}
+                  canMakeMovable={!nativeMoved && !hideNative}
+                  onMakeMovable={makeNativeMovable}
                   onShowOriginal={() => setHideNative(false)}
                 />
                 <PageTextSection
@@ -1402,7 +1428,7 @@ export function PageEditor({
           <Button variant="ghost" className="flex-1" onClick={onCancel} disabled={saving}>
             Cancel
           </Button>
-          <Button className="flex-1" onClick={() => onSave(elements, hideNative, nativeEditable, textOverrides)} disabled={saving}>
+          <Button className="flex-1" onClick={() => onSave(elements, hideNative, nativeEditable, textOverrides, nativeMoved)} disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </Button>
         </div>

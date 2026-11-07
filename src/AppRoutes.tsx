@@ -5,6 +5,7 @@ import { AdminRoute } from "@/components/AdminRoute";
 import PricingPage from "./pages/Pricing.tsx";
 import Billing from "./pages/Billing.tsx";
 import MockCheckout from "./pages/MockCheckout.tsx";
+import PaymentResult from "./pages/PaymentResult.tsx";
 import AdminPanel from "./pages/admin/AdminPanel.tsx";
 import ClaimAdmin from "./pages/admin/ClaimAdmin.tsx";
 import Landing from "./pages/Landing.tsx";
@@ -103,6 +104,7 @@ const ROUTES: AppRoute[] = [
   { path: "/pricing-plans", element: <PricingPage /> },
   { path: "/billing", element: <Billing />, guard: "user" },
   { path: "/checkout", element: <MockCheckout />, guard: "user" },
+  { path: "/payment/result", element: <PaymentResult />, guard: "user" },
   { path: "/claim-admin", element: <ClaimAdmin />, guard: "user" },
   { path: "/admin", element: <AdminPanel />, guard: "admin" },
 ];

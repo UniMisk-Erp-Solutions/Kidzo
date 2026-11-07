@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Page frame for screens outside LandingLayout (sign in, password reset) that should share the public "Wash House"
- * look: sets `<html data-landing="wash">` and floats the animated backdrop behind the content.
+ * look: sets `<html data-landing="wash">` and adds the soft colour backdrop behind the content.
  */
 export const WashShell = ({ className, children }: { className?: string; children: ReactNode }) => {
   useLayoutEffect(() => {

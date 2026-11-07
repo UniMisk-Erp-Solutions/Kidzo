@@ -1,3 +1,4 @@
+import { isPdfUrl } from "@/lib/fileKind";
 import { useState } from "react";
 import { ImageIcon, Sparkles, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -62,7 +63,7 @@ const MemoryRow = ({ memory, date, onOpen }: { memory: Memory; date: Date; onOpe
 const AchievementRow = ({ achievement, date, onOpen }: { achievement: Achievement; date: Date; onOpen: () => void }) => (
   <button onClick={onOpen} className={rowClass}>
     <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-accent/30 text-accent-foreground">
-      {achievement.photo_url ? (
+      {achievement.photo_url && !isPdfUrl(achievement.photo_url) ? (
         <img src={achievement.photo_url} alt={achievement.subject} loading="lazy" className="h-full w-full rounded-xl object-cover" />
       ) : (
         <Trophy className="h-7 w-7" strokeWidth={2.2} />

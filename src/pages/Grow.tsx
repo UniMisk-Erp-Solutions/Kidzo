@@ -22,6 +22,12 @@ const growSubtitle = (count: number) =>
 
 const blankForm = (): AchievementFormValues => ({ type: "academics", subject: "", date: new Date(), grade: "", notes: "" });
 
+/** Why a chosen attachment can't be used (photos and PDFs up to 10 MB), or null when it is fine. */
+const attachmentProblem = (f: File) => {
+  if (f.type !== "application/pdf" && !f.type.startsWith("image/")) return "Please choose a photo or a PDF.";
+  return f.size > 10 * 1024 * 1024 ? "That file is over 10 MB." : null;
+};
+
 /** Uploads the optional photo; resolves to its public URL, null when there is none, or undefined on failure. */
 async function uploadAchievementPhoto(userId: string, file: File | null): Promise<string | null | undefined> {
   if (!file) return null;
@@ -60,6 +66,11 @@ const Grow = () => {
   }, [achievements]);
 
   const handlePhoto = (file: File | null) => {
+    const problem = file && attachmentProblem(file);
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoFile(file);
     setPhotoPreview(file ? URL.createObjectURL(file) : null);
@@ -81,7 +92,7 @@ const Grow = () => {
     const photo_url = await uploadAchievementPhoto(user.id, photoFile);
     if (photo_url === undefined) {
       setSaving(false);
-      toast.error("Couldn't upload that photo.");
+      toast.error("Couldn't upload that file.");
       return;
     }
 
@@ -169,6 +180,7 @@ const Grow = () => {
         onOpenChange={setOpen}
         values={values}
         onChange={(patch) => setValues((v) => ({ ...v, ...patch }))}
+        photoFile={photoFile}
         photoPreview={photoPreview}
         onPhoto={handlePhoto}
         saving={saving}

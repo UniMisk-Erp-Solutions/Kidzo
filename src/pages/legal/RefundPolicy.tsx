@@ -60,7 +60,7 @@ const sections: Section[] = [
     body: (
       <>
         <P>
-          Approved refunds are issued to the <strong>original payment method</strong> through Razorpay. They typically
+          Approved refunds are issued to the <strong>original payment method</strong> through CCAvenue. They typically
           reach you within <strong>5–7 working days</strong> of approval; your bank or card issuer may take a little
           longer to show it on your statement.
         </P>

@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { SpecSections } from "@/components/books/checkout/SpecSections";
-import { ShippingForm } from "@/components/books/checkout/ShippingForm";
+import { ShippingForm, validateAddress, focusFirstAddressError, type AddressErrors } from "@/components/books/checkout/ShippingForm";
 import { OrderSummary } from "@/components/books/checkout/OrderSummary";
 import { PaymentCard } from "@/components/books/checkout/PaymentCard";
 import { CheckoutBar } from "@/components/books/checkout/CheckoutBar";
-import { UpgradeGate } from "@/components/books/checkout/UpgradeGate";
 import { useUserBook } from "@/hooks/useUserBooks";
 import { useChildren } from "@/hooks/useChildren";
 import { useBookPayment, type ShippingAddress } from "@/hooks/useBookPayment";
@@ -18,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { calculatePrice, type BindingType, type BookSize, type PaperQuality } from "@/lib/bookPricing";
 
-const EMPTY_ADDRESS: ShippingAddress = { name: "", phone: "", street: "", city: "", state: "", zip: "" };
+const EMPTY_ADDRESS: ShippingAddress = { name: "", phone: "", street: "", landmark: "", city: "", state: "", zip: "" };
 
 const BookCheckout = () => {
   const { id } = useParams();
@@ -36,15 +35,18 @@ const BookCheckout = () => {
   const [binding, setBinding] = useState<BindingType>((book?.binding_type as BindingType) ?? "soft");
   const [quantity, setQuantity] = useState(book?.quantity ?? 1);
   const [address, setAddress] = useState<ShippingAddress>(EMPTY_ADDRESS);
+  const [errors, setErrors] = useState<AddressErrors>({});
   const [terms, setTerms] = useState(false);
 
   const price = useMemo(() => calculatePrice({ size, paper, binding, quantity }), [size, paper, binding, quantity]);
-  const validAddress = Object.values(address).every(Boolean);
 
   const handlePlaceOrder = async () => {
     if (!book || !user) return;
-    if (!validAddress) {
-      toast.error("Please complete your shipping address");
+    const found = validateAddress(address);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      toast.error("Please fix the highlighted fields in your shipping address");
+      focusFirstAddressError(found);
       return;
     }
     if (!terms) {
@@ -64,9 +66,6 @@ const BookCheckout = () => {
 
   const toPreview = () => navigate(`/books/${book.id}/preview`);
 
-  if (!can("photo_book_orders")) {
-    return <UpgradeGate childName={child?.name ?? ""} onBack={toPreview} onSeePlans={() => navigate("/pricing-plans")} />;
-  }
 
   return (
     <div className="min-h-screen bg-background pb-56 md:pb-56">
@@ -94,7 +93,14 @@ const BookCheckout = () => {
               onBinding={setBinding}
               onQuantity={setQuantity}
             />
-            <ShippingForm address={address} onChange={(key, value) => setAddress({ ...address, [key]: value })} />
+            <ShippingForm
+              address={address}
+              errors={errors}
+              onChange={(key, value) => {
+                setAddress({ ...address, [key]: value });
+                if (errors[key]) setErrors((e) => ({ ...e, [key]: undefined }));
+              }}
+            />
           </div>
 
           <aside className="space-y-3">
@@ -104,7 +110,14 @@ const BookCheckout = () => {
         </div>
       </main>
 
-      <CheckoutBar total={price.total} placing={placing} onEdit={toPreview} onPay={handlePlaceOrder} />
+      <CheckoutBar
+        total={price.total}
+        placing={placing}
+        onEdit={toPreview}
+        onPay={handlePlaceOrder}
+        needsUpgrade={!can("photo_book_orders")}
+        onUpgrade={() => navigate("/pricing-plans")}
+      />
       <BottomNav />
     </div>
   );

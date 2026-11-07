@@ -3,27 +3,15 @@ project_id = "ixolgnnlmswenjmwvxez"
 [functions.delete-account]
 verify_jwt = true
 
-[functions.razorpay-create-order]
-verify_jwt = true
-
-[functions.razorpay-create-subscription]
-verify_jwt = true
-
-[functions.admin-sync-razorpay-plans]
-verify_jwt = true
-
 [functions.validate-coupon]
 verify_jwt = true
 
-[functions.razorpay-verify-payment]
+# --- CCAvenue hosted checkout -------------------------------------------------
+[functions.ccavenue-create-order]
 verify_jwt = true
 
-# Razorpay calls this server-to-server (no user JWT) — auth is the webhook signature.
-[functions.razorpay-webhook]
+# CCAvenue redirects the customer's browser here (cross-site POST, no user JWT) — auth is the
+# encrypted payload checked against our own order ledger.
+[functions.ccavenue-callback]
 verify_jwt = false
 
-[functions.razorpay-create-book-order]
-verify_jwt = true
-
-[functions.razorpay-verify-book-payment]
-verify_jwt = true

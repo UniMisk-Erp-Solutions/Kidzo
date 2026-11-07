@@ -7,13 +7,14 @@ import type { BookTemplate, BookTemplateColors } from "@/hooks/useBookTemplates"
 import {
   BOOK_PAGE_H,
   BOOK_PAGE_W,
-  BookPageView,
+  BookPageWithMoved,
   buildPages,
   type BookPage,
 } from "@/components/books/BookPages";
 import { ElementsOverlay } from "@/components/books/editor/EditorElements";
 import { pageKeyFor, readPageData, type CustomPagesMap } from "@/components/books/editor/types";
 import { loadFonts } from "@/lib/editorFonts";
+import { stampWatermark } from "@/lib/pdfWatermark";
 
 const HANDWRITING_FONTS = /Caveat|Kalam|Patrick Hand|Shadows Into Light/i;
 
@@ -118,20 +119,26 @@ function renderPage(root: Root, page: BookPage, colors: BookTemplateColors, cust
             background: colors.paper ?? colors.primary ?? "#fff",
           },
         },
-        data.hideNative ? null : createElement(BookPageView, { page: withTextEdits ? withTextEdits(page, data.textOverrides) : page, colors }),
+        data.hideNative
+          ? null
+          : createElement(BookPageWithMoved, {
+              page: withTextEdits ? withTextEdits(page, data.textOverrides) : page,
+              colors,
+              moved: data.nativeMoved,
+            }),
         overlay.length > 0 ? createElement(ElementsOverlay, { elements: overlay }) : null,
       ),
     );
     // wait for React commit + 2 frames so layout/paint is final
-    requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
 }
 
 /** Snapshot the off-screen host at 2× DPI. */
-export function snapshot(host: HTMLElement, colors: BookTemplateColors) {
+export function snapshot(host: HTMLElement, colors: BookTemplateColors, scale = 2) {
   return html2canvas(host, {
     backgroundColor: colors.paper ?? colors.primary ?? "#ffffff",
-    scale: 2,
+    scale,
     useCORS: true,
     allowTaint: false,
     logging: false,
@@ -180,9 +187,11 @@ export async function exportBookPdf(opts: {
   filename?: string;
   /** Only render the first N pages (free-plan preview). */
   maxPages?: number;
+  /** Stamp a diagonal watermark across every page (free plan). */
+  watermark?: boolean;
   onProgress?: (progress: PdfProgress) => void;
 }): Promise<Blob> {
-  const { title, subtitle, childName, childDob, template, colors, memories, customPages, withTextEdits, filename, maxPages, onProgress } = opts;
+  const { title, subtitle, childName, childDob, template, colors, memories, customPages, withTextEdits, filename, maxPages, watermark, onProgress } = opts;
 
   const allPages = buildPages({ title, subtitle, childName, childDob, template, memories });
   const pages = maxPages ? allPages.slice(0, maxPages) : allPages;
@@ -223,10 +232,11 @@ export async function exportBookPdf(opts: {
 
       report({ phase: "snapshot", current: oneBased, total: pages.length });
 
-      const canvas = await snapshot(host, colors);
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      const canvas = await snapshot(host, colors, watermark ? 1 : 2);
+      const imgData = canvas.toDataURL("image/jpeg", watermark ? 0.7 : 0.92);
       if (i > 0) doc.addPage([PAGE_W_MM, PAGE_H_MM], "portrait");
       doc.addImage(imgData, "JPEG", 0, 0, PAGE_W_MM, PAGE_H_MM, undefined, "FAST");
+      if (watermark) stampWatermark(doc, PAGE_W_MM, PAGE_H_MM, childName);
     }
 
     report({ phase: "writing", current: pages.length, total: pages.length, message: "Saving PDF…" });

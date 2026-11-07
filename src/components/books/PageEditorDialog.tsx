@@ -4,6 +4,7 @@ import { BookPageView, BOOK_PAGE_H, BOOK_PAGE_W } from "./BookPages";
 import type { BookPage } from "./BookPages";
 import type { BookTemplateColors } from "@/hooks/useBookTemplates";
 import type { EditorElement } from "./editor/types";
+import type { NativeMoved } from "./editor/nativeParts";
 import type { TextOverrides } from "./editor/pageText";
 
 interface PageEditorDialogProps {
@@ -13,11 +14,12 @@ interface PageEditorDialogProps {
   initialElements: EditorElement[];
   initialHideNative?: boolean;
   initialNativeEditable?: boolean;
+  initialNativeMoved?: NativeMoved;
   initialTextOverrides?: TextOverrides;
   saving?: boolean;
   /** Stable id (book id) — scopes recents & saved swatches per book. */
   bookId?: string;
-  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides) => void;
+  onSave: (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides, nativeMoved?: NativeMoved) => void;
   onClose: () => void;
 }
 
@@ -29,6 +31,7 @@ export function PageEditorDialog({
   initialElements,
   initialHideNative,
   initialNativeEditable,
+  initialNativeMoved,
   initialTextOverrides,
   saving,
   bookId,
@@ -55,6 +58,7 @@ export function PageEditorDialog({
             initialElements={initialElements}
             initialHideNative={!!initialHideNative}
             initialNativeEditable={!!initialNativeEditable}
+            initialNativeMoved={initialNativeMoved}
             colors={colors}
             bookId={bookId}
             onSave={onSave}

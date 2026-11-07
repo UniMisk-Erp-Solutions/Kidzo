@@ -105,7 +105,7 @@ export function downloadInvoicePdf(inv: InvoiceInput) {
   doc.setTextColor(110, 110, 110);
   if (inv.provider_payment_id) { doc.text(`Payment ID: ${inv.provider_payment_id}`, m, y); y += 5; }
   if (inv.provider_order_id) { doc.text(`Reference: ${inv.provider_order_id}`, m, y); y += 5; }
-  doc.text("Payment method: Razorpay", m, y);
+  doc.text("Payment method: CCAvenue", m, y);
 
   // ── footer ──
   doc.setDrawColor(225, 225, 225);
