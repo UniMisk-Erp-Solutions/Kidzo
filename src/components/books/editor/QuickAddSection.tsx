@@ -30,11 +30,11 @@ export const QuickAddSection = ({ onText, onBadge, onImage, canShowOriginal, onS
       </Button>
     </div>
     {canMakeMovable && (
-      <div className="mt-2 rounded-md border-2 border-primary/60 bg-primary/10 p-2 shadow-soft">
-        <Button size="sm" variant="warm" className="w-full font-semibold ring-2 ring-primary/40 ring-offset-2 ring-offset-background animate-pulse hover:animate-none" onClick={onMakeMovable}>
+      <div className="mt-2 rounded-md bg-background/50 p-2">
+        <Button size="sm" variant="warm" className="w-full" onClick={onMakeMovable}>
           <Move className="h-3.5 w-3.5 shrink-0" /> Make photos &amp; text movable
         </Button>
-        <p className="mt-1.5 text-[11px] leading-snug text-foreground/80">
+        <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
           Lets you drag, resize and rewrite this page's own photos and text. The decorations (tape, frames, stickers) stay in place.
         </p>
       </div>
