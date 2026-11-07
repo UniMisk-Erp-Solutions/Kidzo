@@ -1,4 +1,3 @@
-import { imageUrls } from "@/lib/fileKind";
 import { useEffect, useState } from "react";
 import { Download, Loader2, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -116,7 +115,7 @@ export const ExportKeepsakeButton = ({ childName, memories, achievements }: Prop
         achievementCount: inRangeAchievements.length,
         photoUrls: [
           ...inRangeMemories.map((m) => m.photo_url).filter(Boolean),
-          ...imageUrls(inRangeAchievements.map((a) => a.photo_url)),
+          ...inRangeAchievements.map((a) => a.photo_url).filter(Boolean),
         ],
         fromYear: fy,
         toYear: ty,
