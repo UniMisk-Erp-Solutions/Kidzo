@@ -48,6 +48,23 @@ const OrderButton = ({ planLoading, fullAccess, onContinue, onUpgrade }: OrderBu
   );
 };
 
+/** ← / → turn the page (not while the page editor is open or a text field has focus). */
+function usePageArrowKeys(active: boolean, pageCount: number, setPageIndex: React.Dispatch<React.SetStateAction<number>>) {
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      setPageIndex((i) => (e.key === "ArrowRight" ? Math.min(pageCount - 1, i + 1) : Math.max(0, i - 1)));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, pageCount, setPageIndex]);
+}
+
 const BookPreview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -107,20 +124,7 @@ const BookPreview = () => {
     setPageIndex(0);
   }, [book?.id]);
 
-  // ← / → turn the page (not while the page editor is open or a text field has focus).
-  useEffect(() => {
-    if (editorOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      e.preventDefault();
-      setPageIndex((i) => (e.key === "ArrowRight" ? Math.min(pages.length - 1, i + 1) : Math.max(0, i - 1)));
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [editorOpen, pages.length]);
+  usePageArrowKeys(!editorOpen, pages.length, setPageIndex);
 
   const handleSavePageEdits = async (els: EditorElement[], hideNative: boolean, nativeEditable: boolean, textOverrides: TextOverrides, nativeMoved?: NativeMoved) => {
     if (!book || !pages[pageIndex]) return;

@@ -254,6 +254,13 @@ export const BookPageView = ({ page, colors }: PageProps) => {
   }
 };
 
+/** A page's original design with any photos/text that were turned into movable elements hidden in place. */
+export const BookPageWithMoved = ({ page, colors, moved }: { page: BookPage; colors: BookTemplateColors; moved?: NativeMoved }) => (
+  <NativeHider moved={moved}>
+    <BookPageView page={page} colors={colors} />
+  </NativeHider>
+);
+
 /* ─────────────────────────────────────────── Frame wrapper ──────────── */
 
 /**
@@ -307,11 +314,7 @@ export const BookPageFrame = ({
           transformOrigin: "center center",
         }}
       >
-        {!hideNative && (
-          <NativeHider moved={nativeMoved}>
-            <BookPageView page={page} colors={colors} />
-          </NativeHider>
-        )}
+        {!hideNative && <BookPageWithMoved page={page} colors={colors} moved={nativeMoved} />}
         {overlay && overlay.length > 0 && <ElementsOverlay elements={overlay} />}
       </div>
     </div>

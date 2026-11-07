@@ -185,6 +185,43 @@ export function useDocumentPreview() {
   return { preview, loading, failed, setFailed, close, view, download };
 }
 
+const safeName = (title: string) => title.replace(/[\\/:*?"<>|]+/g, "_").trim() || "document";
+
+/** A zip entry path such as "Marksheet / report card/Term 1.pdf" that no earlier entry already uses. */
+function uniqueEntryName(d: ChildDocument, used: Set<string>) {
+  const ext = d.file_path.includes(".") ? `.${d.file_path.split(".").pop()}` : "";
+  const folder = categoryLabel(d.category);
+  let name = `${folder}/${safeName(d.title)}${ext}`;
+  for (let i = 2; used.has(name); i++) name = `${folder}/${safeName(d.title)} (${i})${ext}`;
+  used.add(name);
+  return name;
+}
+
+/** Fetches every document into a zip (one folder per category). Returns the zip and how many files failed. */
+async function zipDocuments(documents: ChildDocument[], fetchBlob: (path: string) => Promise<Blob>) {
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  const used = new Set<string>();
+  let failed = 0;
+  for (const d of documents) {
+    try {
+      zip.file(uniqueEntryName(d, used), await fetchBlob(d.file_path));
+    } catch {
+      failed++;
+    }
+  }
+  if (failed === documents.length) throw new Error("none fetched");
+  return { blob: await zip.generateAsync({ type: "blob" }), failed };
+}
+
+function saveBlob(blob: Blob, filename: string) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 /** Downloads every stored document as one zip, grouped into a folder per category. */
 export function useBulkDownload(documents: ChildDocument[], childName?: string) {
   const docActions = useDocumentActions();
@@ -194,30 +231,8 @@ export function useBulkDownload(documents: ChildDocument[], childName?: string) 
     setBusy(true);
     const t = toast.loading(`Preparing ${documents.length} document${documents.length === 1 ? "" : "s"}…`);
     try {
-      const { default: JSZip } = await import("jszip");
-      const zip = new JSZip();
-      const used = new Set<string>();
-      let failed = 0;
-      for (const d of documents) {
-        try {
-          const blob = await docActions.fetchBlob(d.file_path);
-          const ext = d.file_path.includes(".") ? d.file_path.split(".").pop() : "";
-          const base = d.title.replace(/[\/:*?"<>|]+/g, "_").trim() || "document";
-          let name = `${categoryLabel(d.category)}/${base}${ext ? "." + ext : ""}`;
-          for (let i = 2; used.has(name); i++) name = `${categoryLabel(d.category)}/${base} (${i})${ext ? "." + ext : ""}`;
-          used.add(name);
-          zip.file(name, blob);
-        } catch {
-          failed++;
-        }
-      }
-      if (failed === documents.length) throw new Error("none");
-      const out = await zip.generateAsync({ type: "blob" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(out);
-      a.download = `${(childName ?? "documents").replace(/\s+/g, "_")}_documents.zip`;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      const { blob, failed } = await zipDocuments(documents, docActions.fetchBlob);
+      saveBlob(blob, `${(childName ?? "documents").replace(/\s+/g, "_")}_documents.zip`);
       toast.success(failed ? `Downloaded (${failed} couldn't be fetched)` : "Downloaded all documents ✓", { id: t });
     } catch {
       toast.error("Couldn't download your documents.", { id: t });

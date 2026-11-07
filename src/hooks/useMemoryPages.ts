@@ -6,6 +6,8 @@ import type { Memory } from "@/lib/types/memory";
 /** How many years one page of the Export picker / Moments shows. */
 export const YEARS_PER_PAGE = 3;
 
+type LinkedLite = { id: string; happened_at: string; category: string; title: string; story: string | null };
+
 const yearOf = (iso: string) => new Date(iso).getFullYear();
 
 /** Server-side narrowing for the memory queries below. */
@@ -27,18 +29,28 @@ const wordMatches = (text: string, term: string) =>
     .split(/[^\p{L}\p{N}]+/u)
     .some((w) => w === term || (term.length >= 4 ? w.startsWith(term) : w === term + "s"));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const applyFilters = <T extends { gte: any; eq: any; or: any }>(qb: T, f?: MemoryFilters): T => {
-  let q = qb;
-  if (f?.since) q = q.gte("happened_at", f.since);
-  if (f?.category && f.category !== "All") q = q.eq("category", f.category);
-  for (const w of words(f?.query)) {
+/** One `or(...)` clause per search word: each word must hit a whole word of the title/story (database regex word
+ *  boundaries) or exactly match a tag / person. */
+const textClauses = (query?: string) =>
+  words(query).map((w) => {
     const lower = w.toLowerCase();
-    // each word must hit a whole word of the title/story (database regex word boundaries) or exactly match a tag / person
     const re = lower.length >= 4 ? `[[:<:]]${lower}` : `[[:<:]]${lower}[s]?[[:>:]]`;
-    q = q.or(`title.imatch."${re}",story.imatch."${re}",tags.cs.{${lower}},who_was_there.cs.{${w}}`);
-  }
-  return q;
+    return `title.imatch."${re}",story.imatch."${re}",tags.cs.{${lower}},who_was_there.cs.{${w}}`;
+  });
+
+const exactCategory = (f?: MemoryFilters) => (f?.category && f.category !== "All" ? f.category : null);
+
+/** Does a sibling-linked memory pass the same since / category / text filters the server applied to the child's own? */
+const linkedPasses = (
+  m: { happened_at: string; category: string; title: string; story: string | null },
+  f?: MemoryFilters,
+) => {
+  if (f?.since && m.happened_at < f.since) return false;
+  if (f?.category && f.category !== "All" && m.category !== f.category) return false;
+  const hay = `${m.title} ${m.story ?? ""}`;
+  return words(f?.query)
+    .map((w) => w.toLowerCase())
+    .every((t) => wordMatches(hay, t));
 };
 
 const filterKey = (f?: MemoryFilters) => [f?.since ?? "", f?.category ?? "All", (f?.query ?? "").trim()];
@@ -55,44 +67,34 @@ export const useMemoryYears = (childId?: string, filters?: MemoryFilters) => {
     enabled: !!user && !!childId,
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      const direct = await applyFilters(
-        supabase.from("memories").select("id, happened_at").eq("child_id", childId!),
-        filters,
-      );
+      let q = supabase.from("memories").select("id, happened_at").eq("child_id", childId!);
+      if (filters?.since) q = q.gte("happened_at", filters.since);
+      const category = exactCategory(filters);
+      if (category) q = q.eq("category", category);
+      for (const clause of textClauses(filters?.query)) q = q.or(clause);
+      const direct = await q;
       if (direct.error) throw direct.error;
       // Memories linked from a sibling (only shown when no text/category filter is active, as before they were
       // matched client-side; the date filter still applies).
       const linked = await supabase
         .from("memory_child_links")
         .select("memory:memories(id, happened_at, category, title, story)")
-        .eq("child_id", childId!);
+        .eq("child_id", childId!)
+        .returns<Array<{ memory: LinkedLite | null }>>();
       if (linked.error) throw linked.error;
 
       const seen = new Set<string>();
       const counts = new Map<number, number>();
       const rows: { id: string; happened_at: string }[] = [];
-      const add = (m: { id: string; happened_at: string } | null) => {
-        if (!m || seen.has(m.id)) return;
+      const add = (m: { id: string; happened_at: string }) => {
+        if (seen.has(m.id)) return;
         seen.add(m.id);
         rows.push({ id: m.id, happened_at: m.happened_at });
         const y = yearOf(m.happened_at);
         counts.set(y, (counts.get(y) ?? 0) + 1);
       };
       (direct.data ?? []).forEach(add);
-      const terms = words(filters?.query).map((w) => w.toLowerCase());
-      ((linked.data ?? []) as unknown as Array<{
-        memory: { id: string; happened_at: string; category: string; title: string; story: string | null } | null;
-      }>).forEach((r) => {
-        const m = r.memory;
-        if (!m) return;
-        if (filters?.since && m.happened_at < filters.since) return;
-        if (filters?.category && filters.category !== "All" && m.category !== filters.category) return;
-        if (terms.length) {
-          const hay = `${m.title} ${m.story ?? ""}`;
-          if (!terms.every((t) => wordMatches(hay, t))) return;
-        }
-        add(m);
-      });
+      (linked.data ?? []).forEach((r) => r.memory && linkedPasses(r.memory, filters) && add(r.memory));
 
       const years = [...counts.keys()].sort((a, b) => b - a); // newest first
       const total = [...counts.values()].reduce((a, b) => a + b, 0);
@@ -116,40 +118,32 @@ export const useMemoriesInYears = (
     queryFn: async (): Promise<Memory[]> => {
       const from = `${fromYear}-01-01`;
       const start = filters?.since && filters.since > from ? filters.since : from;
-      const direct = await applyFilters(
-        supabase
-          .from("memories")
-          .select("*")
-          .eq("child_id", childId!)
-          .gte("happened_at", start)
-          .lt("happened_at", `${toYear! + 1}-01-01`),
-        { ...filters, since: undefined },
-      ).order("happened_at", { ascending: false });
+      let q = supabase
+        .from("memories")
+        .select("*")
+        .eq("child_id", childId!)
+        .gte("happened_at", start)
+        .lt("happened_at", `${toYear! + 1}-01-01`);
+      const category = exactCategory(filters);
+      if (category) q = q.eq("category", category);
+      for (const clause of textClauses(filters?.query)) q = q.or(clause);
+      const direct = await q.order("happened_at", { ascending: false });
       if (direct.error) throw direct.error;
 
       const linked = await supabase
         .from("memory_child_links")
         .select("relation_label, memory:memories(*)")
-        .eq("child_id", childId!);
+        .eq("child_id", childId!)
+        .returns<Array<{ relation_label: string | null; memory: Memory | null }>>();
       if (linked.error) throw linked.error;
 
-      const terms = words(filters?.query).map((w) => w.toLowerCase());
       const byId = new Map<string, Memory>();
       for (const m of (direct.data ?? []) as Memory[]) byId.set(m.id, m);
-      for (const row of (linked.data ?? []) as unknown as Array<{ relation_label: string | null; memory: Memory | null }>) {
+      for (const row of linked.data ?? []) {
         const m = row.memory;
-        if (!m) continue;
-        const y = yearOf(m.happened_at);
-        if (y < fromYear! || y > toYear!) continue;
-        if (filters?.since && m.happened_at < filters.since) continue;
-        if (filters?.category && filters.category !== "All" && m.category !== filters.category) continue;
-        if (terms.length) {
-          const hay = `${m.title} ${m.story ?? ""}`;
-          if (!terms.every((t) => wordMatches(hay, t))) continue;
-        }
-        if (!byId.has(m.id)) {
-          byId.set(m.id, { ...m, is_linked: true, relation_label: row.relation_label ?? null, primary_child_id: m.child_id });
-        }
+        const inRange = m && yearOf(m.happened_at) >= fromYear! && yearOf(m.happened_at) <= toYear!;
+        if (!m || !inRange || byId.has(m.id) || !linkedPasses(m, filters)) continue;
+        byId.set(m.id, { ...m, is_linked: true, relation_label: row.relation_label ?? null, primary_child_id: m.child_id });
       }
       return [...byId.values()].sort(
         (a, b) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime(),

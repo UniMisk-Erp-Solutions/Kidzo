@@ -1,9 +1,9 @@
-import type { jsPDF } from "jspdf";
+import { GState, type jsPDF } from "jspdf";
 
 /** Tiles a faint diagonal watermark (the child's name) over the whole current page. */
 export function stampWatermark(doc: jsPDF, pageW: number, pageH: number, text: string) {
   doc.saveGraphicsState();
-  doc.setGState(new (doc as unknown as { GState: new (o: object) => object }).GState({ opacity: 0.4 }) as never);
+  doc.setGState(new GState({ opacity: 0.4 }));
   doc.setFont("helvetica", "bold");
   doc.setFontSize(34);
   doc.setTextColor(255, 255, 255);

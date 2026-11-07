@@ -7,14 +7,13 @@ import type { BookTemplate, BookTemplateColors } from "@/hooks/useBookTemplates"
 import {
   BOOK_PAGE_H,
   BOOK_PAGE_W,
-  BookPageView,
+  BookPageWithMoved,
   buildPages,
   type BookPage,
 } from "@/components/books/BookPages";
 import { ElementsOverlay } from "@/components/books/editor/EditorElements";
 import { pageKeyFor, readPageData, type CustomPagesMap } from "@/components/books/editor/types";
 import { loadFonts } from "@/lib/editorFonts";
-import { NativeHider } from "@/components/books/editor/nativeParts";
 import { stampWatermark } from "@/lib/pdfWatermark";
 
 const HANDWRITING_FONTS = /Caveat|Kalam|Patrick Hand|Shadows Into Light/i;
@@ -122,9 +121,10 @@ function renderPage(root: Root, page: BookPage, colors: BookTemplateColors, cust
         },
         data.hideNative
           ? null
-          : createElement(NativeHider, {
+          : createElement(BookPageWithMoved, {
+              page: withTextEdits ? withTextEdits(page, data.textOverrides) : page,
+              colors,
               moved: data.nativeMoved,
-              children: createElement(BookPageView, { page: withTextEdits ? withTextEdits(page, data.textOverrides) : page, colors }),
             }),
         overlay.length > 0 ? createElement(ElementsOverlay, { elements: overlay }) : null,
       ),
