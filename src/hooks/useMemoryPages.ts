@@ -55,6 +55,44 @@ const linkedPasses = (
 
 const filterKey = (f?: MemoryFilters) => [f?.since ?? "", f?.category ?? "All", (f?.query ?? "").trim()];
 
+type IndexRow = { id: string; happened_at: string };
+
+/** Counts memories per year (newest year first) and keeps each memory once, however many ways it was found. */
+function buildYearIndex(own: IndexRow[], linked: LinkedLite[]) {
+  const seen = new Set<string>();
+  const counts = new Map<number, number>();
+  const rows: IndexRow[] = [];
+  for (const m of [...own, ...linked]) {
+    if (seen.has(m.id)) continue;
+    seen.add(m.id);
+    rows.push({ id: m.id, happened_at: m.happened_at });
+    const y = yearOf(m.happened_at);
+    counts.set(y, (counts.get(y) ?? 0) + 1);
+  }
+  const years = [...counts.keys()].sort((x, y) => y - x);
+  const total = [...counts.values()].reduce((x, y) => x + y, 0);
+  return { years, counts, total, rows };
+}
+
+async function fetchYearIndex(childId: string, filters?: MemoryFilters) {
+  let q = supabase.from("memories").select("id, happened_at").eq("child_id", childId);
+  if (filters?.since) q = q.gte("happened_at", filters.since);
+  const category = exactCategory(filters);
+  if (category) q = q.eq("category", category);
+  for (const clause of textClauses(filters?.query)) q = q.or(clause);
+  const direct = await q;
+  if (direct.error) throw direct.error;
+  // Memories linked from a sibling pass through the same since / category / text filters.
+  const linked = await supabase
+    .from("memory_child_links")
+    .select("memory:memories(id, happened_at, category, title, story)")
+    .eq("child_id", childId)
+    .returns<Array<{ memory: LinkedLite | null }>>();
+  if (linked.error) throw linked.error;
+  const passing = (linked.data ?? []).flatMap((r) => (r.memory && linkedPasses(r.memory, filters) ? [r.memory] : []));
+  return buildYearIndex(direct.data ?? [], passing);
+}
+
 /**
  * Year index for server-side pagination: how many memories each year has. Only ids + dates are fetched (a few
  * bytes per memory), never the memories themselves, so it stays cheap however large the timeline grows.
@@ -66,42 +104,50 @@ export const useMemoryYears = (childId?: string, filters?: MemoryFilters) => {
     queryKey: ["memory-years", user?.id, childId, ...filterKey(filters)],
     enabled: !!user && !!childId,
     placeholderData: keepPreviousData,
-    queryFn: async () => {
-      let q = supabase.from("memories").select("id, happened_at").eq("child_id", childId!);
-      if (filters?.since) q = q.gte("happened_at", filters.since);
-      const category = exactCategory(filters);
-      if (category) q = q.eq("category", category);
-      for (const clause of textClauses(filters?.query)) q = q.or(clause);
-      const direct = await q;
-      if (direct.error) throw direct.error;
-      // Memories linked from a sibling (only shown when no text/category filter is active, as before they were
-      // matched client-side; the date filter still applies).
-      const linked = await supabase
-        .from("memory_child_links")
-        .select("memory:memories(id, happened_at, category, title, story)")
-        .eq("child_id", childId!)
-        .returns<Array<{ memory: LinkedLite | null }>>();
-      if (linked.error) throw linked.error;
-
-      const seen = new Set<string>();
-      const counts = new Map<number, number>();
-      const rows: { id: string; happened_at: string }[] = [];
-      const add = (m: { id: string; happened_at: string }) => {
-        if (seen.has(m.id)) return;
-        seen.add(m.id);
-        rows.push({ id: m.id, happened_at: m.happened_at });
-        const y = yearOf(m.happened_at);
-        counts.set(y, (counts.get(y) ?? 0) + 1);
-      };
-      (direct.data ?? []).forEach(add);
-      (linked.data ?? []).forEach((r) => r.memory && linkedPasses(r.memory, filters) && add(r.memory));
-
-      const years = [...counts.keys()].sort((a, b) => b - a); // newest first
-      const total = [...counts.values()].reduce((a, b) => a + b, 0);
-      return { years, counts, total, rows };
-    },
+    queryFn: () => fetchYearIndex(childId!, filters),
   });
 };
+
+type LinkRow = { relation_label: string | null; memory: Memory | null };
+
+const newestFirst = (a: Memory, b: Memory) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime();
+
+/** Adds the sibling-linked memories that fall in the years from..to and pass the filters. */
+function addLinkedInRange(byId: Map<string, Memory>, links: LinkRow[], from: number, to: number, filters?: MemoryFilters) {
+  for (const { memory: m, relation_label } of links) {
+    if (!m || byId.has(m.id)) continue;
+    const year = yearOf(m.happened_at);
+    if (year < from || year > to || !linkedPasses(m, filters)) continue;
+    byId.set(m.id, { ...m, is_linked: true, relation_label: relation_label ?? null, primary_child_id: m.child_id });
+  }
+}
+
+async function fetchMemoriesInYears(childId: string, fromYear: number, toYear: number, filters?: MemoryFilters) {
+  const from = `${fromYear}-01-01`;
+  const start = filters?.since && filters.since > from ? filters.since : from;
+  let q = supabase
+    .from("memories")
+    .select("*")
+    .eq("child_id", childId)
+    .gte("happened_at", start)
+    .lt("happened_at", `${toYear + 1}-01-01`);
+  const category = exactCategory(filters);
+  if (category) q = q.eq("category", category);
+  for (const clause of textClauses(filters?.query)) q = q.or(clause);
+  const direct = await q.order("happened_at", { ascending: false });
+  if (direct.error) throw direct.error;
+
+  const linked = await supabase
+    .from("memory_child_links")
+    .select("relation_label, memory:memories(*)")
+    .eq("child_id", childId)
+    .returns<LinkRow[]>();
+  if (linked.error) throw linked.error;
+
+  const byId = new Map<string, Memory>((direct.data as Memory[]).map((m) => [m.id, m]));
+  addLinkedInRange(byId, linked.data ?? [], fromYear, toYear, filters);
+  return [...byId.values()].sort(newestFirst);
+}
 
 /** One page of memories: only the years from..to, filtered on the server (plus sibling-linked ones in range). */
 export const useMemoriesInYears = (
@@ -115,40 +161,7 @@ export const useMemoriesInYears = (
     queryKey: ["memories-range", user?.id, childId, fromYear, toYear, ...filterKey(filters)],
     enabled: !!user && !!childId && fromYear !== undefined && toYear !== undefined,
     placeholderData: keepPreviousData,
-    queryFn: async (): Promise<Memory[]> => {
-      const from = `${fromYear}-01-01`;
-      const start = filters?.since && filters.since > from ? filters.since : from;
-      let q = supabase
-        .from("memories")
-        .select("*")
-        .eq("child_id", childId!)
-        .gte("happened_at", start)
-        .lt("happened_at", `${toYear! + 1}-01-01`);
-      const category = exactCategory(filters);
-      if (category) q = q.eq("category", category);
-      for (const clause of textClauses(filters?.query)) q = q.or(clause);
-      const direct = await q.order("happened_at", { ascending: false });
-      if (direct.error) throw direct.error;
-
-      const linked = await supabase
-        .from("memory_child_links")
-        .select("relation_label, memory:memories(*)")
-        .eq("child_id", childId!)
-        .returns<Array<{ relation_label: string | null; memory: Memory | null }>>();
-      if (linked.error) throw linked.error;
-
-      const byId = new Map<string, Memory>();
-      for (const m of (direct.data ?? []) as Memory[]) byId.set(m.id, m);
-      for (const row of linked.data ?? []) {
-        const m = row.memory;
-        const inRange = m && yearOf(m.happened_at) >= fromYear! && yearOf(m.happened_at) <= toYear!;
-        if (!m || !inRange || byId.has(m.id) || !linkedPasses(m, filters)) continue;
-        byId.set(m.id, { ...m, is_linked: true, relation_label: row.relation_label ?? null, primary_child_id: m.child_id });
-      }
-      return [...byId.values()].sort(
-        (a, b) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime(),
-      );
-    },
+    queryFn: (): Promise<Memory[]> => fetchMemoriesInYears(childId!, fromYear!, toYear!, filters),
   });
 };
 

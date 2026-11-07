@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,18 +11,17 @@ import { useAuth } from "@/contexts/AuthContext";
  * blocks right-click / drag / print, and overlays a faint watermark carrying the viewer's email
  * so a leaked image can be traced.
  */
-/** Hides the content while a capture/print shortcut is held, the tab loses focus or the page is being printed. */
-function useShieldHidden(extended: boolean) {
-  const [hidden, setHidden] = useState(false);
+/** Is this key press a capture / print / save shortcut (Win+Shift+S, Cmd+Shift+3|4|5, Ctrl+P, Ctrl+S)? */
+function isCaptureShortcut(e: KeyboardEvent) {
+  const k = e.key.toLowerCase();
+  const printOrSave = (e.ctrlKey || e.metaKey) && (k === "p" || k === "s");
+  const snip = e.shiftKey && (e.metaKey || e.getModifierState?.("OS")) && (k === "s" || ["3", "4", "5"].includes(k));
+  return printOrSave || snip;
+}
 
+/** Hides the content for a moment around capture shortcuts and the PrintScreen key. */
+function useCaptureKeys(hideFor: (ms: number) => void, extended: boolean) {
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const hideFor = (ms: number) => {
-      setHidden(true);
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => setHidden(false), ms);
-    };
-
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key !== "PrintScreen") return;
       try { void navigator.clipboard?.writeText(""); } catch { /* clipboard may be blocked */ }
@@ -32,38 +31,52 @@ function useShieldHidden(extended: boolean) {
       const k = e.key.toLowerCase();
       // extended (Export & Share only): hide as soon as the Windows/Cmd key goes down, before a snipping tool starts
       if (extended && (k === "meta" || k === "os" || e.metaKey)) hideFor(4000);
-      const mod = e.ctrlKey || e.metaKey;
-      // print / save / Win+Shift+S / Mac Cmd+Shift+3|4|5
-      const printOrSave = mod && (k === "p" || k === "s");
-      const snip = e.shiftKey && (e.metaKey || e.getModifierState?.("OS")) && (k === "s" || ["3", "4", "5"].includes(k));
-      if (printOrSave || snip) {
-        e.preventDefault();
-        hideFor(2500);
-      }
+      if (!isCaptureShortcut(e)) return;
+      e.preventDefault();
+      hideFor(2500);
     };
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [hideFor, extended]);
+}
+
+/** Hides the content while the tab is unfocused, hidden or being printed. */
+function useFocusHide(setHidden: (v: boolean) => void) {
+  useEffect(() => {
     const hide = () => setHidden(true);
     const show = () => setHidden(false);
     const onVisibility = () => setHidden(document.visibilityState !== "visible");
-
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("blur", hide);
     window.addEventListener("focus", show);
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("beforeprint", hide);
     window.addEventListener("afterprint", show);
     return () => {
-      if (timer) clearTimeout(timer);
-      window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("blur", hide);
       window.removeEventListener("focus", show);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("beforeprint", hide);
       window.removeEventListener("afterprint", show);
     };
-  }, [extended]);
+  }, [setHidden]);
+}
 
+/** Hides the content while a capture/print shortcut is held, the tab loses focus or the page is being printed. */
+function useShieldHidden(extended: boolean) {
+  const [hidden, setHidden] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const hideFor = useCallback((ms: number) => {
+    setHidden(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setHidden(false), ms);
+  }, []);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  useCaptureKeys(hideFor, extended);
+  useFocusHide(setHidden);
   return hidden;
 }
 

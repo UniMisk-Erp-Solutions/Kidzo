@@ -48,17 +48,25 @@ const OrderButton = ({ planLoading, fullAccess, onContinue, onUpgrade }: OrderBu
   );
 };
 
-/** ← / → turn the page (not while the page editor is open or a text field has focus). */
+const isTypingTarget = (t: EventTarget | null) =>
+  t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+
+/** -1 for the left arrow, +1 for the right arrow, 0 for any other key (or when a modifier key is held). */
+const pageStep = (e: KeyboardEvent) => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return 0;
+  if (e.key === "ArrowRight") return 1;
+  return e.key === "ArrowLeft" ? -1 : 0;
+};
+
+/** Left / right arrow keys turn the page (not while the page editor is open or a text field has focus). */
 function usePageArrowKeys(active: boolean, pageCount: number, setPageIndex: React.Dispatch<React.SetStateAction<number>>) {
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      const step = pageStep(e);
+      if (step === 0 || isTypingTarget(e.target)) return;
       e.preventDefault();
-      setPageIndex((i) => (e.key === "ArrowRight" ? Math.min(pageCount - 1, i + 1) : Math.max(0, i - 1)));
+      setPageIndex((i) => Math.min(pageCount - 1, Math.max(0, i + step)));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
