@@ -50,7 +50,11 @@ Deno.serve(async (req) => {
     }
 
     const payload = JSON.parse(raw);
-    const phone: string = (payload?.user?.phone ?? "").replace(/[^0-9]/g, ""); // E.164 digits, no '+'
+    // For a phone CHANGE / first-time link, GoTrue puts the number being verified in
+    // user.new_phone and leaves user.phone empty (or set to the OLD number). Prefer new_phone,
+    // otherwise linking a number to an account with no phone fails with "missing phone".
+    const target: string = payload?.user?.new_phone || payload?.user?.phone || "";
+    const phone: string = String(target).replace(/[^0-9]/g, ""); // E.164 digits, no '+'
     const otp: string = payload?.sms?.otp ?? "";
     if (!phone || !otp) {
       return json({ error: { http_code: 400, message: "missing phone or otp" } }, 400);

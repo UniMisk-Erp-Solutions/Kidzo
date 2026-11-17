@@ -1,0 +1,4 @@
+.venv/
+capture/node_modules/
+harness/vite.log
+reel/out/video_silent.mp4
