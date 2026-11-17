@@ -1,5 +1,6 @@
+import { PdfThumbnail } from "@/components/PdfThumbnail";
 import { format } from "date-fns";
-import { GraduationCap, Trophy, Music, Award, Plus, X, Sparkles, FileText, type LucideIcon } from "lucide-react";
+import { GraduationCap, Trophy, Music, Award, Plus, X, Sparkles, type LucideIcon } from "lucide-react";
 import { isPdfUrl } from "@/lib/fileKind";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -67,10 +68,7 @@ export const AchievementCard = ({ a, onOpen, onDelete }: { a: Achievement; onOpe
     >
       {a.photo_url &&
         (isPdfUrl(a.photo_url) ? (
-          <div className="flex h-36 w-full items-center justify-center gap-2 bg-muted/60 text-muted-foreground">
-            <FileText className="h-8 w-8" />
-            <span className="text-[13px] font-medium">PDF certificate</span>
-          </div>
+          <PdfThumbnail url={a.photo_url} className="h-36" />
         ) : (
           <img src={a.photo_url} alt={a.subject} className="h-36 w-full object-cover" loading="lazy" />
         ))}

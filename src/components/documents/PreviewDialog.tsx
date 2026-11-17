@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Download } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { ChildDocument } from "@/hooks/useDocuments";
@@ -51,6 +51,11 @@ export const PreviewDialog = ({ preview, failed, onImageError, onClose, onDownlo
         </div>
       )}
       <div className="flex justify-end gap-2">
+        {preview?.isPdf && (
+          <Button variant="outline" onClick={() => window.open(preview.url, "_blank", "noopener")}>
+            <ExternalLink className="h-4 w-4" /> Open full screen
+          </Button>
+        )}
         {preview && (
           <Button variant="outline" onClick={() => onDownload(preview.doc)}>
             <Download className="h-4 w-4" /> Download

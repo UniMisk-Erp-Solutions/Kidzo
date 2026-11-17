@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { FileText, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, FileText, Loader2 } from "lucide-react";
 import { isPdfUrl } from "@/lib/fileKind";
 import { format } from "date-fns";
 import { Award, GraduationCap, Music, Sparkles, Trash2, Trophy } from "lucide-react";
@@ -26,6 +26,7 @@ interface Props {
 const PdfAttachment = ({ url, title }: { url: string; title: string }) => {
   const [src, setSrc] = useState<string | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
+  const opened = useRef(false);
   useEffect(() => {
     let revoked = false;
     let objectUrl: string | null = null;
@@ -41,7 +42,8 @@ const PdfAttachment = ({ url, title }: { url: string; title: string }) => {
       .catch(() => !revoked && setState("failed"));
     return () => {
       revoked = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      // keep the file alive if it was opened in its own tab, which may still be reading it
+      if (objectUrl && !opened.current) URL.revokeObjectURL(objectUrl);
     };
   }, [url]);
 
@@ -58,7 +60,27 @@ const PdfAttachment = ({ url, title }: { url: string; title: string }) => {
         <span className="text-[13px]">Couldn't open this PDF.</span>
       </div>
     );
-  return <iframe src={src ?? undefined} title={title} className="h-[60vh] w-full border-0 bg-white" />;
+  return (
+    <>
+      {/* Own header row: the dialog's close button sits here, clear of the PDF viewer's toolbar below. */}
+      <div className="flex h-14 items-center justify-between gap-3 border-b border-border pl-5 pr-14">
+        <span className="inline-flex items-center gap-2 text-[13px] font-medium text-muted-foreground">
+          <FileText className="h-4 w-4" /> PDF
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            opened.current = true;
+            window.open(src ?? "", "_blank", "noopener");
+          }}
+        >
+          <ExternalLink className="h-4 w-4" /> Open full screen
+        </Button>
+      </div>
+      <iframe src={src ?? undefined} title={title} className="h-[60vh] w-full border-0 bg-white" />
+    </>
+  );
 };
 
 /** Full view of one achievement, opened from its card. */
