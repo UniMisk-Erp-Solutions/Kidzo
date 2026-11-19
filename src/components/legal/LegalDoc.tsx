@@ -4,7 +4,7 @@ import { ArrowLeft, LayoutDashboard, Printer } from "lucide-react";
 import { LandingLayout } from "@/components/landing/LandingLayout";
 import { SEO } from "@/components/SEO";
 import { useAuth } from "@/contexts/AuthContext";
-import { LEGAL } from "@/pages/legal/legalConfig";
+import { LEGAL } from "@/lib/legalConfig";
 
 export type Section = { id: string; title: string; body: ReactNode };
 

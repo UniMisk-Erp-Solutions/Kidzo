@@ -53,11 +53,31 @@ const highlightAfterRemove = (current: string | null, removedId: string, remaini
 
 const releasePreview = (photo?: MediaItem) => photo && URL.revokeObjectURL(photo.preview);
 
-/** The memory form's photos: the list, which one is the highlight, and the date read from the first photo. */
-export function useMemoryPhotos(onCapturedDate: (date: Date) => void) {
-  const [photos, setPhotos] = useState<MediaItem[]>([]);
-  const [preparing, setPreparing] = useState(false);
-  const preparingRef = useRef(false);
+/** Reads one dropped file into a photo or video ready to upload. */
+async function convertFile(file: File): Promise<{ converted: MemoryMediaFile; source: File }> {
+  const kind = isMemoryVideo(file) ? "video" : "photo";
+  const source = kind === "video" ? prepareMemoryVideo(file) : memoryPhotoSource(file);
+  return { converted: { kind, file: kind === "video" ? source : await prepareMemoryPhoto(source) }, source };
+}
+
+/** Converts each accepted file, toasting the ones that cannot be read; also returns the first readable source. */
+async function convertAll(accepted: File[]): Promise<{ converted: MemoryMediaFile[]; firstSource?: File }> {
+  const converted: MemoryMediaFile[] = [];
+  let firstSource: File | undefined;
+  for (const file of accepted) {
+    try {
+      const result = await convertFile(file);
+      converted.push(result.converted);
+      firstSource ??= result.source;
+    } catch (error) {
+      toast.error(error instanceof Error ? `${file.name}: ${error.message}` : `Could not read ${file.name}.`);
+    }
+  }
+  return { converted, firstSource };
+}
+
+/** Tracks the object URLs handed out for previews so they are all released on unmount, and whether the form is still mounted. */
+function usePreviewRegistry() {
   const live = useRef(true);
   const previews = useRef(new Set<string>());
   useEffect(() => {
@@ -69,10 +89,12 @@ export function useMemoryPhotos(onCapturedDate: (date: Date) => void) {
       urls.clear();
     };
   }, []);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [autoDateInfo, setAutoDateInfo] = useState<AutoDateInfo | null>(null);
+  return { live, previews };
+}
 
-  // Auto-fill the date from the first newly-added photo if we don't have one yet.
+/** Auto-fills the date from the first newly-added photo if we don't have one yet. */
+function useAutoDate(onCapturedDate: (date: Date) => void) {
+  const [autoDateInfo, setAutoDateInfo] = useState<AutoDateInfo | null>(null);
   const fillDateFrom = async (file: File) => {
     const found = await capturedDateOf(file);
     if (!found) return;
@@ -80,6 +102,17 @@ export function useMemoryPhotos(onCapturedDate: (date: Date) => void) {
     setAutoDateInfo({ source: found.source });
     toast.success(dateToast(found.date, found.source));
   };
+  return { autoDateInfo, setAutoDateInfo, fillDateFrom };
+}
+
+/** The memory form's photos: the list, which one is the highlight, and the date read from the first photo. */
+export function useMemoryPhotos(onCapturedDate: (date: Date) => void) {
+  const [photos, setPhotos] = useState<MediaItem[]>([]);
+  const [preparing, setPreparing] = useState(false);
+  const preparingRef = useRef(false);
+  const { live, previews } = usePreviewRegistry();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const { autoDateInfo, setAutoDateInfo, fillDateFrom } = useAutoDate(onCapturedDate);
 
   const addFiles = async (fileList: FileList | File[] | null) => {
     if (preparingRef.current) return;
@@ -88,18 +121,7 @@ export function useMemoryPhotos(onCapturedDate: (date: Date) => void) {
     preparingRef.current = true;
     setPreparing(true);
     try {
-      const converted: MemoryMediaFile[] = [];
-      let firstSource: File | undefined;
-      for (const file of accepted) {
-        try {
-          const kind = isMemoryVideo(file) ? "video" : "photo";
-          const source = kind === "video" ? prepareMemoryVideo(file) : memoryPhotoSource(file);
-          converted.push({ kind, file: kind === "video" ? source : await prepareMemoryPhoto(source) });
-          firstSource ??= source;
-        } catch (error) {
-          toast.error(error instanceof Error ? `${file.name}: ${error.message}` : `Could not read ${file.name}.`);
-        }
-      }
+      const { converted, firstSource } = await convertAll(accepted);
       if (!firstSource || !live.current) return;
       const added = toMediaItems(converted);
       added.forEach(({ preview }) => previews.current.add(preview));

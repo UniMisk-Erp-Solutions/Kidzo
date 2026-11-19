@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { BackToApp } from "@/components/legal/LegalDoc";
 import { getConsent, resetConsent, saveConsent } from "@/lib/consent";
-import { LEGAL } from "@/pages/legal/legalConfig";
+import { LEGAL } from "@/lib/legalConfig";
 
 const CookiePreferences = () => {
   const [diagnostics, setDiagnostics] = useState(false);

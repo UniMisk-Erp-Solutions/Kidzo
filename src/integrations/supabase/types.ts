@@ -190,6 +190,27 @@ export type Database = {
           },
         ]
       }
+      ccavenue_payments: {
+        Row: {
+          amount: number
+          billing_cycle: string | null
+          book_order_id: string | null
+          created_at: string
+          currency: string
+          failure_message: string | null
+          id: string
+          invoice_id: string | null
+          kind: string
+          order_id: string
+          plan_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       book_templates: {
         Row: {
           category: string

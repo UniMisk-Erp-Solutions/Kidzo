@@ -32,27 +32,12 @@ const matchesQuery = (t: BookTemplate, q: string) =>
   t.description.toLowerCase().includes(q) ||
   (t.suggested_age_range ?? "").toLowerCase().includes(q);
 
-const TemplateSelector = () => {
+function useTemplateSelect(isLocked: (t: BookTemplate) => boolean, entLoading: boolean) {
   const navigate = useNavigate();
-  const { data: templates = [], isLoading } = useBookTemplates();
   const { data: child } = useActiveChild();
   const createBook = useCreateUserBook();
-  const { planSlug, loading: entLoading } = useEntitlements();
-  const canUsePremiumTemplates = planSlug === "family" || planSlug === "premium";
-  const isLocked = (t: BookTemplate) => t.is_premium && (entLoading || !canUsePremiumTemplates);
 
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
-  const [previewing, setPreviewing] = useState<BookTemplate | null>(null);
-  const TemplateResults = filter === "collage" ? CollageCarousels : TemplateGrid;
-
-  const visible = useMemo(() => {
-    const f = FILTERS.find((x) => x.id === filter)!;
-    const q = search.trim().toLowerCase();
-    return templates.filter(f.match).filter((t) => matchesQuery(t, q));
-  }, [templates, filter, search]);
-
-  const handleSelect = async (t: BookTemplate) => {
+  return async (t: BookTemplate) => {
     if (t.is_premium && entLoading) {
       toast.info("Checking your plan…");
       return;
@@ -82,6 +67,28 @@ const TemplateSelector = () => {
       toast.error("Couldn't create book", msg ? { description: msg } : undefined);
     }
   };
+}
+
+const TemplateSelector = () => {
+  const navigate = useNavigate();
+  const { data: templates = [], isLoading } = useBookTemplates();
+  const { data: child } = useActiveChild();
+  const { planSlug, loading: entLoading } = useEntitlements();
+  const canUsePremiumTemplates = planSlug === "family" || planSlug === "premium";
+  const isLocked = (t: BookTemplate) => t.is_premium && (entLoading || !canUsePremiumTemplates);
+
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [previewing, setPreviewing] = useState<BookTemplate | null>(null);
+  const TemplateResults = filter === "collage" ? CollageCarousels : TemplateGrid;
+
+  const visible = useMemo(() => {
+    const f = FILTERS.find((x) => x.id === filter)!;
+    const q = search.trim().toLowerCase();
+    return templates.filter(f.match).filter((t) => matchesQuery(t, q));
+  }, [templates, filter, search]);
+
+  const handleSelect = useTemplateSelect(isLocked, entLoading);
 
   return (
     <div className="min-h-screen bg-background pb-28 md:pb-12">

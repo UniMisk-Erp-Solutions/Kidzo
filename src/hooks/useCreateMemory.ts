@@ -45,27 +45,40 @@ async function linkSiblings(memoryId: string, links: NewMemoryInput["links"]): P
   return error ? error.message : null;
 }
 
-async function createMemory(input: NewMemoryInput): Promise<CreateMemoryResult> {
-  const paths: string[] = [];
-  const urls: string[] = [];
-  if (input.media.length > MAX_MEMORY_MEDIA) return { ok: false, message: "A memory can have up to 10 photos and videos combined." };
-  const videoItems: { url: string; poster_url: string | null; position: number }[] = [];
-  try {
-    for (const [position, item] of input.media.entries()) {
-      const url = await uploadMedia(input.userId, item.file, paths);
-      if (item.kind === "photo") {
-        urls.push(url);
-      } else {
-        const poster = await makeVideoPoster(item.file);
-        const posterUrl = poster ? await uploadMedia(input.userId, poster, paths) : null;
-        videoItems.push({ url, poster_url: posterUrl, position });
-      }
+type UploadedMedia = { urls: string[]; videoItems: { url: string; poster_url: string | null; position: number }[] };
+
+/** Uploads every photo and video (plus video posters), recording each stored path so a failure can clean up. */
+async function uploadAllMedia(userId: string, media: MemoryMediaFile[], paths: string[]): Promise<UploadedMedia> {
+  const uploaded: UploadedMedia = { urls: [], videoItems: [] };
+  for (const [position, item] of media.entries()) {
+    const url = await uploadMedia(userId, item.file, paths);
+    if (item.kind === "photo") {
+      uploaded.urls.push(url);
+      continue;
     }
+    const poster = await makeVideoPoster(item.file);
+    const posterUrl = poster ? await uploadMedia(userId, poster, paths) : null;
+    uploaded.videoItems.push({ url, poster_url: posterUrl, position });
+  }
+  return uploaded;
+}
+
+const removeUploaded = async (paths: string[]) => {
+  if (paths.length) await memoryMedia().remove(paths);
+};
+
+async function createMemory(input: NewMemoryInput): Promise<CreateMemoryResult> {
+  if (input.media.length > MAX_MEMORY_MEDIA) return { ok: false, message: "A memory can have up to 10 photos and videos combined." };
+  const paths: string[] = [];
+  let uploaded: UploadedMedia;
+  try {
+    uploaded = await uploadAllMedia(input.userId, input.media, paths);
   } catch (error) {
-    if (paths.length) await memoryMedia().remove(paths);
+    await removeUploaded(paths);
     const reason = error instanceof Error ? error.message : "Please try again.";
     return { ok: false, message: `Couldn't upload your media. ${reason}` };
   }
+  const { urls, videoItems } = uploaded;
 
   const { data: inserted, error } = await supabase
     .from("memories")
@@ -86,7 +99,7 @@ async function createMemory(input: NewMemoryInput): Promise<CreateMemoryResult> 
     .select("id")
     .single();
   if (error || !inserted) {
-    if (paths.length) await memoryMedia().remove(paths);
+    await removeUploaded(paths);
     return { ok: false, message: error?.message ?? "Couldn't save this memory. Please try again." };
   }
 

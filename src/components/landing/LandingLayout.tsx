@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ReactNode, useEffect, useLayoutEffect, useState } from "react";
 import { ArrowRight, Github, Instagram, Mail, MapPin, Menu, Phone, Twitter, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
+import { LEGAL, LEGAL_DOCS } from "@/lib/legalConfig";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";

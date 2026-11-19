@@ -95,6 +95,15 @@ function chapterTitleFor(year: number, childDob?: string, flavor: ScrapbookFlavo
 
 const LAYOUT_CYCLE: MemoryLayout[] = ["collage", "polaroid-stack", "magazine", "journal", "pocket"];
 
+function groupByYear(memories: Memory[]): Map<number, Memory[]> {
+  const byYear = new Map<number, Memory[]>();
+  memories.forEach((m) => {
+    const y = new Date(m.happened_at).getFullYear();
+    byYear.set(y, [...(byYear.get(y) ?? []), m]);
+  });
+  return byYear;
+}
+
 export function buildPages(opts: {
   title: string;
   subtitle?: string | null;
@@ -116,12 +125,7 @@ export function buildPages(opts: {
       ? `${format(dates[0], "MMM yyyy")} – ${format(dates[dates.length - 1], "MMM yyyy")}`
       : "";
 
-  const byYear = new Map<number, Memory[]>();
-  sorted.forEach((m) => {
-    const y = new Date(m.happened_at).getFullYear();
-    if (!byYear.has(y)) byYear.set(y, []);
-    byYear.get(y)!.push(m);
-  });
+  const byYear = groupByYear(sorted);
 
   const pages: BookPage[] = [
     { kind: "cover", title, subtitle, childName, templateName: template.name, flavor },
@@ -144,7 +148,7 @@ export function buildPages(opts: {
   Array.from(byYear.keys())
     .sort((a, b) => a - b)
     .forEach((year) => {
-      const items = byYear.get(year)!;
+      const items = byYear.get(year) ?? [];
       chapterNum += 1;
       pages.push({
         kind: "chapter",

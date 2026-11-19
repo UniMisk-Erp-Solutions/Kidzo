@@ -36,7 +36,9 @@ const LoadingGrid = () => (
 type Props = {
   isLoading: boolean;
   view: "grid" | "timeline";
-  memories: Memory[];
+  /** How many memories the child has in all, before any filter. */
+  allTotal: number;
+  /** The current page of memories, already filtered by the server. */
   filtered: Memory[];
   range: string;
   category: string;
@@ -44,12 +46,14 @@ type Props = {
   linkedLabelFor: (m: Memory) => string | undefined;
   onYearOpenChange: (open: boolean) => void;
   onCreate?: () => void;
+  /** Grid: opens every memory of that year in its own gallery page. */
+  onSeeMore: (year: number) => void;
 };
 
 /** Which of loading / timeline / empty / grid the Moments page shows. */
 export const MomentsBody = (p: Props): ReactNode => {
   if (p.isLoading) return <LoadingGrid />;
-  if (p.view === "timeline" && p.memories.length > 0) {
+  if (p.view === "timeline" && p.allTotal > 0) {
     return (
       <MemoryRoute
         memories={sortMemories(p.filtered, p.range === "newest" ? "desc" : "asc")}
@@ -62,13 +66,15 @@ export const MomentsBody = (p: Props): ReactNode => {
       />
     );
   }
-  if (p.filtered.length === 0) return <EmptyState hasAny={p.memories.length > 0} onCreate={p.onCreate} />;
-  // Grid: the same year-by-year rows as the timeline, newest year first.
+  if (p.filtered.length === 0) return <EmptyState hasAny={p.allTotal > 0} onCreate={p.onCreate} />;
+  // Grid: the same year-by-year rows as the timeline, newest year first, a few per year with "See more".
   return (
     <MemoryTimeline
       memories={sortMemories(p.filtered, p.range === "oldest" ? "asc" : "desc")}
       onOpen={p.onOpen}
       linkedLabelFor={p.linkedLabelFor}
+      maxPerYear={8}
+      onSeeMore={p.onSeeMore}
     />
   );
 };

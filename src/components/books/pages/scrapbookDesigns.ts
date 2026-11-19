@@ -1,4 +1,4 @@
-type PhotoSlot = [x: number, y: number, width: number, height: number, rotation?: number];
+export type PhotoSlot = [x: number, y: number, width: number, height: number, rotation?: number];
 
 type ScrapbookDesign = {
   pattern: string;

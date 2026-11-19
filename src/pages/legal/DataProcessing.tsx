@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Callout, H3, LegalDoc, OL, P, Section, Table, UL } from "@/components/legal/LegalDoc";
-import { LEGAL, SUBPROCESSORS } from "@/pages/legal/legalConfig";
+import { LEGAL, SUBPROCESSORS } from "@/lib/legalConfig";
 
 const sections: Section[] = [
   {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { ChevronLeft, ChevronRight, Play, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFlashbacks, type FlashbackGroup } from "@/hooks/useFlashbacks";
@@ -52,28 +52,62 @@ const RecapTile = ({ g, onPlay }: { g: FlashbackGroup; onPlay: () => void }) => 
   );
 };
 
-/** Replays: last month's recap and this month in earlier years, each opening as a story. */
-export const Flashbacks = ({ memories, variant = "card" }: Props) => {
-  const groups = useFlashbacks(memories);
-  const [playing, setPlaying] = useState<string | null>(null);
-  const rowRef = useRef<HTMLUListElement>(null);
+/** Which way the row can still scroll, kept up to date as it scrolls or the window resizes. */
+function useScrollArrows(rowRef: RefObject<HTMLUListElement>, watch: number) {
   const [canScroll, setCanScroll] = useState({ left: false, right: false });
 
   const measure = useCallback(() => {
     const el = rowRef.current;
     if (!el) return;
     setCanScroll({ left: el.scrollLeft > 4, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
-  }, []);
+  }, [rowRef]);
+
   useEffect(() => {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [measure, groups.length]);
+  }, [measure, watch]);
 
-  const scrollBy = (dir: 1 | -1) => {
-    const el = rowRef.current;
-    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
-  };
+  const scrollBy = (dir: 1 | -1) => rowRef.current?.scrollBy({ left: dir * rowRef.current.clientWidth * 0.8, behavior: "smooth" });
+  return { canScroll, measure, scrollBy };
+}
+
+const ScrollArrow = ({ side, onClick }: { side: "left" | "right"; onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={side === "left" ? "Scroll recaps left" : "Scroll recaps right"}
+    className={cn(
+      "absolute top-[6.5rem] flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-lift transition hover:bg-card sm:top-28",
+      side === "left" ? "left-2" : "right-2",
+    )}
+  >
+    {side === "left" ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+  </button>
+);
+
+const FlashbacksHeader = ({ onCard }: { onCard: boolean }) => (
+  <header className="flex items-center gap-2.5 px-5 pt-4 sm:px-6">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-card/80 text-accent-foreground">
+      <Sparkles className="h-4.5 w-4.5" />
+    </span>
+    <div className="min-w-0">
+      <h2 className={cn("truncate text-[15px] font-semibold sm:text-base", onCard ? "text-[hsl(var(--on-celebrate))]" : "text-foreground")}>
+        Flashbacks
+      </h2>
+      <p className={cn("truncate text-[12px]", onCard ? "text-[hsl(var(--on-celebrate)/0.75)]" : "text-muted-foreground")}>
+        Tap a recap to replay it. Hold to pause.
+      </p>
+    </div>
+  </header>
+);
+
+/** Replays: last month's recap and this month in earlier years, each opening as a story. */
+export const Flashbacks = ({ memories, variant = "card" }: Props) => {
+  const groups = useFlashbacks(memories);
+  const [playing, setPlaying] = useState<string | null>(null);
+  const rowRef = useRef<HTMLUListElement>(null);
+  const { canScroll, measure, scrollBy } = useScrollArrows(rowRef, groups.length);
 
   if (groups.length === 0) return null;
   const current = groups.find((g) => g.key === playing) ?? null;
@@ -86,48 +120,18 @@ export const Flashbacks = ({ memories, variant = "card" }: Props) => {
         variant === "card" ? "bg-gradient-celebrate" : "bg-card",
       )}
     >
-      <header className="flex items-center gap-2.5 px-5 pt-4 sm:px-6">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-card/80 text-accent-foreground">
-          <Sparkles className="h-4.5 w-4.5" />
-        </span>
-        <div className="min-w-0">
-          <h2 className={cn("truncate text-[15px] font-semibold sm:text-base", variant === "card" ? "text-[hsl(var(--on-celebrate))]" : "text-foreground")}>
-            Flashbacks
-          </h2>
-          <p className={cn("truncate text-[12px]", variant === "card" ? "text-[hsl(var(--on-celebrate)/0.75)]" : "text-muted-foreground")}>
-            Tap a recap to replay it. Hold to pause.
-          </p>
-        </div>
-      </header>
+      <FlashbacksHeader onCard={variant === "card"} />
 
       <div className="relative mt-4">
-        <ul
-          ref={rowRef}
-          onScroll={measure}
-          className="flex gap-3 overflow-x-auto scroll-smooth scrollbar-hide px-5 pb-6 sm:gap-4 sm:px-6"
-        >
+        <ul ref={rowRef} onScroll={measure} className="flex gap-3 overflow-x-auto scroll-smooth scrollbar-hide px-5 pb-6 sm:gap-4 sm:px-6">
           {groups.map((g) => (
             <li key={g.key} className="flex-shrink-0">
               <RecapTile g={g} onPlay={() => setPlaying(g.key)} />
             </li>
           ))}
         </ul>
-        {(["left", "right"] as const).map((side) =>
-          canScroll[side] ? (
-            <button
-              key={side}
-              type="button"
-              onClick={() => scrollBy(side === "left" ? -1 : 1)}
-              aria-label={side === "left" ? "Scroll recaps left" : "Scroll recaps right"}
-              className={cn(
-                "absolute top-[6.5rem] flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-lift transition hover:bg-card sm:top-28",
-                side === "left" ? "left-2" : "right-2",
-              )}
-            >
-              {side === "left" ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-            </button>
-          ) : null,
-        )}
+        {canScroll.left && <ScrollArrow side="left" onClick={() => scrollBy(-1)} />}
+        {canScroll.right && <ScrollArrow side="right" onClick={() => scrollBy(1)} />}
       </div>
 
       {current && <StoryViewer title={current.title} tag={current.tag} memories={current.memories} onClose={() => setPlaying(null)} />}

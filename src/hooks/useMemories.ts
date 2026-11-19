@@ -5,49 +5,54 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Memory } from "@/lib/types/memory";
 export type { Memory };
 
+type LinkRow = { relation_label: string | null; memory: Memory | null };
+
+/** Memories that belong directly to this child. */
+async function fetchDirectMemories(childId: string): Promise<Memory[]> {
+  const direct = await supabase
+    .from("memories")
+    .select("*")
+    .eq("child_id", childId)
+    .order("happened_at", { ascending: false });
+  if (direct.error) throw direct.error;
+  return (direct.data ?? []) as Memory[];
+}
+
+/** Memories linked to this child from a sibling (shared timeline). */
+async function fetchLinkedMemories(childId: string): Promise<Memory[]> {
+  const linked = await supabase
+    .from("memory_child_links")
+    .select("relation_label, memory:memories(*)")
+    .eq("child_id", childId);
+  if (linked.error) throw linked.error;
+  return ((linked.data ?? []) as LinkRow[]).flatMap(({ memory, relation_label }) =>
+    memory
+      ? [{ ...memory, is_linked: true, relation_label: relation_label ?? null, primary_child_id: memory.child_id }]
+      : [],
+  );
+}
+
+/** Merges the two lists (direct wins on conflict), newest first. */
+function mergeMemories(directList: Memory[], linkedList: Memory[]): Memory[] {
+  const byId = new Map<string, Memory>();
+  for (const m of directList) byId.set(m.id, m);
+  for (const m of linkedList) if (!byId.has(m.id)) byId.set(m.id, m);
+  return [...byId.values()].sort(
+    (a, b) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime(),
+  );
+}
+
+async function fetchMemories(childId: string): Promise<Memory[]> {
+  const directList = await fetchDirectMemories(childId);
+  const linkedList = await fetchLinkedMemories(childId);
+  return mergeMemories(directList, linkedList);
+}
+
 export const useMemories = (childId?: string, opts?: { enabled?: boolean }) => {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["memories", user?.id, childId],
     enabled: !!user && !!childId && (opts?.enabled ?? true),
-    queryFn: async (): Promise<Memory[]> => {
-      // 1) Memories that belong directly to this child.
-      const direct = await supabase
-        .from("memories")
-        .select("*")
-        .eq("child_id", childId!)
-        .order("happened_at", { ascending: false });
-      if (direct.error) throw direct.error;
-
-      // 2) Memories linked to this child from a sibling (shared timeline).
-      const linked = await supabase
-        .from("memory_child_links")
-        .select("relation_label, memory:memories(*)")
-        .eq("child_id", childId!);
-      if (linked.error) throw linked.error;
-
-      const directList = (direct.data ?? []) as Memory[];
-
-      const linkedList: Memory[] = ((linked.data ?? []) as Array<{
-        relation_label: string | null;
-        memory: Memory | null;
-      }>)
-        .filter((row) => row.memory)
-        .map((row) => ({
-          ...(row.memory as Memory),
-          is_linked: true,
-          relation_label: row.relation_label ?? null,
-          primary_child_id: (row.memory as Memory).child_id,
-        }));
-
-      // Merge (direct wins on conflict), then sort newest-first.
-      const byId = new Map<string, Memory>();
-      for (const m of directList) byId.set(m.id, m);
-      for (const m of linkedList) if (!byId.has(m.id)) byId.set(m.id, m);
-
-      return [...byId.values()].sort(
-        (a, b) => new Date(b.happened_at).getTime() - new Date(a.happened_at).getTime(),
-      );
-    },
+    queryFn: (): Promise<Memory[]> => (childId ? fetchMemories(childId) : Promise.resolve([])),
   });
 };

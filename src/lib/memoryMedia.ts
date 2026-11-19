@@ -64,17 +64,32 @@ export function isMemoryVideo(file: File) {
   return file.type.startsWith("video/") || (mediaExtension(file) ?? "") in videoMimeTypes;
 }
 
-export function memoryMediaOf(memory: Memory): MemoryMedia[] {
-  const photos = memory.photo_urls?.length ? memory.photo_urls : memory.photo_url ? [memory.photo_url] : [];
-  const items: MemoryMedia[] = photos.map((url) => ({ kind: "photo", url }));
-  const videos = Array.isArray(memory.video_items)
-    ? memory.video_items.flatMap((value) => {
-        if (!value || typeof value !== "object" || Array.isArray(value)) return [];
-        const { url, position, poster_url } = value;
-        if (typeof url !== "string" || !url || typeof position !== "number" || !Number.isInteger(position) || position < 0) return [];
-        return [{ url, position, poster_url: typeof poster_url === "string" ? poster_url : null }];
-      }).sort((left, right) => left.position - right.position)
+type VideoItem = { url: string; position: number; poster_url: string | null };
+
+const isValidPosition = (position: unknown): position is number =>
+  typeof position === "number" && Number.isInteger(position) && position >= 0;
+
+/** One stored video entry, or none when it is malformed. */
+function parseVideoItem(value: unknown): VideoItem[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const { url, position, poster_url } = value as Record<string, unknown>;
+  if (typeof url !== "string" || !url || !isValidPosition(position)) return [];
+  return [{ url, position, poster_url: typeof poster_url === "string" ? poster_url : null }];
+}
+
+const videoItemsOf = (memory: Memory): VideoItem[] =>
+  Array.isArray(memory.video_items)
+    ? memory.video_items.flatMap(parseVideoItem).sort((left, right) => left.position - right.position)
     : [];
+
+const photoUrlsOf = (memory: Memory): string[] => {
+  if (memory.photo_urls?.length) return memory.photo_urls;
+  return memory.photo_url ? [memory.photo_url] : [];
+};
+
+export function memoryMediaOf(memory: Memory): MemoryMedia[] {
+  const items: MemoryMedia[] = photoUrlsOf(memory).map((url) => ({ kind: "photo", url }));
+  const videos = videoItemsOf(memory);
   if (videos.length) {
     for (const { url, poster_url, position } of videos) {
       items.splice(position, 0, { kind: "video", url, posterUrl: poster_url });

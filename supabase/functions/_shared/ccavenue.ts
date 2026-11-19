@@ -105,33 +105,28 @@ export const ORDER_ID_RE = /^KZ[0-9A-Z]{10,28}$/;
 
 export type GatewayResult = "success" | "failure" | "cancelled" | "pending" | "refunded" | "unknown";
 
-/** Maps CCAvenue's order_status strings (redirect response and status API) to our outcomes. Fails closed. */
+const STATUS_MAP = new Map<string, GatewayResult>([
+  ["success", "success"],
+  ["successful", "success"],
+  ["shipped", "success"], // settled / captured
+  ["failure", "failure"],
+  ["unsuccessful", "failure"],
+  ["invalid", "failure"],
+  ["timeout", "failure"],
+  ["auto-cancelled", "failure"],
+  ["auto-reversed", "failure"],
+  ["aborted", "cancelled"],
+  ["cancelled", "cancelled"],
+  ["initiated", "pending"],
+  ["awaited", "pending"],
+  ["awaiting", "pending"],
+  ["pending", "pending"],
+  ["refunded", "refunded"],
+]);
+
+/** Maps CCAvenue order_status strings (redirect response and status API) to our outcomes. Fails closed. */
 export function normalizeGatewayStatus(raw: string | undefined | null): GatewayResult {
-  switch ((raw ?? "").trim().toLowerCase()) {
-    case "success":
-    case "successful":
-    case "shipped": // settled / captured
-      return "success";
-    case "failure":
-    case "unsuccessful":
-    case "invalid":
-    case "timeout":
-    case "auto-cancelled":
-    case "auto-reversed":
-      return "failure";
-    case "aborted":
-    case "cancelled":
-      return "cancelled";
-    case "initiated":
-    case "awaited":
-    case "awaiting":
-    case "pending":
-      return "pending";
-    case "refunded":
-      return "refunded";
-    default:
-      return "unknown";
-  }
+  return STATUS_MAP.get((raw ?? "").trim().toLowerCase()) ?? "unknown";
 }
 
 // ---------------------------------------------------------------------------
