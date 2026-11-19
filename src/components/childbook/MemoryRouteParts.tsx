@@ -1,3 +1,5 @@
+import type { MemoryMedia } from "@/lib/memoryMedia";
+import { MemoryMediaThumbnail } from "./MemoryMediaThumbnail";
 import { ArrowLeft, ImageIcon, Plus, Sparkles } from "lucide-react";
 import type { Memory } from "@/hooks/useMemories";
 import { Button } from "@/components/ui/button";
@@ -6,7 +8,7 @@ import { MemoryPolaroid } from "./MemoryPolaroid";
 export interface YearAlbum {
   year: number;
   items: Memory[];
-  cover: string | null;
+  cover: MemoryMedia | null;
 }
 
 const countLabel = (n: number) => `${n} ${n === 1 ? "memory" : "memories"}`;
@@ -19,7 +21,7 @@ export const YearCard = ({ album, onSelect }: { album: YearAlbum; onSelect: (yea
   >
     <div className="aspect-[4/3] overflow-hidden rounded bg-muted">
       {album.cover ? (
-        <img src={album.cover} alt="" loading="lazy" className="h-full w-full object-cover" />
+        <MemoryMediaThumbnail item={album.cover} alt="" className="h-full w-full object-cover" />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-muted-foreground">
           <ImageIcon className="h-7 w-7" />

@@ -58,7 +58,7 @@ export const MemoryViewBody = ({ memory, canEdit, deleting, onDelete, onEdit }: 
     >
       {memory.category}
     </span>
-    <DialogTitle className="mt-3 text-2xl font-bold leading-tight tracking-normal text-foreground">{memory.title}</DialogTitle>
+    <DialogTitle className="font-caption mt-3 text-2xl leading-tight tracking-normal text-foreground">{memory.title}</DialogTitle>
     <p className="mt-1 text-[13px] text-muted-foreground">{format(new Date(memory.happened_at), "EEEE, MMMM d, yyyy")}</p>
 
     {memory.story && (

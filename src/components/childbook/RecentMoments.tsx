@@ -81,7 +81,7 @@ export const RecentMoments = ({ memories }: Props) => {
                     >
                       {m.category}
                     </span>
-                    <h3 className="mt-2 line-clamp-2 text-[14px] font-semibold leading-snug text-foreground">
+                    <h3 className="font-caption mt-2 line-clamp-2 text-[14.5px] leading-snug text-foreground">
                       {m.title}
                     </h3>
                     <p className="mt-1 text-[12px] text-muted-foreground">

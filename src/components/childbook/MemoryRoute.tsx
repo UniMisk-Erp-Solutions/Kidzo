@@ -1,3 +1,4 @@
+import { memoryMediaOf } from "@/lib/memoryMedia";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Memory } from "@/hooks/useMemories";
@@ -28,7 +29,7 @@ const groupByYear = (memories: Memory[]): YearAlbum[] => {
   return Array.from(byYear.entries()).map(([year, items]) => ({
     year,
     items,
-    cover: items.find((m) => m.photo_url)?.photo_url ?? null,
+    cover: items.map((memory) => memoryMediaOf(memory)[0]).find(Boolean) ?? null,
   }));
 };
 

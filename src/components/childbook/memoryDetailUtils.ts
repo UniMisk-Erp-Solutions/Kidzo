@@ -32,22 +32,6 @@ export const mergeChips = (list: string[], value: string): string[] => {
   return next;
 };
 
-/** Most-used values first, taken from the child's earlier memories. */
-export const tallySuggestions = (memories: Memory[], field: "who_was_there" | "tags"): string[] => {
-  const counts = new Map<string, { label: string; count: number }>();
-  for (const m of memories) {
-    const arr: (string | null)[] = (field === "tags" ? m.tags : m.who_was_there) ?? [];
-    for (const raw of arr) {
-      const v = (raw ?? "").trim();
-      if (!v) continue;
-      const entry = counts.get(v.toLowerCase());
-      if (entry) entry.count += 1;
-      else counts.set(v.toLowerCase(), { label: v, count: 1 });
-    }
-  }
-  return [...counts.values()].sort((a, b) => b.count - a.count).map((x) => x.label);
-};
-
 /** Photos of a memory (prefer photo_urls, fall back to photo_url). */
 export const photosOf = (memory: Memory | null): string[] => {
   if (memory?.photo_urls && memory.photo_urls.length > 0) return memory.photo_urls;

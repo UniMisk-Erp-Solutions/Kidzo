@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { LegalAcknowledgement, LegalLink } from "@/components/AcceptTerms";
+import { LEGAL } from "@/pages/legal/legalConfig";
 import { format } from "date-fns";
 import { CalendarIcon, Loader2, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,16 +39,18 @@ export const AddChildDialog = ({ open, onOpenChange, onCreated }: Props) => {
   const [dob, setDob] = useState<Date | undefined>();
   const [pronouns, setPronouns] = useState("");
   const [saving, setSaving] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
 
   const reset = () => {
     setName("");
     setDob(undefined);
     setPronouns("");
+    setAuthorized(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name || !dob) return;
+    if (!user || !name || !dob || !authorized || saving) return;
     setSaving(true);
     const { data, error } = await supabase
       .from("child_profiles")
@@ -55,6 +59,7 @@ export const AddChildDialog = ({ open, onOpenChange, onCreated }: Props) => {
         name,
         dob: format(dob, "yyyy-MM-dd"),
         pronouns: pronouns || null,
+        guardian_notice_version: LEGAL.guardianNoticeVersion,
       })
       .select("id")
       .single();
@@ -82,7 +87,7 @@ export const AddChildDialog = ({ open, onOpenChange, onCreated }: Props) => {
         onOpenChange(o);
       }}
     >
-      <DialogContent className="rounded-2xl sm:max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto rounded-2xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary-deep" /> Add another child
@@ -137,11 +142,17 @@ export const AddChildDialog = ({ open, onOpenChange, onCreated }: Props) => {
             <PronounsSelect id="ac-pronouns" value={pronouns} onChange={setPronouns} />
           </div>
 
+          <div className="rounded-xl border border-border bg-muted/30 p-3">
+            <LegalAcknowledgement id="authorize-add-child" checked={authorized} onChange={setAuthorized}>
+              If this person is under 18, I am their parent or lawful guardian. If they are 18 or older, I have their permission. I authorize Kidzopedia to use the profile details and the content I choose to add to provide the family keepsake, as described in the <LegalLink to="/legal/privacy#children">Privacy Policy</LegalLink>.
+            </LegalAcknowledgement>
+          </div>
+
           <DialogFooter className="gap-2 sm:gap-2">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" variant="warm" disabled={saving || !name || !dob}>
+            <Button type="submit" variant="warm" disabled={saving || !name || !dob || !authorized}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Add child
             </Button>

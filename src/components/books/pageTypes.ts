@@ -15,10 +15,10 @@ export type MemoryLayout = "collage" | "polaroid-stack" | "magazine" | "journal"
 /** Dense layouts that pack multiple memories on a single page. */
 export type MemorySpreadLayout = "grid-collage" | "polaroid-mosaic" | "magazine-mosaic" | "road-trail" | "kraft-collage" | "film-strip" | "newsprint-collage";
 
-export type BookPage =
-  | { kind: "cover"; title: string; subtitle?: string | null; childName: string; templateName: string; flavor: ScrapbookFlavor }
+export type BookPage = (
+  | { kind: "cover"; title: string; subtitle?: string | null; childName: string; templateName: string; coverMemories?: Memory[]; flavor: ScrapbookFlavor }
   | { kind: "intro"; title: string; childName: string; dateRange: string; pageCount: number; flavor: ScrapbookFlavor }
   | { kind: "chapter"; title: string; subtitle: string; number: number; flavor: ScrapbookFlavor }
   | { kind: "memory"; memory: Memory; index: number; total: number; layout: MemoryLayout; flavor: ScrapbookFlavor }
   | { kind: "memory-spread"; memories: Memory[]; index: number; total: number; layout: MemorySpreadLayout; flavor: ScrapbookFlavor; spreadKey: string }
-  | { kind: "back"; childName: string; flavor: ScrapbookFlavor };
+  | { kind: "back"; childName: string; flavor: ScrapbookFlavor }) & { scrapbookDesign?: string };

@@ -28,8 +28,9 @@ const CompanyLegal = () => (
           Kidzopedia holds some of the most personal information a family has — photographs of children, health and
           school records, first words and first steps. These documents set out exactly what we do with it, what we
           will never do with it, and the rights you have. They are written to India's{" "}
-          <strong className="font-medium text-foreground">Digital Personal Data Protection Act, 2023</strong> and the
-          rules made under it.
+          <strong className="font-medium text-foreground">Digital Personal Data Protection Act, 2023</strong> and the{" "}
+          <a href={LEGAL.dpdpRulesUrl} className="font-medium text-primary-deep underline">DPDP Rules, 2025</a>. Their
+          provisions <a href={LEGAL.dpdpCommencementUrl} className="font-medium text-primary-deep underline">come into force in phases</a>.
         </p>
       </header>
 
@@ -48,8 +49,8 @@ const CompanyLegal = () => (
           },
           {
             icon: ShieldCheck,
-            t: "Your data stays in India",
-            d: "Your memories and documents live on our own servers in India, not on a third-party cloud.",
+            t: "Where your data is stored",
+            d: "Core files are hosted in India. Some service providers process limited information elsewhere, as described in our Privacy Policy.",
           },
         ].map((c) => (
           <div key={c.t} className="rounded-2xl border border-border bg-card p-5">

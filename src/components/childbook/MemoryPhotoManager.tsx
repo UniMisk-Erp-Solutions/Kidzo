@@ -1,7 +1,8 @@
 import { Camera, Star, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { MAX_PHOTOS, type NewPhoto } from "./memoryDetailUtils";
+import { MAX_MEMORY_MEDIA } from "@/lib/memoryMedia";
+import type { NewPhoto } from "./memoryDetailUtils";
 
 interface TileProps {
   src: string;
@@ -74,6 +75,7 @@ const AddPhotoTile = ({ onAdd }: { onAdd: (files: FileList | null) => void }) =>
 interface Props {
   keptUrls: string[];
   newPhotos: NewPhoto[];
+  videoCount: number;
   highlightIdx: number;
   onHighlight: (idx: number) => void;
   onRemoveKept: (idx: number) => void;
@@ -83,13 +85,13 @@ interface Props {
 
 /** Photo grid of the memory editor: pick the highlight, remove photos, add more. */
 export const MemoryPhotoManager = (p: Props) => {
-  const total = p.keptUrls.length + p.newPhotos.length;
+  const total = p.keptUrls.length + p.newPhotos.length + p.videoCount;
   return (
     <div className="space-y-2">
       <div className="flex items-end justify-between gap-2">
         <Label>Photos</Label>
         <span className="text-[11px] text-muted-foreground">
-          {total}/{MAX_PHOTOS} · tap to set highlight
+          {total}/{MAX_MEMORY_MEDIA} attachments · tap to set photo highlight
         </span>
       </div>
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -113,7 +115,7 @@ export const MemoryPhotoManager = (p: Props) => {
             onRemove={() => p.onRemoveNew(photo.id)}
           />
         ))}
-        {total < MAX_PHOTOS && <AddPhotoTile onAdd={p.onAdd} />}
+        {total < MAX_MEMORY_MEDIA && <AddPhotoTile onAdd={p.onAdd} />}
       </ul>
     </div>
   );

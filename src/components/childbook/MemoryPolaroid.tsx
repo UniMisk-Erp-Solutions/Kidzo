@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { memoryMediaOf } from "@/lib/memoryMedia";
+import { MemoryMediaThumbnail } from "./MemoryMediaThumbnail";
 import type { Memory } from "@/hooks/useMemories";
 
 const tagStyles: Record<string, string> = {
@@ -26,7 +28,9 @@ interface Props {
 
 /** Scrapbook-style polaroid: taped, slightly tilted, handwritten title. */
 export const MemoryPolaroid = ({ memory: m, index, onOpen, linkedLabel }: Props) => {
-  const extraPhotos = (m.photo_urls?.length ?? 0) - 1;
+  const media = memoryMediaOf(m);
+  const highlight = media[0];
+  const extraMedia = media.length - 1;
   return (
     // The entrance animation lives on this wrapper: its fill-mode would otherwise pin the button's transform and cancel the tilt.
     <div className="animate-fade-in-up">
@@ -46,12 +50,12 @@ export const MemoryPolaroid = ({ memory: m, index, onOpen, linkedLabel }: Props)
           TAPE_TILTS[index % TAPE_TILTS.length],
         )}
       />
-      {m.photo_url ? (
+      {highlight ? (
         <div className="relative aspect-square overflow-hidden bg-muted">
-          <img src={m.photo_url} alt={m.title} loading="lazy" className="h-full w-full object-cover" />
-          {extraPhotos > 0 && (
+          <MemoryMediaThumbnail item={highlight} alt={m.title} className="h-full w-full object-cover" />
+          {extraMedia > 0 && (
             <span className="absolute bottom-2 right-2 rounded-full bg-background/85 px-2 py-0.5 text-[11px] font-semibold text-foreground shadow-soft">
-              +{extraPhotos}
+              +{extraMedia}
             </span>
           )}
         </div>
@@ -76,7 +80,8 @@ export const MemoryPolaroid = ({ memory: m, index, onOpen, linkedLabel }: Props)
         >
           {m.category}
         </span>
-        <h3 className="font-handwritten line-clamp-2 text-[24px] font-bold leading-[1.05] text-foreground">
+        {highlight?.kind === "video" && <span className="ml-2 text-xs text-muted-foreground">Video</span>}
+        <h3 className="font-caption line-clamp-2 text-[17px] leading-snug text-foreground">
           {m.title}
         </h3>
         <p className="text-[12px] text-muted-foreground">{format(new Date(m.happened_at), "MMM d, yyyy")}</p>

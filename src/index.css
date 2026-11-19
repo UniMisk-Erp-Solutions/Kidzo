@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&family=Nunito:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,500..900,0..100,0..1;1,9..144,500..900,0..100,0..1&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=Caveat:wght@500;700&family=Kalam:wght@400;700&family=Patrick+Hand&family=Shadows+Into+Light&family=Nunito:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,500..900,0..100,0..1;1,9..144,500..900,0..100,0..1&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -60,7 +60,7 @@
     /* Per-theme semantic extras (see palette blocks below) */
     --btn-foreground: 261 40% 14%;       /* text on gradient buttons */
     --on-celebrate: 261 40% 14%;         /* text on --gradient-celebrate (book promo banners) */
-    --body-texture: none;                /* optional paper texture layered over the page wash */
+    --page-lines: repeating-linear-gradient(115deg, hsl(12 38% 20% / 0.018) 0 2px, transparent 2px 9px);
 
     /* Section identity — overridden per [data-section]. Default = Home (lavender/violet). */
     --sec-1: 255 92% 76%;
@@ -159,7 +159,7 @@
 
     --btn-foreground: 0 0% 100%;
     --on-celebrate: 0 0% 100%;
-    --body-texture: none;
+
     --gradient-warm: linear-gradient(135deg, hsl(205 100% 98%) 0%, hsl(203 93% 95%) 55%, hsl(210 60% 94%) 100%);
     --gradient-button: linear-gradient(135deg, hsl(213 40% 41%) 0%, hsl(213 51% 27%) 100%);
     --gradient-celebrate: linear-gradient(135deg, hsl(210 37% 50%) 0%, hsl(213 51% 22%) 100%);
@@ -214,7 +214,6 @@
 
     --btn-foreground: 0 0% 100%;
     --on-celebrate: 0 0% 100%;
-    --body-texture: repeating-linear-gradient(115deg, hsl(12 38% 20% / 0.018) 0 2px, transparent 2px 9px);
     --gradient-warm: linear-gradient(135deg, hsl(40 62% 95%) 0%, hsl(30 60% 93%) 55%, hsl(12 50% 93%) 100%);
     --gradient-button: linear-gradient(135deg, hsl(11 52% 50%) 0%, hsl(8 48% 40%) 100%);
     --gradient-celebrate: linear-gradient(135deg, hsl(11 50% 47%) 0%, hsl(14 46% 38%) 100%);
@@ -256,7 +255,7 @@
     --plum: 55 38% 15%;
     --btn-foreground: 0 0% 100%;
     --on-celebrate: 0 0% 100%;
-    --body-texture: none;
+
     --sec-1: 15 64% 52%; --sec-2: 41 85% 66%; --sec-3: 9 70% 66%; --sec-deep: 14 66% 36%;
     --gradient-button: linear-gradient(135deg, hsl(15 64% 48%) 0%, hsl(12 62% 40%) 100%);
     --gradient-celebrate: linear-gradient(135deg, hsl(15 64% 48%) 0%, hsl(9 62% 42%) 100%);
@@ -271,7 +270,7 @@
     --wash-cream: 30 85% 96%;
     --wash-ink: 55 38% 15%;
   }
-  [data-landing="wash"] body { font-family: 'DM Sans', 'Inter', system-ui, sans-serif; background-image: none; }
+  [data-landing="wash"] body { font-family: 'DM Sans', 'Inter', system-ui, sans-serif; background-image: var(--page-lines); }
   [data-landing="wash"] .font-display {
     font-family: 'Fraunces', Georgia, serif;
     font-variation-settings: "SOFT" 100, "WONK" 1;
@@ -332,7 +331,7 @@
       radial-gradient(60% 40% at 0% 0%, hsl(var(--sec-1) / 0.20), transparent 70%),
       radial-gradient(50% 40% at 100% 8%, hsl(var(--sec-2) / 0.18), transparent 70%),
       radial-gradient(60% 40% at 50% 100%, hsl(var(--sec-3) / 0.16), transparent 70%),
-      var(--body-texture);
+      var(--page-lines);
     background-attachment: fixed;
     transition: background-color 160ms var(--ease-soft), color 160ms var(--ease-soft);
   }
@@ -353,6 +352,31 @@
 
 @layer utilities {
   .bg-gradient-warm { background-image: var(--gradient-warm); }
+
+  /* Recolor decorative cutouts for each palette while preserving the original artwork. */
+  .scrapbook-margin-art {
+    filter: grayscale(1) sepia(0.24) hue-rotate(217deg) saturate(1.08);
+  }
+  [data-palette="explorer"] .scrapbook-margin-art {
+    filter: grayscale(1) sepia(0.28) hue-rotate(166deg) saturate(1.16);
+  }
+  [data-palette="tales"] .scrapbook-margin-art {
+    filter: saturate(0.82);
+  }
+  .dark .scrapbook-margin-art {
+    filter: grayscale(0.65) brightness(0.72) saturate(0.75);
+  }
+
+  /* Opaque route backgrounds cover the body texture, so paint the same lines on their surface. */
+  :where(.page-in) > :is(.bg-background, .bg-muted) {
+    background-image: var(--page-lines);
+    background-attachment: fixed;
+  }
+
+  :where(.page-in) > .bg-gradient-warm {
+    background-image: var(--page-lines), var(--gradient-warm);
+    background-attachment: fixed, scroll;
+  }
   .bg-gradient-hero { background-image: var(--gradient-hero); }
   .bg-gradient-celebrate { background-image: var(--gradient-celebrate); }
   .shadow-soft { box-shadow: var(--shadow-soft); }
@@ -364,6 +388,8 @@
 
   /* Scrapbook fonts */
   .font-handwritten { font-family: 'Caveat', cursive; }
+  /* Photo captions: Lora, medium — memory titles under photos */
+  .font-caption { font-family: 'Lora', Georgia, serif; font-weight: 500; }
   .font-marker { font-family: 'Kalam', cursive; }
   .font-printed { font-family: 'Patrick Hand', cursive; }
   .font-sketch { font-family: 'Shadows Into Light', cursive; }

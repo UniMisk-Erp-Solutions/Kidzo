@@ -4,7 +4,8 @@ import { ArrowLeft, BookOpen, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopBar } from "@/components/childbook/TopBar";
-import { FilterPills, TemplateGrid } from "@/components/books/TemplateBrowser";
+import { CollageCarousels, FilterPills, TemplateGrid } from "@/components/books/TemplateBrowser";
+import { scrapbookDesigns } from "@/components/books/pages/scrapbookDesigns";
 import { PageHero } from "@/components/childbook/PageHero";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { TemplatePreviewModal } from "@/components/books/TemplatePreviewModal";
@@ -21,7 +22,7 @@ const FILTERS: { id: string; label: string; match: (t: BookTemplate) => boolean 
   { id: "birthday", label: "Birthday", match: (t) => t.category === "birthday" },
   { id: "seasonal", label: "Holiday", match: (t) => t.category === "seasonal" },
   { id: "everyday", label: "Everyday", match: (t) => t.category === "everyday" },
-  { id: "collage", label: "Collage", match: (t) => /scrapbook-(kraft|filmroll|newsprint)/.test(t.slug) },
+  { id: "collage", label: "Collage", match: (t) => !!scrapbookDesigns[t.slug] || /^scrapbook-(kraft|filmroll|newsprint)/.test(t.slug) },
   { id: "premium", label: "Premium ✨", match: (t) => t.is_premium },
 ];
 
@@ -36,13 +37,14 @@ const TemplateSelector = () => {
   const { data: templates = [], isLoading } = useBookTemplates();
   const { data: child } = useActiveChild();
   const createBook = useCreateUserBook();
-  const { can, loading: entLoading } = useEntitlements();
-  // Premium templates are for plans that include photo books (Family / Premium).
-  const isLocked = (t: BookTemplate) => t.is_premium && !entLoading && !can("photo_book_orders");
+  const { planSlug, loading: entLoading } = useEntitlements();
+  const canUsePremiumTemplates = planSlug === "family" || planSlug === "premium";
+  const isLocked = (t: BookTemplate) => t.is_premium && (entLoading || !canUsePremiumTemplates);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [previewing, setPreviewing] = useState<BookTemplate | null>(null);
+  const TemplateResults = filter === "collage" ? CollageCarousels : TemplateGrid;
 
   const visible = useMemo(() => {
     const f = FILTERS.find((x) => x.id === filter)!;
@@ -51,6 +53,10 @@ const TemplateSelector = () => {
   }, [templates, filter, search]);
 
   const handleSelect = async (t: BookTemplate) => {
+    if (t.is_premium && entLoading) {
+      toast.info("Checking your plan…");
+      return;
+    }
     if (isLocked(t)) {
       toast("Premium template ✨", {
         description: "Upgrade to the Family or Premium plan to use this template.",
@@ -107,7 +113,7 @@ const TemplateSelector = () => {
 
         <FilterPills filters={FILTERS} active={filter} onChange={setFilter} />
 
-        <TemplateGrid
+        <TemplateResults
           loading={isLoading}
           templates={visible}
           isLocked={isLocked}

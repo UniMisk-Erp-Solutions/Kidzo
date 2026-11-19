@@ -204,6 +204,16 @@ export const LandingLayout = ({ children }: { children: ReactNode }) => {
           <div className="mt-6 flex flex-col items-center justify-between gap-2 border-t border-border pt-4 text-[11.5px] md:mt-10 md:gap-3 md:pt-6 md:text-[12px] text-muted-foreground sm:flex-row">
             <span>© {new Date().getFullYear()} Kidzopedia. Made with love for families.</span>
           </div>
+          <p className="mt-4 rounded-xl border border-border bg-card/60 p-3 text-center text-[11.5px] leading-relaxed text-muted-foreground md:text-[12px]">
+            <span className="font-semibold text-foreground">Privacy and data rights.</span> {LEGAL.product} is operated by{" "}
+            {LEGAL.entity}. Read how we handle family data and how India&apos;s{" "}
+            <a href={LEGAL.dpdpActUrl} className="font-medium underline hover:text-foreground">Digital Personal Data Protection Act, 2023</a>{" "}
+            and <a href={LEGAL.dpdpRulesUrl} className="font-medium underline hover:text-foreground">DPDP Rules, 2025</a> apply as provisions come into force. See our{" "}
+            <Link to="/legal/privacy" className="font-medium underline hover:text-foreground">Privacy Policy</Link>{" "}
+            or <Link to="/legal/data-rights" className="font-medium underline hover:text-foreground">Data Rights &amp; Grievance</Link>{" "}
+            to request access, correction, erasure or withdrawal of consent. You can also{" "}
+            <a href={`mailto:${LEGAL.grievanceEmail}`} className="font-medium underline hover:text-foreground">email our grievance contact</a>.
+          </p>
         </div>
       </footer>
     </div>

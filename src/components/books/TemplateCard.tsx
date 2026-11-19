@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import momentOne from "@/assets/moment-1.jpg";
+import momentTwo from "@/assets/moment-2.jpg";
+import momentThree from "@/assets/moment-3.jpg";
+import heroChild from "@/assets/hero-child.jpg";
 import { ChevronLeft, ChevronRight, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,6 +38,7 @@ interface Props {
   template: BookTemplate;
   /** Premium template on a plan that can't use it. */
   locked?: boolean;
+  inCarousel?: boolean;
   onSelect: (t: BookTemplate) => void;
   onPreview: (t: BookTemplate) => void;
 }
@@ -89,10 +94,14 @@ function buildMockMemories(template: BookTemplate): Memory[] {
     created_at: now.toISOString(),
   };
 
+  const photos = template.slug.startsWith("studio-")
+    ? [momentOne, momentTwo, momentThree, heroChild]
+    : SAMPLE_TONES.map((_, i) => samplePhoto(i));
+
   return [
     {
       ...base,
-      photo_url: samplePhoto(0),
+      photo_url: photos[0],
       id: `mock-1-${template.id}`,
       title: f.title1,
       story: f.story1,
@@ -103,7 +112,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
     } as Memory,
     {
       ...base,
-      photo_url: samplePhoto(1),
+      photo_url: photos[1],
       id: `mock-2-${template.id}`,
       title: f.title2,
       story: f.story2,
@@ -114,7 +123,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
     } as Memory,
     {
       ...base,
-      photo_url: samplePhoto(2),
+      photo_url: photos[2],
       id: `mock-3-${template.id}`,
       title: "Little wonders",
       story: "Small things, big smiles.",
@@ -125,7 +134,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
     } as Memory,
     {
       ...base,
-      photo_url: samplePhoto(3),
+      photo_url: photos[3],
       id: `mock-4-${template.id}`,
       title: "Golden hour",
       story: "The light was perfect and so were you.",
@@ -140,6 +149,7 @@ function buildMockMemories(template: BookTemplate): Memory[] {
 interface CarouselProps {
   template: BookTemplate;
   pages: BookPage[];
+  inCarousel?: boolean;
   slide: number;
   onPreview: () => void;
   onPrev: (e: React.MouseEvent) => void;
@@ -147,7 +157,7 @@ interface CarouselProps {
 }
 
 const arrowClass =
-  "absolute top-1/2 -translate-y-1/2 rounded-full bg-card/95 p-1 shadow-soft opacity-0 transition group-hover:opacity-100";
+  "absolute top-1/2 -translate-y-1/2 rounded-full bg-card/95 p-1 shadow-soft transition md:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100";
 
 /** Prev / next arrows and the page dots of the sample carousel. */
 const CarouselControls = ({ count, slide, onPrev, onNext }: { count: number; slide: number } & Pick<CarouselProps, "onPrev" | "onNext">) => (
@@ -171,8 +181,8 @@ const CarouselControls = ({ count, slide, onPrev, onNext }: { count: number; sli
 );
 
 /** The live sample-page preview (pages fade between each other) with its badges and controls. */
-const SampleCarousel = ({ template, pages, slide, onPreview, onPrev, onNext }: CarouselProps) => (
-  <div className="relative block aspect-[4/3] w-full overflow-hidden" style={{ backgroundColor: template.color_scheme.primary }}>
+const SampleCarousel = ({ template, pages, slide, inCarousel, onPreview, onPrev, onNext }: CarouselProps) => (
+  <div className={cn("relative block w-full overflow-hidden", inCarousel ? "h-64" : "aspect-[4/3]")} style={{ backgroundColor: template.color_scheme.primary }}>
     {pages.map((page, idx) => (
       <div
         key={idx}
@@ -229,7 +239,18 @@ const CardFooter = ({ swatches, locked, onSelect }: { swatches: string[]; locked
  * (cover → memory spread 1 → memory spread 2). Uses the same BookPageView
  * the final book uses, so the preview is always WYSIWYG.
  */
-export const TemplateCard = ({ template, locked = false, onSelect, onPreview }: Props) => {
+export function buildTemplateSamplePages(template: BookTemplate) {
+  const pages = buildPages({
+    title: template.name.split("·")[0].trim(),
+    subtitle: template.slug.startsWith("studio-") ? undefined : template.description.slice(0, 60),
+    childName: "Sweet Pea",
+    template,
+    memories: buildMockMemories(template),
+  });
+  return [pages[0], ...pages.filter((page) => page.kind === "memory" || page.kind === "memory-spread").slice(0, 2)];
+}
+
+export const TemplateCard = ({ template, locked = false, inCarousel = false, onSelect, onPreview }: Props) => {
   const c = template.color_scheme;
   const ink = c.ink ?? c.text ?? "#3E3E42";
   const mint = c.mint ?? c.accent;
@@ -238,29 +259,16 @@ export const TemplateCard = ({ template, locked = false, onSelect, onPreview }: 
   const [slide, setSlide] = useState(0);
   const [autoplay, setAutoplay] = useState(true);
 
-  const samplePages = useMemo(() => {
-    const memories = buildMockMemories(template);
-    const all = buildPages({
-      title: template.name.split("·")[0].trim(),
-      subtitle: template.description.slice(0, 60),
-      childName: "Sweet Pea",
-      childDob: undefined,
-      template,
-      memories,
-    });
-    // Pick: cover (0), and 2 memory pages (or the packed spreads of dense templates)
-    const memoryPages = all.filter((p) => p.kind === "memory" || p.kind === "memory-spread").slice(0, 2);
-    return [all[0], ...memoryPages].filter(Boolean);
-  }, [template]);
+  const samplePages = useMemo(() => buildTemplateSamplePages(template), [template]);
 
   // Autoplay
   useEffect(() => {
-    if (!autoplay || samplePages.length <= 1) return;
+    if (inCarousel || !autoplay || samplePages.length <= 1) return;
     const t = setInterval(() => {
       setSlide((s) => (s + 1) % samplePages.length);
     }, 3500);
     return () => clearInterval(t);
-  }, [autoplay, samplePages.length]);
+  }, [autoplay, inCarousel, samplePages.length]);
 
   const goPrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -284,6 +292,7 @@ export const TemplateCard = ({ template, locked = false, onSelect, onPreview }: 
     >
       <SampleCarousel
         template={template}
+        inCarousel={inCarousel}
         pages={samplePages}
         slide={slide}
         onPreview={() => onPreview(template)}

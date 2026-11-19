@@ -8,7 +8,7 @@ import { UpcomingMilestones } from "@/components/childbook/UpcomingMilestones";
 import { CreateMomentCTA } from "@/components/childbook/CreateMomentCTA";
 import { ExportKeepsakeButton } from "@/components/childbook/ExportKeepsakeButton";
 import { FeatureTour } from "@/components/childbook/FeatureTour";
-import { Flashbacks } from "@/components/childbook/Flashbacks";
+import { LittleThings } from "@/components/childbook/LittleThings";
 import { DashboardSkeleton } from "@/components/childbook/DashboardSkeleton";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useCanEditChild } from "@/hooks/useCanEditChild";
@@ -99,7 +99,7 @@ const Index = () => {
           <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
             <div className="min-w-0 space-y-8 md:space-y-12">
               {canEdit && <CreateMomentCTA />}
-              <Flashbacks memories={memories} variant="card" />
+              <LittleThings key={child.id} childId={child.id} canEdit={canEdit} />
               <RecentTimeline memories={memories} achievements={achievements} />
             </div>
             <div className="min-w-0 space-y-8 lg:sticky lg:top-[calc(var(--topbar-h,72px)+1.5rem)]">

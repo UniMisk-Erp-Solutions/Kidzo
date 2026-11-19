@@ -24,6 +24,7 @@ import { MemoryDetail } from "@/components/childbook/MemoryDetail";
 import { MemoryTimeline } from "@/components/childbook/MemoryTimeline";
 import { MemoryRoute } from "@/components/childbook/MemoryRoute";
 import { Flashbacks } from "@/components/childbook/Flashbacks";
+import { MomentsPhotoMargins } from "@/components/childbook/MomentsPhotoMargins";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES = ["All", "Milestone", "Celebration", "Everyday", "Cozy", "Adventure", "Family"];
@@ -145,7 +146,8 @@ const Moments = () => {
   const filtered = pageMemories;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="relative isolate min-h-screen bg-background pb-28">
+      <MomentsPhotoMargins />
       <TopBar childName={child?.name ?? "Your child"} />
 
       {/* Header banner — same style as Grow */}
@@ -257,7 +259,7 @@ const Moments = () => {
       </div>
 
       <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">
-        {allTotal > 0 && !(view === "timeline" && yearOpen) && <Flashbacks memories={flashbackMemories} variant="strip" />}
+        {allTotal > 0 && category === "All" && !(view === "timeline" && yearOpen) && <Flashbacks memories={flashbackMemories} variant="strip" />}
         {isLoading ? (
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -285,6 +287,8 @@ const Moments = () => {
             memories={sortMemories(filtered, range === "oldest" ? "asc" : "desc")}
             onOpen={setOpen}
             linkedLabelFor={linkedLabelFor}
+            maxPerYear={8}
+            onSeeMore={(y) => navigate(`/moments/year/${y}`)}
           />
         )}
         {!(view === "timeline" && yearOpen) && (

@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useMemories, type Memory } from "@/hooks/useMemories";
 
+const DEFAULT_TAGS = ["little-wins", "weekend-adventures", "everyday-joy", "first-time", "family-outing", "funny-moment"];
+
 type Counts = Map<string, { label: string; count: number }>;
 
 function bump(counts: Counts, raw: string | null) {
@@ -22,11 +24,21 @@ function tally(memories: Memory[], field: "who_was_there" | "tags"): string[] {
   return [...counts.values()].sort((a, b) => b.count - a.count).map((x) => x.label);
 }
 
-/** "Who was there" and tag suggestions drawn from this child's past memories. */
+function suggestTags(memories: Memory[]) {
+  const tags = new Map(DEFAULT_TAGS.map((tag) => [tag, tag]));
+  for (const raw of tally(memories, "tags")) {
+    const tag = raw.replace(/^#+/, "").trim();
+    const key = tag.toLowerCase();
+    if (tag && key !== "dummy-seed-admin" && !tags.has(key)) tags.set(key, tag);
+  }
+  return [...tags.values()];
+}
+
+/** Suggestions from this child's past memories, with fresh starter tags. */
 export function useMemorySuggestions(childId?: string) {
   const { data: pastMemories = [] } = useMemories(childId);
   return useMemo(
-    () => ({ whoSuggestions: tally(pastMemories, "who_was_there"), tagSuggestions: tally(pastMemories, "tags") }),
+    () => ({ whoSuggestions: tally(pastMemories, "who_was_there"), tagSuggestions: suggestTags(pastMemories) }),
     [pastMemories],
   );
 }

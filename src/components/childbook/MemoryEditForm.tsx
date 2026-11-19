@@ -71,6 +71,7 @@ export const MemoryEditForm = ({ state: s, whoSuggestions, tagSuggestions, savin
     <MemoryPhotoManager
       keptUrls={s.photos.keptUrls}
       newPhotos={s.photos.newPhotos}
+      videoCount={s.photos.videoCount}
       highlightIdx={s.photos.highlightIdx}
       onHighlight={s.photos.setHighlightIdx}
       onRemoveKept={s.photos.removeKept}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { LegalAcknowledgement, LegalLink } from "@/components/AcceptTerms";
+import { LEGAL } from "@/pages/legal/legalConfig";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -29,6 +31,7 @@ const Onboarding = () => {
   const [dob, setDob] = useState<Date | undefined>();
   const [pronouns, setPronouns] = useState("");
   const [saving, setSaving] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
   const { month: dobMonth, setMonth: setDobMonth } = useCalendarMemory(
     "onboarding-dob",
     new Date(2022, 0),
@@ -41,7 +44,7 @@ const Onboarding = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !dob) return;
+    if (!user || !dob || !authorized || saving) return;
     // The form can be reached by link, so check the plan here too.
     if (isAddingAnother && !canAddChild()) return;
     setSaving(true);
@@ -52,6 +55,7 @@ const Onboarding = () => {
         name,
         dob: format(dob, "yyyy-MM-dd"),
         pronouns: pronouns || null,
+        guardian_notice_version: LEGAL.guardianNoticeVersion,
       })
       .select("id")
       .single();
@@ -105,7 +109,13 @@ const Onboarding = () => {
             <PronounsSelect id="pronouns" value={pronouns} onChange={setPronouns} />
           </div>
 
-          <Button type="submit" variant="warm" size="lg" className="w-full" disabled={saving || !name || !dob}>
+          <div className="rounded-xl border border-border bg-muted/30 p-3">
+            <LegalAcknowledgement id="authorize-child-profile" checked={authorized} onChange={setAuthorized}>
+              If this person is under 18, I am their parent or lawful guardian. If they are 18 or older, I have their permission. I authorize Kidzopedia to use the profile details and the content I choose to add to provide the family keepsake, as described in the <LegalLink to="/legal/privacy#children">Privacy Policy</LegalLink>.
+            </LegalAcknowledgement>
+          </div>
+
+          <Button type="submit" variant="warm" size="lg" className="w-full" disabled={saving || !name || !dob || !authorized}>
             {saving ? "Saving..." : isAddingAnother ? "Add this child" : "Start our Kidzopedia"}
           </Button>
         </form>

@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { PhoneField, toE164 } from "@/components/childbook/PhoneField";
-import { AcceptTerms } from "@/components/AcceptTerms";
+import { AcceptTerms, emptySignupAcknowledgements, hasSignupAcknowledgements } from "@/components/AcceptTerms";
+import { LEGAL } from "@/pages/legal/legalConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -26,9 +27,12 @@ const Auth = () => {
   const [signinEmail, setSigninEmail] = useState("");
   const [signinPassword, setSigninPassword] = useState("");
 
-  // Terms + Privacy consent (required to create an account, on either route)
-  const [agreedEmail, setAgreedEmail] = useState(false);
-  const [agreedPhone, setAgreedPhone] = useState(false);
+  const [emailAcknowledgements, setEmailAcknowledgements] = useState(emptySignupAcknowledgements);
+  const [phoneAcknowledgements, setPhoneAcknowledgements] = useState(emptySignupAcknowledgements);
+  const [phoneSignup, setPhoneSignup] = useState(false);
+  const agreedEmail = hasSignupAcknowledgements(emailAcknowledgements);
+  const agreedPhone = hasSignupAcknowledgements(phoneAcknowledgements);
+  const signupReceipt = { terms_version: LEGAL.termsVersion, privacy_version: LEGAL.privacyVersion, adult_confirmed: true, account_data_consented: true };
 
   // Email verification (6-digit OTP)
   const [emailOtpSent, setEmailOtpSent] = useState(false);
@@ -84,14 +88,14 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreedEmail) {
-      toast.error("Please accept the Terms & Privacy Policy to continue");
+      toast.error("Please confirm your age, accept the Terms, and consent to account data use to continue.");
       return;
     }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: name } },
+      options: { data: { display_name: name, signup_acknowledgement: signupReceipt } },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -145,12 +149,18 @@ const Auth = () => {
       toast.error("Enter a valid WhatsApp number");
       return;
     }
-    if (!agreedPhone) {
-      toast.error("Please accept the Terms & Privacy Policy to continue");
+    if (phoneSignup && !agreedPhone) {
+      toast.error("Please confirm your age, accept the Terms, and consent to account data use to continue.");
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({ phone: fullPhone });
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: fullPhone,
+      options: {
+        shouldCreateUser: phoneSignup,
+        ...(phoneSignup ? { data: { signup_acknowledgement: signupReceipt } } : {}),
+      },
+    });
     setLoading(false);
     if (error) return toast.error(error.message);
     setOtpSent(true);
@@ -222,7 +232,7 @@ const Auth = () => {
                         <Input id="signup-password" name="password" type="password" autoComplete="new-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl" />
                         <p className="text-[12px] text-muted-foreground">At least 6 characters</p>
                       </div>
-                      <AcceptTerms id="accept-email" checked={agreedEmail} onChange={setAgreedEmail} />
+                      <AcceptTerms id="accept-email" value={emailAcknowledgements} onChange={setEmailAcknowledgements} />
                       <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading || !agreedEmail}>
                         {loading ? "Creating account..." : "Create my Kidzopedia"}
                       </Button>
@@ -284,8 +294,14 @@ const Auth = () => {
                       )}
                     </p>
                   </div>
-                  <AcceptTerms id="accept-phone" checked={agreedPhone} onChange={setAgreedPhone} />
-                  <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading || !agreedPhone}>
+                  <Button type="button" size="sm" variant="ghost" className="text-primary-deep" disabled={loading} onClick={() => {
+                    setPhoneSignup((current) => !current);
+                    setPhoneAcknowledgements(emptySignupAcknowledgements);
+                  }}>
+                    {phoneSignup ? "Already have an account? Sign in" : "New to Kidzopedia? Create an account"}
+                  </Button>
+                  {phoneSignup && <AcceptTerms id="accept-phone" value={phoneAcknowledgements} onChange={setPhoneAcknowledgements} />}
+                  <Button type="submit" variant="warm" size="lg" className="w-full" disabled={loading || (phoneSignup && !agreedPhone)}>
                     {loading ? "Sending code…" : "Send code on WhatsApp"}
                   </Button>
                 </form>

@@ -9,16 +9,18 @@ const sections: Section[] = [
     body: (
       <>
         <P>
-          {LEGAL.product} is a private digital keepsake operated by {LEGAL.entity}. Parents and guardians use it to
+          {LEGAL.product} is a digital keepsake operated by {LEGAL.entity}. Parents and guardians use it to
           record memories, track milestones and store their child's important documents. Because of what the service
           is, almost everything you put into it is personal data — and a great deal of it is personal data{" "}
           <em>about a child</em>. We have written this policy on that assumption.
         </P>
         <P>
           Under India's Digital Personal Data Protection Act, 2023 (the "<strong>DPDP Act</strong>") we are the{" "}
-          <strong>Data Fiduciary</strong> — the person who determines the purpose and means of processing your
-          personal data. You are the <strong>Data Principal</strong>. Where your child's data is concerned, you act
-          for your child, who is also a Data Principal.
+          <strong>Data Fiduciary</strong>, meaning we determine why and how personal data is processed. The person
+          whose data is processed is the <strong>Data Principal</strong>. The Act and the{" "}
+          <a href={LEGAL.dpdpRulesUrl} className="font-medium text-primary-deep underline">DPDP Rules, 2025</a>{" "}
+          come into force in stages. See the{" "}
+          <a href={LEGAL.dpdpCommencementUrl} className="font-medium text-primary-deep underline">official commencement notice</a>.
         </P>
         <P>
           This policy applies to the {LEGAL.product} website, the web app, the Android app and the emails and WhatsApp
@@ -31,7 +33,8 @@ const sections: Section[] = [
           <strong>The short version.</strong> We collect what we need to run the service and nothing else. We do not
           sell your data. We do not advertise to you or to your child. We do not use your child's photographs or
           records to train anyone's AI models. Your files live on our own servers in India. You can export or delete
-          everything at any time.
+          content through the tools available in the app. For a full data request or to withdraw consent, use{" "}
+          <Link to="/legal/data-rights" className="font-medium text-primary-deep underline">Data Rights &amp; Grievance</Link>.
         </Callout>
       </>
     ),
@@ -47,17 +50,17 @@ const sections: Section[] = [
           rows={[
             [
               "Account data",
-              "Display name, email address and/or mobile number, password (stored only as a salted hash — we never see it)",
+              "Display name, email address or phone number, hashed password where used, and your signup acknowledgement, notice versions and timestamp",
               "To create your account, sign you in, and secure it",
             ],
             [
               "Child profile data",
-              "Child's name, date of birth, pronouns, avatar photograph, relationship to you",
+              "Child's name, date of birth, pronouns, avatar, and your authorization declaration with its notice version and timestamp",
               "To organise the keepsake around your child and calculate age and milestones",
             ],
             [
               "Memories and media",
-              "Photographs, captions, notes, dates, locations you choose to add",
+              "Photos, videos and video thumbnails, captions, dates, locations and Little Things details you choose to add",
               "This is the core of the product — it is the keepsake itself",
             ],
             [
@@ -101,8 +104,8 @@ const sections: Section[] = [
             <Link to="/legal/cookie-preferences" className="font-medium text-primary-deep hover:underline">Cookie Preferences</Link>.
           </li>
           <li>
-            <strong>Essential storage</strong> — the sign-in token that keeps you logged in, your theme choice, and
-            your consent choice. Detailed one by one in the{" "}
+            <strong>Device storage</strong> includes your sign-in session and cookie choices. See what else is stored
+            and how to change your settings in the{" "}
             <Link to="/legal/cookies" className="font-medium text-primary-deep hover:underline">Cookie Policy</Link>.
           </li>
         </UL>
@@ -131,8 +134,7 @@ const sections: Section[] = [
           <strong>Our commitments, which mirror the statute:</strong>
           <UL>
             <li>
-              We process a child's personal data only on the basis of{" "}
-              <strong>verifiable consent of the parent or lawful guardian</strong>. That is the account holder — you.
+              Section 9 requires verifiable consent from a parent or lawful guardian before processing a child&apos;s personal data when the provision applies. Rule 10 specifies the checks on the adult&apos;s identity and age.
             </li>
             <li>
               We do <strong>not</strong> undertake tracking or behavioural monitoring of children.
@@ -149,12 +151,10 @@ const sections: Section[] = [
         <H3>How parental consent works here</H3>
         <OL>
           <li>
-            Only an adult can hold a {LEGAL.product} account. By creating one you confirm you are the parent or lawful
-            guardian of the child you add, or that you have that person's authority.
+            At signup, you confirm that you are 18 or older, accept the Terms and separately consent to the data use needed for your account. We record the notice versions and when the acknowledgement was saved.
           </li>
           <li>
-            We verify your identity as the account holder through a one-time code sent to your email address or your
-            WhatsApp number before the account becomes usable. This is our verifiable-consent mechanism.
+            When creating a profile, you separately declare your authority and authorize us to use the information for the family keepsake. We record the notice version and timestamp. A one-time code checks access to your email or phone number. Rule 10 calls for additional checks of the adult&apos;s identity and age, which the current flow does not perform.
           </li>
           <li>
             When you invite a family member, you decide whether they may only <em>view</em> or also <em>edit</em>. That
@@ -185,12 +185,12 @@ const sections: Section[] = [
           rows={[
             [
               "Create and secure your account; sign you in",
-              "Consent + performance of the service you asked for",
+              "Consent to use the information needed for the account",
               "We cannot provide the service at all",
             ],
             [
               "Store and display the memories, milestones and documents you add",
-              "Consent (given each time you upload)",
+              "Account and profile authorizations, as applicable, and the content you choose to add",
               "Simply don't add them — the rest of the app still works",
             ],
             [
@@ -234,12 +234,12 @@ const sections: Section[] = [
       <>
         <P>
           We <strong>never sell</strong> personal data and we do not share it for anyone else's marketing. We share it
-          only in these four situations:
+          in the following ways:
         </P>
         <OL>
           <li>
             <strong>People you choose.</strong> Family members you invite see exactly what you granted them — view or
-            edit — and nothing from any other child or account.
+            edit. Memory photos and videos use a public storage bucket. Anyone who obtains a direct media URL can open it, even after in-app family access is revoked.
           </li>
           <li>
             <strong>Sub-processors who run part of the service.</strong> Each is bound to process data only on our
@@ -305,8 +305,8 @@ const sections: Section[] = [
           head={["Data", "Retention", "Then what"]}
           rows={[
             ["Your account, children, memories, milestones, documents", "For as long as your account is open", "Kept — it is the keepsake you asked us to hold"],
-            ["Everything above, after you delete your account", "Erased within 30 days", "Permanently deleted from the database and from object storage. Backups age out within 90 days"],
-            ["An individual memory, milestone or document you delete", "Removed immediately", "Purged from backups within 90 days"],
+            ["Account and linked personal data", "Subject to account deletion and applicable retention obligations", "Use Settings to start account deletion. Contact us about remaining media links, storage copies or backups."],
+            ["A memory, milestone or document you delete", "Removed from the app", "Contact us about any remaining file links or storage copies."],
             ["A revoked family-member invitation", "Access ends immediately", "The invitation record is kept only as an audit trail of who had access"],
             ["Invoices and payment records", "8 years", "Required by Indian tax law. We cannot delete these on request"],
             ["Security and sign-in logs", "90 days", "Deleted"],
@@ -341,9 +341,7 @@ const sections: Section[] = [
           </li>
           <li>
             <strong>Row-Level Security.</strong> This is the important one. Access control is enforced in the database
-            itself, not merely in the app. Every table carries policies so that a query can only ever return rows for
-            children you own or that have been explicitly shared with you, and only an "editor" share can write. Even
-            if a bug existed in our front-end code, the database would still refuse to hand over another family's data.
+            for family data and distinguishes viewer access from editor access. Direct media links use the storage access model described in the sharing section above.
           </li>
           <li>
             <strong>Least privilege.</strong> Secrets and API keys are held in a table with row-level security enabled
@@ -378,7 +376,7 @@ const sections: Section[] = [
     title: "Your rights",
     body: (
       <>
-        <P>The DPDP Act gives you the following rights, and we honour every one of them:</P>
+        <P>The DPDP Act sets out the following rights. You can use our request channels while the provisions are being phased in.</P>
         <UL>
           <li>
             <strong>Right to access information (s.11)</strong> — a summary of the personal data we process about you
