@@ -19,9 +19,10 @@ interface Props {
 export const PageHero = ({ title, subtitle, icon: Icon, actions, className }: Props) => (
   <header
     className={cn(
-      "relative overflow-hidden rounded-[1.75rem] bg-sec-hero p-5 shadow-soft animate-fade-in-up sm:rounded-[2rem] sm:p-7",
+      "relative overflow-hidden rounded-[1.75rem] p-5 shadow-soft animate-fade-in-up sm:rounded-[2rem] sm:p-7",
       className,
     )}
+    style={{ backgroundImage: "linear-gradient(hsl(24 30% 22% / 0.14), hsl(24 30% 22% / 0.14)), var(--gradient-hero)" }}
   >
     <div className="absolute -bottom-10 -right-8 h-32 w-32 rounded-full bg-white/25" aria-hidden />
 

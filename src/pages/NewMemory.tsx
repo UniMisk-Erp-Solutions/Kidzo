@@ -12,7 +12,7 @@ import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { useChildren } from "@/hooks/useChildren";
 import { useCalendarMemory } from "@/hooks/useCalendarMemory";
 import { useCreateMemory } from "@/hooks/useCreateMemory";
-import { useMemoryPhotos, orderPhotos } from "@/hooks/useMemoryPhotos";
+import { useMemoryPhotos, orderMedia } from "@/hooks/useMemoryPhotos";
 import { useMemorySuggestions } from "@/hooks/useMemorySuggestions";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -26,13 +26,13 @@ import { mergeChips } from "@/lib/chips";
 const CATEGORIES = ["Milestone", "Celebration", "Everyday", "Cozy", "Adventure", "Family"];
 
 /** Footer buttons: save and go to Moments, or save and start another. */
-const SaveBar = ({ saving, onSaveAnother }: { saving: boolean; onSaveAnother: () => void }) => (
+const SaveBar = ({ saving, preparing, onSaveAnother }: { saving: boolean; preparing: boolean; onSaveAnother: () => void }) => (
   <div className="sticky bottom-4 flex flex-col gap-2 rounded-2xl border border-border bg-card/90 p-3 shadow-lift backdrop-blur-xl sm:flex-row">
-    <Button type="submit" variant="warm" size="lg" className="w-full" disabled={saving}>
+    <Button type="submit" variant="warm" size="lg" className="w-full" disabled={saving || preparing}>
       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-      {saving ? "Saving..." : "Save & Celebrate"}
+      {saving ? "Saving..." : preparing ? "Preparing media…" : "Save & Celebrate"}
     </Button>
-    <Button type="button" variant="soft" size="lg" className="w-full" onClick={onSaveAnother} disabled={saving}>
+    <Button type="button" variant="soft" size="lg" className="w-full" onClick={onSaveAnother} disabled={saving || preparing}>
       Save & Add Another
     </Button>
   </div>
@@ -85,7 +85,7 @@ const NewMemory = () => {
     setHappenedAt(d);
     setWhenMonth(d);
   };
-  const { photos, highlightId, setHighlightId, autoDateInfo, addFiles, removePhoto, clearPhotos } =
+  const { photos, highlightId, setHighlightId, autoDateInfo, addFiles, removePhoto, clearPhotos, preparing } =
     useMemoryPhotos(pickDate);
 
   const resetForm = () => {
@@ -99,6 +99,7 @@ const NewMemory = () => {
   };
 
   const handleSave = async (saveAndAddAnother = false) => {
+    if (saving || preparing) return;
     if (!user || !child) return void toast.error("Please set up a child profile first.");
     if (!title.trim()) return void toast.error("Give this memory a title to remember it by.");
     setSaving(true);
@@ -112,7 +113,7 @@ const NewMemory = () => {
       who,
       tags,
       reaction,
-      photos: orderPhotos(photos, highlightId).map((p) => p.file),
+      media: orderMedia(photos, highlightId),
       links: siblings.filter((s) => linkSel[s.id]?.checked).map((s) => ({ childId: s.id, label: linkSel[s.id]?.label ?? "" })),
     });
     setSaving(false);
@@ -153,6 +154,7 @@ const NewMemory = () => {
             onFiles={addFiles}
             onHighlight={setHighlightId}
             onRemove={removePhoto}
+            disabled={saving || preparing}
           />
 
           <div className="space-y-1.5">
@@ -252,7 +254,7 @@ const NewMemory = () => {
             onRemove={(i) => setTags(tags.filter((_, idx) => idx !== i))}
           />
 
-          <SaveBar saving={saving} onSaveAnother={() => handleSave(true)} />
+          <SaveBar saving={saving} preparing={preparing} onSaveAnother={() => handleSave(true)} />
         </form>
       </main>
       <BottomNav />

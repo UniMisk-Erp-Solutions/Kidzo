@@ -8,7 +8,7 @@ import { SEO } from "@/components/SEO";
 import { Mail, MessageCircle, LifeBuoy, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import ogImage from "@/assets/og-kidzopedia.jpg";
-import { LEGAL } from "@/pages/legal/legalConfig";
+import { LEGAL } from "@/lib/legalConfig";
 
 const Contact = () => {
   const [name, setName] = useState("");

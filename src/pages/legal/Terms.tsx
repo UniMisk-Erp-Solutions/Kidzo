@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Callout, H3, LegalDoc, OL, P, Section, Table, UL } from "@/components/legal/LegalDoc";
-import { LEGAL } from "@/pages/legal/legalConfig";
+import { LEGAL } from "@/lib/legalConfig";
 
 const sections: Section[] = [
   {
@@ -32,9 +32,9 @@ const sections: Section[] = [
             to.
           </li>
           <li>
-            You may add a child's information only if you are that child's <strong>parent or lawful guardian</strong>,
-            or you have that person's express authority. By adding a child you confirm this, and you consent — on the
-            child's behalf — to the processing described in our{" "}
+            To create a profile for someone under 18, you must be their <strong>parent or lawful guardian</strong>.
+            If they are 18 or older, you must have their permission. You confirm your authority and authorize the
+            profile data use separately from signing up. Read our{" "}
             <Link to="/legal/privacy" className="font-medium text-primary-deep hover:underline">Privacy Policy</Link>.
           </li>
           <li>
@@ -199,7 +199,7 @@ const sections: Section[] = [
           <strong>You</strong> may delete your account at any time from Settings. When you do, we erase your personal
           data on the timetable set out in the{" "}
           <Link to="/legal/privacy" className="font-medium text-primary-deep hover:underline">Privacy Policy</Link>{" "}
-          (within 30 days; backups age out within 90).
+          as described in the Privacy Policy. Contact us about any remaining copies or legal retention.
         </P>
         <P>
           <strong>We</strong> may suspend or terminate an account that breaches these Terms — in particular the child

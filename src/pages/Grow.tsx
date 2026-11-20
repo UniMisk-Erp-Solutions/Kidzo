@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { Award, Plus } from "lucide-react";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
+import { ScrapbookMargins } from "@/components/childbook/ScrapbookMargins";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -128,7 +129,8 @@ const Grow = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="relative isolate min-h-screen bg-background pb-28">
+      <ScrapbookMargins section="grow" />
       <TopBar childName={child?.name ?? "Your child"} />
 
       <main className="mx-auto max-w-6xl px-6 py-6 space-y-6">

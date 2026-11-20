@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Memory } from "@/hooks/useMemories";
-import { MAX_PHOTOS, photosOf, shiftHighlight, type NewPhoto } from "./memoryDetailUtils";
+import { MAX_MEMORY_MEDIA, memoryMediaOf } from "@/lib/memoryMedia";
+import { photosOf, shiftHighlight, type NewPhoto } from "./memoryDetailUtils";
 
 const toNewPhotos = (files: File[]): NewPhoto[] =>
   files.map((file) => ({ id: crypto.randomUUID(), file, preview: URL.createObjectURL(file) }));
@@ -14,6 +15,7 @@ export const useMemoryEditPhotos = (memory: Memory | null) => {
   const [newPhotos, setNewPhotos] = useState<NewPhoto[]>([]);
   // 0..keptUrls.length-1 maps to kept URL; keptUrls.length+i maps to newPhotos[i]
   const [highlightIdx, setHighlightIdx] = useState(0);
+  const videoCount = memory ? memoryMediaOf(memory).filter((item) => item.kind === "video").length : 0;
 
   useEffect(() => {
     if (!memory) return;
@@ -28,12 +30,12 @@ export const useMemoryEditPhotos = (memory: Memory | null) => {
   const addFiles = (fileList: FileList | File[] | null) => {
     if (!fileList) return;
     const incoming = Array.from(fileList);
-    const room = MAX_PHOTOS - (keptUrls.length + newPhotos.length);
+    const room = MAX_MEMORY_MEDIA - (keptUrls.length + newPhotos.length + videoCount);
     if (room <= 0) {
-      toast.error(`You can keep up to ${MAX_PHOTOS} photos per memory.`);
+      toast.error(`You can keep up to ${MAX_MEMORY_MEDIA} photos and videos combined.`);
       return;
     }
-    if (incoming.length > room) toast.message(`Only the first ${room} photo(s) were added (max ${MAX_PHOTOS}).`);
+    if (incoming.length > room) toast.message(`Only the first ${room} photo(s) were added (max ${MAX_MEMORY_MEDIA}).`);
     setNewPhotos((prev) => [...prev, ...toNewPhotos(incoming.slice(0, room))]);
   };
 
@@ -58,5 +60,5 @@ export const useMemoryEditPhotos = (memory: Memory | null) => {
     setHighlightIdx(0);
   };
 
-  return { keptUrls, newPhotos, highlightIdx, setHighlightIdx, addFiles, removeKept, removeNew, settle };
+  return { keptUrls, newPhotos, videoCount, highlightIdx, setHighlightIdx, addFiles, removeKept, removeNew, settle };
 };

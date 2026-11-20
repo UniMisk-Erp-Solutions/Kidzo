@@ -1,9 +1,11 @@
-import { useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { MemoryMedia } from "@/lib/memoryMedia";
+import { MemoryMediaThumbnail } from "./MemoryMediaThumbnail";
 
 interface Props {
-  images: string[];
+  items: MemoryMedia[];
   title: string;
   activeIdx: number;
   onChange: (updater: (i: number) => number) => void;
@@ -19,6 +21,7 @@ const useStepping = (n: number, onChange: (updater: (i: number) => number) => vo
     if (n > 1) onChange((i) => (i + dir + n) % n);
   };
   const onKey = (e: React.KeyboardEvent) => {
+    if (e.target instanceof HTMLVideoElement) return;
     if (e.key === "ArrowLeft") step(-1);
     else if (e.key === "ArrowRight") step(1);
   };
@@ -34,29 +37,30 @@ const useStepping = (n: number, onChange: (updater: (i: number) => number) => vo
   return { step, onKey, onTouchStart, onTouchEnd };
 };
 
-const Thumbs = ({ images, activeIdx, onSelect }: { images: string[]; activeIdx: number; onSelect: (i: number) => void }) => (
+const Thumbs = ({ items, activeIdx, onSelect }: { items: MemoryMedia[]; activeIdx: number; onSelect: (i: number) => void }) => (
   <div className="flex gap-1.5 overflow-x-auto bg-card/95 px-3 py-2 scrollbar-hide">
-    {images.map((u, i) => (
+    {items.map((item, i) => (
       <button
-        key={u + i}
+        key={item.url + i}
         type="button"
         onClick={() => onSelect(i)}
-        aria-label={`View photo ${i + 1}`}
+        aria-label={`View ${item.kind} ${i + 1}`}
         className={cn(
           "h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all",
           i === activeIdx ? "border-primary-deep" : "border-transparent opacity-70 hover:opacity-100",
         )}
       >
-        <img src={u} alt="" className="h-full w-full object-cover" />
+        <MemoryMediaThumbnail item={item} alt="" className="h-full w-full object-cover" />
       </button>
     ))}
   </div>
 );
 
-/** Big photo with swipe / arrow-key / button browsing and a thumbnail strip. */
-export const MemoryImageViewer = ({ images, title, activeIdx, onChange, onSelect }: Props) => {
-  const n = images.length;
-  const active = images[Math.min(activeIdx, Math.max(0, n - 1))] ?? null;
+/** Photo and video gallery with swipe, arrow keys, and selectable thumbnails. */
+export const MemoryImageViewer = ({ items, title, activeIdx, onChange, onSelect }: Props) => {
+  const [showFullImage, setShowFullImage] = useState(false);
+  const n = items.length;
+  const active = items[Math.min(activeIdx, Math.max(0, n - 1))] ?? null;
   const { onKey, onTouchStart, onTouchEnd, step } = useStepping(n, onChange);
   if (!active) return null;
 
@@ -67,13 +71,51 @@ export const MemoryImageViewer = ({ images, title, activeIdx, onChange, onSelect
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        <img src={active} alt={title} className="max-h-[45vh] w-full select-none object-cover" draggable={false} />
+        {active.kind === "video" ? (
+          <div className="space-y-1">
+            <video
+              key={active.url}
+              src={active.url}
+              poster={active.posterUrl ?? undefined}
+              aria-label={`Video for ${title}`}
+              controls
+              playsInline
+              preload="metadata"
+              className="max-h-[45dvh] w-full bg-black"
+            />
+            <a href={active.url} target="_blank" rel="noopener noreferrer" className="inline-block px-3 pb-2 text-xs text-primary-deep underline">
+              Open video file
+            </a>
+          </div>
+        ) : (
+          <>
+            <img
+              src={active.url}
+              alt={title}
+              className={cn(
+                "w-full select-none",
+                showFullImage ? "max-h-[65dvh] object-contain" : "max-h-[45vh] object-cover",
+              )}
+              draggable={false}
+            />
+            <button
+              type="button"
+              aria-pressed={showFullImage}
+              aria-label="View full image"
+              onClick={() => setShowFullImage((current) => !current)}
+              className="absolute bottom-2 left-3 inline-flex min-h-9 items-center gap-1.5 rounded-full bg-background/95 px-3 text-xs font-medium text-foreground shadow-soft hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {showFullImage ? <Minimize2 className="size-3.5" aria-hidden="true" /> : <Maximize2 className="size-3.5" aria-hidden="true" />}
+              <span aria-hidden="true">{showFullImage ? "Show cropped preview" : "View full image"}</span>
+            </button>
+          </>
+        )}
         {n > 1 && (
           <>
-            <button type="button" onClick={() => step(-1)} aria-label="Previous photo" className={cn(ARROW, "left-3")}>
+            <button type="button" onClick={() => step(-1)} aria-label="Previous attachment" className={cn(ARROW, "left-3")}>
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <button type="button" onClick={() => step(1)} aria-label="Next photo" className={cn(ARROW, "right-3")}>
+            <button type="button" onClick={() => step(1)} aria-label="Next attachment" className={cn(ARROW, "right-3")}>
               <ChevronRight className="h-5 w-5" />
             </button>
             <span className="absolute bottom-2 right-3 rounded-full bg-foreground/60 px-2 py-0.5 text-[11px] font-medium text-background">
@@ -82,7 +124,7 @@ export const MemoryImageViewer = ({ images, title, activeIdx, onChange, onSelect
           </>
         )}
       </div>
-      {n > 1 && <Thumbs images={images} activeIdx={activeIdx} onSelect={onSelect} />}
+      {n > 1 && <Thumbs items={items} activeIdx={activeIdx} onSelect={onSelect} />}
     </div>
   );
 };

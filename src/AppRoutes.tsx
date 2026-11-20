@@ -21,6 +21,7 @@ import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
 import Moments from "./pages/Moments.tsx";
+import MomentsYear from "./pages/MomentsYear.tsx";
 import NewMemory from "./pages/NewMemory.tsx";
 import Grow from "./pages/Grow.tsx";
 import Documents from "./pages/Documents.tsx";
@@ -85,6 +86,7 @@ const ROUTES: AppRoute[] = [
 
   { path: "/home", element: <Index />, guard: "user" },
   { path: "/moments", element: <Moments />, guard: "user" },
+  { path: "/moments/year/:year", element: <MomentsYear />, guard: "user" },
   { path: "/moments/new", element: <NewMemory />, guard: "user" },
   { path: "/grow", element: <Grow />, guard: "user" },
   { path: "/documents", element: <Documents />, guard: "user" },

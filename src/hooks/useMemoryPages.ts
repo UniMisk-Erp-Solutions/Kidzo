@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Memory } from "@/lib/types/memory";
+import { isFlashbackDate } from "@/hooks/useFlashbacks";
 
 /** How many years one page of the Export picker / Moments shows. */
 export const YEARS_PER_PAGE = 3;
@@ -166,17 +167,14 @@ export const useMemoriesInYears = (
 };
 
 /**
- * Memories from earlier years that fall in the current month (for the Flashbacks strip), fetched by id. The
+ * Memories from last month, and from this month in earlier years (for the Flashbacks recaps), fetched by id. The
  * candidates come from the year index, so the whole timeline never has to be downloaded.
  */
 export const useMonthFlashbackMemories = (childId: string | undefined, rows: { id: string; happened_at: string }[] | undefined) => {
   const { user } = useAuth();
   const now = new Date();
   const ids = (rows ?? [])
-    .filter((r) => {
-      const d = new Date(r.happened_at);
-      return d.getMonth() === now.getMonth() && d.getFullYear() < now.getFullYear();
-    })
+    .filter((r) => isFlashbackDate(r.happened_at, now))
     .map((r) => r.id)
     .sort();
   return useQuery({

@@ -1,25 +1,116 @@
-import { useState } from "react";
-import { format } from "date-fns";
-import { Sparkles, ImageIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { ChevronLeft, ChevronRight, Play, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useFlashbacks } from "@/hooks/useFlashbacks";
-import { MemoryDetail } from "@/components/childbook/MemoryDetail";
+import { useFlashbacks, type FlashbackGroup } from "@/hooks/useFlashbacks";
+import { StoryViewer } from "@/components/childbook/StoryViewer";
 import type { Memory } from "@/hooks/useMemories";
 
 interface Props {
   memories: Memory[];
-  /** "card" = full home-style banner with horizontal scroll. "strip" = inline tab section. */
+  /** "card" = full home-style banner. "strip" = inline section. */
   variant?: "card" | "strip";
 }
 
+const photosIn = (g: FlashbackGroup) => g.memories.reduce((n, m) => n + (m.photo_urls?.length || (m.photo_url ? 1 : 0)), 0);
+const coverOf = (g: FlashbackGroup) => {
+  for (const m of g.memories) {
+    const src = m.photo_url ?? m.photo_urls?.[0];
+    if (src) return src;
+  }
+  return null;
+};
+
+/** One recap, shown like a story ring: cover photo, label, and a play badge. */
+const RecapTile = ({ g, onPlay }: { g: FlashbackGroup; onPlay: () => void }) => {
+  const cover = coverOf(g);
+  const photos = photosIn(g);
+  return (
+    <button
+      type="button"
+      onClick={onPlay}
+      aria-label={`Play ${g.title} — ${g.tag}`}
+      className="group relative h-52 w-36 flex-shrink-0 overflow-hidden rounded-3xl border-2 border-card bg-gradient-warm text-left shadow-soft ring-2 ring-primary/60 transition-all hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-none focus-visible:ring-primary-deep sm:h-56 sm:w-40"
+    >
+      {cover && (
+        <img src={cover} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+      )}
+      <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/25" />
+      <span className="absolute left-2.5 top-2.5 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
+        {g.tag}
+      </span>
+      <span className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/85 text-foreground">
+        <Play className="h-3.5 w-3.5 fill-current" />
+      </span>
+      <span className="absolute inset-x-0 bottom-0 p-3 text-white">
+        <span className="block text-[15px] font-semibold leading-tight">{g.title}</span>
+        <span className="mt-0.5 block text-[11px] opacity-85">
+          {g.memories.length} {g.memories.length === 1 ? "memory" : "memories"}
+          {photos > 0 ? ` · ${photos} ${photos === 1 ? "photo" : "photos"}` : ""}
+        </span>
+      </span>
+    </button>
+  );
+};
+
+/** Which way the row can still scroll, kept up to date as it scrolls or the window resizes. */
+function useScrollArrows(rowRef: RefObject<HTMLUListElement>, watch: number) {
+  const [canScroll, setCanScroll] = useState({ left: false, right: false });
+
+  const measure = useCallback(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    setCanScroll({ left: el.scrollLeft > 4, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 });
+  }, [rowRef]);
+
+  useEffect(() => {
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure, watch]);
+
+  const scrollBy = (dir: 1 | -1) => rowRef.current?.scrollBy({ left: dir * rowRef.current.clientWidth * 0.8, behavior: "smooth" });
+  return { canScroll, measure, scrollBy };
+}
+
+const ScrollArrow = ({ side, onClick }: { side: "left" | "right"; onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={side === "left" ? "Scroll recaps left" : "Scroll recaps right"}
+    className={cn(
+      "absolute top-[6.5rem] flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-lift transition hover:bg-card sm:top-28",
+      side === "left" ? "left-2" : "right-2",
+    )}
+  >
+    {side === "left" ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+  </button>
+);
+
+const FlashbacksHeader = ({ onCard }: { onCard: boolean }) => (
+  <header className="flex items-center gap-2.5 px-5 pt-4 sm:px-6">
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-card/80 text-accent-foreground">
+      <Sparkles className="h-4.5 w-4.5" />
+    </span>
+    <div className="min-w-0">
+      <h2 className={cn("truncate text-[15px] font-semibold sm:text-base", onCard ? "text-[hsl(var(--on-celebrate))]" : "text-foreground")}>
+        Flashbacks
+      </h2>
+      <p className={cn("truncate text-[12px]", onCard ? "text-[hsl(var(--on-celebrate)/0.75)]" : "text-muted-foreground")}>
+        Tap a recap to replay it. Hold to pause.
+      </p>
+    </div>
+  </header>
+);
+
+/** Replays: last month's recap and this month in earlier years, each opening as a story. */
 export const Flashbacks = ({ memories, variant = "card" }: Props) => {
   const groups = useFlashbacks(memories);
-  const [open, setOpen] = useState<Memory | null>(null);
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [playing, setPlaying] = useState<string | null>(null);
+  const rowRef = useRef<HTMLUListElement>(null);
+  const { canScroll, measure, scrollBy } = useScrollArrows(rowRef, groups.length);
 
   if (groups.length === 0) return null;
-
-  const active = groups[Math.min(activeIdx, groups.length - 1)];
+  const current = groups.find((g) => g.key === playing) ?? null;
 
   return (
     <section
@@ -29,100 +120,21 @@ export const Flashbacks = ({ memories, variant = "card" }: Props) => {
         variant === "card" ? "bg-gradient-celebrate" : "bg-card",
       )}
     >
-      <header className="flex items-center justify-between gap-3 px-5 pt-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-card/80 text-accent-foreground">
-            <Sparkles className="h-4.5 w-4.5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className={cn("truncate text-[15px] font-semibold sm:text-base", variant === "card" ? "text-[hsl(var(--on-celebrate))]" : "text-foreground")}>
-              Flashbacks · {format(new Date(), "MMMM")}
-            </h2>
-            <p className={cn("truncate text-[12px]", variant === "card" ? "text-[hsl(var(--on-celebrate)/0.75)]" : "text-muted-foreground")}>{active.label} this month</p>
-          </div>
-        </div>
+      <FlashbacksHeader onCard={variant === "card"} />
 
-        {groups.length > 1 && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setActiveIdx((i) => Math.max(0, i - 1))}
-              disabled={activeIdx === 0}
-              aria-label="Previous year"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-card/70 text-foreground transition hover:bg-card disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-1 px-1">
-              {groups.map((g, i) => (
-                <button
-                  key={g.yearsAgo}
-                  type="button"
-                  onClick={() => setActiveIdx(i)}
-                  aria-label={`Jump to ${g.label}`}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all",
-                    i === activeIdx ? "w-5 bg-foreground/80" : "w-1.5 bg-foreground/30",
-                  )}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveIdx((i) => Math.min(groups.length - 1, i + 1))}
-              disabled={activeIdx === groups.length - 1}
-              aria-label="Next year"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-card/70 text-foreground transition hover:bg-card disabled:opacity-40"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-      </header>
-
-      <ul className="mt-4 flex gap-4 overflow-x-auto scroll-smooth scrollbar-hide px-5 pb-6 sm:px-6">
-        {active.memories.map((m) => {
-          const cover = m.photo_url ?? m.photo_urls?.[0] ?? null;
-          const extra = Math.max(0, (m.photo_urls?.length ?? (cover ? 1 : 0)) - 1);
-          return (
-            <li key={m.id} className="flex-shrink-0">
-              <button
-                type="button"
-                onClick={() => setOpen(m)}
-                className="group block w-44 overflow-hidden rounded-2xl border border-border/70 bg-card p-2 text-left shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-lift sm:w-48"
-              >
-                <div className="relative h-28 w-full overflow-hidden rounded-xl bg-gradient-warm sm:h-32">
-                  {cover ? (
-                    <img
-                      src={cover}
-                      alt={m.title}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                      <ImageIcon className="h-6 w-6" />
-                    </div>
-                  )}
-                  {extra > 0 && (
-                    <span className="absolute bottom-2 right-2 rounded-full bg-background/85 px-2 py-0.5 text-[10px] font-semibold text-foreground shadow-soft">
-                      +{extra}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-0.5 px-1.5 pb-1 pt-2.5">
-                  <h3 className="line-clamp-1 text-[13px] font-semibold text-foreground">{m.title}</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    {format(new Date(m.happened_at), "MMM d, yyyy")}
-                  </p>
-                </div>
-              </button>
+      <div className="relative mt-4">
+        <ul ref={rowRef} onScroll={measure} className="flex gap-3 overflow-x-auto scroll-smooth scrollbar-hide px-5 pb-6 sm:gap-4 sm:px-6">
+          {groups.map((g) => (
+            <li key={g.key} className="flex-shrink-0">
+              <RecapTile g={g} onPlay={() => setPlaying(g.key)} />
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+        {canScroll.left && <ScrollArrow side="left" onClick={() => scrollBy(-1)} />}
+        {canScroll.right && <ScrollArrow side="right" onClick={() => scrollBy(1)} />}
+      </div>
 
-      <MemoryDetail memory={open} onClose={() => setOpen(null)} />
+      {current && <StoryViewer title={current.title} tag={current.tag} memories={current.memories} onClose={() => setPlaying(null)} />}
     </section>
   );
 };

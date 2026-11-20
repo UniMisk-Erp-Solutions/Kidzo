@@ -1,5 +1,5 @@
 import { Callout, H3, LegalDoc, OL, P, Section, Table, UL } from "@/components/legal/LegalDoc";
-import { LEGAL } from "@/pages/legal/legalConfig";
+import { LEGAL } from "@/lib/legalConfig";
 
 const sections: Section[] = [
   {
@@ -20,9 +20,8 @@ const sections: Section[] = [
           ]}
         />
         <Callout>
-          Most of these you do not need to ask us for at all — you can do them yourself, immediately, inside the app.
-          Editing a child's profile is correction. Deleting a memory is erasure. Revoking a family member's invitation
-          is withdrawal of consent. Exporting a book is portability. The formal route below exists for everything else.
+          You can update a profile, remove memories from the app, revoke invitations and use available exports.
+          Use the request process below to withdraw account or profile consent or ask about media links and erasure.
         </Callout>
       </>
     ),
@@ -32,11 +31,17 @@ const sections: Section[] = [
     title: "How to make a request",
     body: (
       <>
+        <P>
+          To withdraw account or profile consent, email{" "}
+          <a href={`mailto:${LEGAL.dpoEmail}?subject=Withdraw%20consent`} className="font-medium text-primary-deep underline">Withdraw consent</a>{" "}
+          and tell us what you want to stop. Withdrawal may affect the service we can provide. If another legal basis
+          still requires us to keep or process particular data, we will explain it.
+        </P>
         <OL>
           <li>
             Email{" "}
             <a href={`mailto:${LEGAL.dpoEmail}`} className="font-medium text-primary-deep hover:underline">{LEGAL.dpoEmail}</a>{" "}
-            from <strong>the email address registered on your account</strong>. That is how we know it is you.
+            from the email linked to your account if you have one. If you use phone sign-in, tell us that when you write so we can arrange an ownership check.
           </li>
           <li>
             Tell us which right you are exercising, and about whom — yourself, or your child (say which child).
@@ -62,9 +67,9 @@ const sections: Section[] = [
         rows={[
           ["Acknowledge your request or complaint", "Within 24 hours"],
           ["Substantive response to a data-rights request", "Within 30 days"],
-          ["Resolve a grievance", "Within 15 days, per the IT Rules, 2021"],
-          ["Act on a consent withdrawal", "Immediately in the app; within 7 days across our systems and backups' next cycle"],
-          ["Erase data after account deletion", "Within 30 days; backups age out within 90 days"],
+          ["Respond to a grievance", "Our target is 15 days. We follow any applicable statutory deadline."],
+          ["Act on a consent withdrawal", "Optional settings take effect in the app. For account or profile data, contact us and we will explain what stops and what the law requires us to retain."],
+          ["Account deletion and erasure", "Start from Settings or contact us about any remaining links, storage copies and applicable retention."],
         ]}
       />
     ),
@@ -137,8 +142,8 @@ const sections: Section[] = [
           </li>
           <li>
             <strong>Complain to the Data Protection Board of India.</strong> Under the DPDP Act you may complain to the
-            Board about how we have handled your personal data. The Act expects you to have exhausted our grievance
-            process first, which is why we answer quickly.
+            Board about how we have handled your personal data when the applicable provisions are in force, after
+            using our grievance process.
           </li>
           <li>
             <strong>Appeal.</strong> An order of the Board may be appealed to the Telecom Disputes Settlement and

@@ -3,6 +3,7 @@ import { FolderLock, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
+import { ScrapbookMargins } from "@/components/childbook/ScrapbookMargins";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useCanEditChild } from "@/hooks/useCanEditChild";
@@ -45,7 +46,8 @@ const Documents = () => {
   const legacy = documents.filter((d) => !isAllowedCategory(d.category));
 
   return (
-    <div className="min-h-screen bg-background pb-32 md:pb-28">
+    <div className="relative isolate min-h-screen bg-background pb-32 md:pb-28">
+      <ScrapbookMargins section="docs" />
       <TopBar childName={child?.name ?? "Your child"} />
 
       <main className="mx-auto max-w-6xl space-y-6 px-6 py-6">

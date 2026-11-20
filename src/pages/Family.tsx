@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
+import { ScrapbookMargins } from "@/components/childbook/ScrapbookMargins";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import { useActiveChild } from "@/hooks/useActiveChild";
 import { useAuth } from "@/contexts/AuthContext";
@@ -156,7 +157,8 @@ const Family = () => {
   const myShare = !isOwner ? shares.find((s) => s.shared_with_user_id === user?.id) : null;
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="relative isolate min-h-screen bg-background pb-28">
+      <ScrapbookMargins section="family" />
       <TopBar childName={childName} />
 
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-6 md:max-w-6xl md:py-10">

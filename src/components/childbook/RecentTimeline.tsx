@@ -1,3 +1,5 @@
+import { memoryMediaOf } from "@/lib/memoryMedia";
+import { MemoryMediaThumbnail } from "./MemoryMediaThumbnail";
 import { isPdfUrl } from "@/lib/fileKind";
 import { useState } from "react";
 import { ImageIcon, Sparkles, Trophy } from "lucide-react";
@@ -29,36 +31,38 @@ const RECENT_DAYS = 7;
 const rowClass =
   "group flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card p-2.5 text-left shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift";
 
-const MemoryRow = ({ memory, date, onOpen }: { memory: Memory; date: Date; onOpen: () => void }) => (
-  <button onClick={onOpen} className={rowClass}>
-    <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-warm">
-      {memory.photo_url ? (
-        <img
-          src={memory.photo_url}
-          alt={memory.title}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-          <ImageIcon className="h-6 w-6" />
-        </div>
-      )}
-    </div>
-    <div className="min-w-0 flex-1">
-      <span
-        className={cn(
-          "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-          memoryToneByCat[memory.category] ?? "bg-muted text-muted-foreground",
+const MemoryRow = ({ memory, date, onOpen }: { memory: Memory; date: Date; onOpen: () => void }) => {
+  const cover = memoryMediaOf(memory)[0];
+  return (
+    <button onClick={onOpen} className={rowClass}>
+      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-warm">
+        {cover ? (
+          <MemoryMediaThumbnail
+            item={cover}
+            alt={memory.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <ImageIcon className="h-6 w-6" />
+          </div>
         )}
-      >
-        {memory.category}
-      </span>
-      <h3 className="mt-1 line-clamp-1 text-[14px] font-semibold text-foreground">{memory.title}</h3>
-      <p className="text-[12px] text-muted-foreground">{formatDistanceToNow(date, { addSuffix: true })}</p>
-    </div>
-  </button>
-);
+      </div>
+      <div className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+            memoryToneByCat[memory.category] ?? "bg-muted text-muted-foreground",
+          )}
+        >
+          {memory.category}
+        </span>
+        <h3 className="font-caption mt-1 line-clamp-1 text-[14.5px] text-foreground">{memory.title}</h3>
+        <p className="text-[12px] text-muted-foreground">{formatDistanceToNow(date, { addSuffix: true })}</p>
+      </div>
+    </button>
+  );
+};
 
 const AchievementRow = ({ achievement, date, onOpen }: { achievement: Achievement; date: Date; onOpen: () => void }) => (
   <button onClick={onOpen} className={rowClass}>
@@ -73,7 +77,7 @@ const AchievementRow = ({ achievement, date, onOpen }: { achievement: Achievemen
       <span className="inline-block rounded-full bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-accent-foreground">
         {achievement.type}
       </span>
-      <h3 className="mt-1 line-clamp-1 text-[14px] font-semibold text-foreground">{achievement.subject}</h3>
+      <h3 className="font-caption mt-1 line-clamp-1 text-[14.5px] text-foreground">{achievement.subject}</h3>
       <p className="text-[12px] text-muted-foreground">
         {formatDistanceToNow(date, { addSuffix: true })}
         {achievement.grade ? ` · ${achievement.grade}` : ""}

@@ -190,6 +190,27 @@ export type Database = {
           },
         ]
       }
+      ccavenue_payments: {
+        Row: {
+          amount: number
+          billing_cycle: string | null
+          book_order_id: string | null
+          created_at: string
+          currency: string
+          failure_message: string | null
+          id: string
+          invoice_id: string | null
+          kind: string
+          order_id: string
+          plan_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       book_templates: {
         Row: {
           category: string
@@ -288,11 +309,27 @@ export type Database = {
           },
         ]
       }
+      child_little_things: {
+        Row: { child_id: string; detail: string; topic: string }
+        Insert: { child_id: string; detail: string; topic: string }
+        Update: { child_id?: string; detail?: string; topic?: string }
+        Relationships: [
+          {
+            foreignKeyName: "child_little_things_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "child_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       child_profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           dob: string
+          guardian_notice_version: string | null
+          guardian_authorized_at: string | null
           id: string
           name: string
           pronouns: string | null
@@ -303,6 +340,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           dob: string
+          guardian_notice_version?: string | null
+          guardian_authorized_at?: string | null
           id?: string
           name: string
           pronouns?: string | null
@@ -313,6 +352,8 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           dob?: string
+          guardian_notice_version?: string | null
+          guardian_authorized_at?: string | null
           id?: string
           name?: string
           pronouns?: string | null
@@ -493,6 +534,8 @@ export type Database = {
           id: string
           photo_url: string | null
           photo_urls: string[]
+          video_items: Json
+          video_url: string | null
           reaction: string | null
           story: string | null
           tags: string[]
@@ -509,6 +552,8 @@ export type Database = {
           id?: string
           photo_url?: string | null
           photo_urls?: string[]
+          video_items?: Json
+          video_url?: string | null
           reaction?: string | null
           story?: string | null
           tags?: string[]
@@ -525,6 +570,8 @@ export type Database = {
           id?: string
           photo_url?: string | null
           photo_urls?: string[]
+          video_items?: Json
+          video_url?: string | null
           reaction?: string | null
           story?: string | null
           tags?: string[]
@@ -915,4 +962,3 @@ export type Database = {
     }
   }
 }
-

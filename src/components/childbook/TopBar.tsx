@@ -8,7 +8,7 @@ import { ChildSwitcher } from "./ChildSwitcher";
 import { NotificationsBell } from "./NotificationsBell";
 import { ThemeMenu } from "./ThemeMenu";
 import { PrimaryNav } from "./BottomNav";
-import { LEGAL, LEGAL_DOCS } from "@/pages/legal/legalConfig";
+import { LEGAL, LEGAL_DOCS } from "@/lib/legalConfig";
 import { HelpMenu, SignOutDialog } from "./TopBarMenus";
 
 export const TopBar = ({ childName }: { childName: string }) => {

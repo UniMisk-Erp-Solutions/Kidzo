@@ -1,17 +1,18 @@
 import { X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ConfirmProvider";
-import { type Memory, useMemories } from "@/hooks/useMemories";
+import type { Memory } from "@/hooks/useMemories";
+import { useMemorySuggestions } from "@/hooks/useMemorySuggestions";
 import { useCanEditChild } from "@/hooks/useCanEditChild";
 import { deleteMemoryRow, saveMemoryEdit } from "@/hooks/useMemoryDetailApi";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { MemoryEditForm } from "./MemoryEditForm";
 import { MemoryImageViewer } from "./MemoryImageViewer";
 import { MemoryViewBody } from "./MemoryViewBody";
-import { photosOf, tallySuggestions } from "./memoryDetailUtils";
+import { memoryMediaOf } from "@/lib/memoryMedia";
 import { useMemoryEditState } from "./useMemoryEditState";
 
 interface Props {
@@ -37,9 +38,7 @@ export const MemoryDetail = ({ memory, onClose }: Props) => {
     setActiveImgIdx(0);
   }, [memory]);
 
-  const { data: pastMemories = [] } = useMemories(memory?.child_id);
-  const whoSuggestions = useMemo(() => tallySuggestions(pastMemories, "who_was_there"), [pastMemories]);
-  const tagSuggestions = useMemo(() => tallySuggestions(pastMemories, "tags"), [pastMemories]);
+  const { whoSuggestions, tagSuggestions } = useMemorySuggestions(memory?.child_id);
 
   const handleDelete = async () => {
     if (!memory) return;
@@ -106,7 +105,7 @@ export const MemoryDetail = ({ memory, onClose }: Props) => {
             </button>
 
             <MemoryImageViewer
-              images={photosOf(memory)}
+              items={memoryMediaOf(memory)}
               title={memory.title}
               activeIdx={activeImgIdx}
               onChange={setActiveImgIdx}

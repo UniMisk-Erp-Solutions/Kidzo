@@ -1,3 +1,5 @@
+import type { Json } from "@/integrations/supabase/types";
+
 /** A memory (photo moment). Lives in lib so shared helpers can use it without importing React hooks. */
 export type Memory = {
   id: string;
@@ -10,6 +12,8 @@ export type Memory = {
   who_was_there: string[];
   tags: string[];
   photo_url: string | null;
+  video_url?: string | null;
+  video_items?: Json;
   photo_urls: string[];
   reaction: string | null;
   created_at: string;

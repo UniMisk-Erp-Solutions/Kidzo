@@ -1,3 +1,5 @@
+import { DesignedScrapbookPage } from "./pages/DesignedScrapbookPage";
+import { scrapbookDesigns } from "./pages/scrapbookDesigns";
 import { NativeHider, type NativeMoved } from "./editor/nativeParts";
 import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
@@ -93,6 +95,15 @@ function chapterTitleFor(year: number, childDob?: string, flavor: ScrapbookFlavo
 
 const LAYOUT_CYCLE: MemoryLayout[] = ["collage", "polaroid-stack", "magazine", "journal", "pocket"];
 
+function groupByYear(memories: Memory[]): Map<number, Memory[]> {
+  const byYear = new Map<number, Memory[]>();
+  memories.forEach((m) => {
+    const y = new Date(m.happened_at).getFullYear();
+    byYear.set(y, [...(byYear.get(y) ?? []), m]);
+  });
+  return byYear;
+}
+
 export function buildPages(opts: {
   title: string;
   subtitle?: string | null;
@@ -103,6 +114,7 @@ export function buildPages(opts: {
 }): BookPage[] {
   const { title, subtitle, childName, template, memories, childDob } = opts;
   const flavor = flavorFromTemplate(template);
+  const design = scrapbookDesigns[template.slug];
 
   const sorted = [...memories].sort(
     (a, b) => new Date(a.happened_at).getTime() - new Date(b.happened_at).getTime(),
@@ -113,12 +125,7 @@ export function buildPages(opts: {
       ? `${format(dates[0], "MMM yyyy")} – ${format(dates[dates.length - 1], "MMM yyyy")}`
       : "";
 
-  const byYear = new Map<number, Memory[]>();
-  sorted.forEach((m) => {
-    const y = new Date(m.happened_at).getFullYear();
-    if (!byYear.has(y)) byYear.set(y, []);
-    byYear.get(y)!.push(m);
-  });
+  const byYear = groupByYear(sorted);
 
   const pages: BookPage[] = [
     { kind: "cover", title, subtitle, childName, templateName: template.name, flavor },
@@ -129,7 +136,7 @@ export function buildPages(opts: {
   let chapterNum = 0;
   let spreadCount = 0;
   const totalMemories = sorted.length;
-  const dense = densePackFor(flavor);
+  const dense = design ? { perPage: design.slots.length, layouts: ["grid-collage" as const] } : densePackFor(flavor);
   // total spreads (for index/total display) when in dense mode
   const totalSpreads = dense
     ? Array.from(byYear.values()).reduce(
@@ -141,7 +148,7 @@ export function buildPages(opts: {
   Array.from(byYear.keys())
     .sort((a, b) => a - b)
     .forEach((year) => {
-      const items = byYear.get(year)!;
+      const items = byYear.get(year) ?? [];
       chapterNum += 1;
       pages.push({
         kind: "chapter",
@@ -181,7 +188,11 @@ export function buildPages(opts: {
     });
 
   pages.push({ kind: "back", childName, flavor });
-  return pages;
+  if (!design) return pages;
+  const coverMemories = sorted.filter((memory) => memory.photo_url).slice(0, design.slots.length);
+  return pages.map((page) => page.kind === "cover"
+    ? { ...page, scrapbookDesign: template.slug, coverMemories }
+    : { ...page, scrapbookDesign: template.slug });
 }
 
 /* ─────────────────────────────────────────── Page renderers ─────────── */
@@ -229,6 +240,8 @@ const SpreadPage = ({ page, ...theme }: Kind<"memory-spread">) => {
 };
 
 export const BookPageView = ({ page, colors }: PageProps) => {
+  if (page.scrapbookDesign) return <DesignedScrapbookPage page={page} colors={colors} />;
+
   const flavor = page.kind === "memory" ? page.flavor : (page as { flavor?: ScrapbookFlavor }).flavor ?? "timeline";
   const theme: LayoutTheme = {
     colors,
@@ -320,4 +333,3 @@ export const BookPageFrame = ({
     </div>
   );
 };
-

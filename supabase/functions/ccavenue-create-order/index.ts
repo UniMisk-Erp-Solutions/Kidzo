@@ -53,49 +53,55 @@ async function guardAttempts(admin: Admin, userId: string, kind: string) {
   }
 }
 
-async function subscriptionTarget(admin: Admin, user: { id: string; email?: string; user_metadata?: Record<string, unknown> }, body: Record<string, unknown>): Promise<Target> {
+type Plan = { id: string; slug: string; name: string; price_monthly: number; price_yearly: number; currency: string | null; is_active: boolean };
+type Quote = { amount: number; discount: number; couponId: string | null };
+type User = { id: string; email?: string; user_metadata?: Record<string, unknown> };
+
+async function loadPayablePlan(admin: Admin, slug: string, cycle: string) {
+  const { data } = await admin.from("plans")
+    .select("id, slug, name, price_monthly, price_yearly, currency, is_active").eq("slug", slug).maybeSingle();
+  const plan = data as Plan | null;
+  if (!plan || !plan.is_active) throw new HttpError(404, "Plan not available");
+  if ((plan.currency || "INR") !== "INR") throw new HttpError(400, "This plan cannot be paid through CCAvenue");
+  const base = Number(cycle === "yearly" ? plan.price_yearly : plan.price_monthly);
+  if (!base || base <= 0) throw new HttpError(400, "This plan is free — no payment needed");
+  return { plan, base };
+}
+
+/** Optional coupon: re-validated on the server, never trusting a client-side discounted price. */
+async function priceWithCoupon(admin: Admin, userId: string, plan: Plan, cycle: string, base: number, code: string): Promise<Quote> {
+  if (!code) return { amount: base, discount: 0, couponId: null };
+  const { data: quote, error } = await admin.rpc("coupon_quote", {
+    p_code: code, p_user: userId, p_plan_slug: plan.slug, p_cycle: cycle,
+  });
+  if (error) throw error;
+  if (!quote?.valid) throw new HttpError(400, quote?.reason || "Invalid coupon");
+  return { amount: Number(quote.final_amount), discount: Number(quote.discount_amount), couponId: quote.coupon_id };
+}
+
+const displayName = (user: User) =>
+  String(user.user_metadata?.full_name ?? user.user_metadata?.name ?? user.email?.split("@")[0] ?? "Kidzopedia customer").slice(0, 60);
+
+async function subscriptionTarget(admin: Admin, user: User, body: Record<string, unknown>): Promise<Target> {
   const planSlug = String(body.plan_slug ?? "");
   const cycle = body.cycle === "yearly" ? "yearly" : "monthly";
   if (!planSlug) throw new HttpError(400, "plan_slug required");
 
-  const { data: plan } = await admin.from("plans")
-    .select("id, slug, name, price_monthly, price_yearly, currency, is_active").eq("slug", planSlug).maybeSingle();
-  if (!plan || !plan.is_active) throw new HttpError(404, "Plan not available");
-  if ((plan.currency || "INR") !== "INR") throw new HttpError(400, "This plan can't be paid through CCAvenue");
-
-  const base = Number(cycle === "yearly" ? plan.price_yearly : plan.price_monthly);
-  if (!base || base <= 0) throw new HttpError(400, "This plan is free — no payment needed");
-
-  // Optional coupon: re-validated on the server, never trusting a client-side discounted price.
-  let amount = base, couponId: string | null = null, discount = 0;
-  const couponCode = body.coupon_code ? String(body.coupon_code) : "";
-  if (couponCode) {
-    const { data: quote, error } = await admin.rpc("coupon_quote", {
-      p_code: couponCode, p_user: user.id, p_plan_slug: plan.slug, p_cycle: cycle,
-    });
-    if (error) throw error;
-    if (!quote?.valid) throw new HttpError(400, quote?.reason || "Invalid coupon");
-    amount = Number(quote.final_amount);
-    discount = Number(quote.discount_amount);
-    couponId = quote.coupon_id;
-  }
+  const { plan, base } = await loadPayablePlan(admin, planSlug, cycle);
+  const code = body.coupon_code ? String(body.coupon_code) : "";
+  const { amount, discount, couponId } = await priceWithCoupon(admin, user.id, plan, cycle, base, code);
   if (!(amount > 0)) throw new HttpError(400, "Nothing to pay for this plan with that coupon");
 
   const { data: invoice, error } = await admin.from("invoices").insert({
     user_id: user.id, plan_id: plan.id, amount, currency: "INR", status: "pending", provider: "ccavenue",
     billing_cycle: cycle, coupon_id: couponId, discount_amount: discount,
-    notes: `CCAvenue one-time payment — ${plan.name} (${cycle})${couponCode ? ` · coupon ${couponCode}` : ""}`,
+    notes: `CCAvenue one-time payment — ${plan.name} (${cycle})${code ? ` · coupon ${code}` : ""}`,
   }).select("id").single();
   if (error) throw error;
 
-  const meta = user.user_metadata ?? {};
   return {
     kind: "subscription", amount, invoiceId: invoice.id, planId: plan.id, cycle,
-    billing: {
-      billing_name: String(meta.full_name ?? meta.name ?? user.email?.split("@")[0] ?? "Kidzopedia customer").slice(0, 60),
-      billing_email: user.email ?? "",
-      billing_country: "India",
-    },
+    billing: { billing_name: displayName(user), billing_email: user.email ?? "", billing_country: "India" },
   };
 }
 

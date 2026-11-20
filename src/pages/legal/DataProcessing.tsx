@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Callout, H3, LegalDoc, OL, P, Section, Table, UL } from "@/components/legal/LegalDoc";
-import { LEGAL, SUBPROCESSORS } from "@/pages/legal/legalConfig";
+import { LEGAL, SUBPROCESSORS } from "@/lib/legalConfig";
 
 const sections: Section[] = [
   {
@@ -143,15 +143,13 @@ const sections: Section[] = [
     body: (
       <>
         <P>
-          Retention periods for each category of data are set out in the{" "}
-          <Link to="/legal/privacy" className="font-medium text-primary-deep hover:underline">Privacy Policy</Link>. In
-          summary: we keep your keepsake for as long as your account is open; when you delete your account we erase
-          your personal data within 30 days and it ages out of backups within 90; invoices are kept for 8 years because
-          tax law requires it.
+          Retention depends on why we hold each type of data and any legal obligation to keep it. See our{" "}
+          <Link to="/legal/privacy#retention" className="font-medium text-primary-deep underline">Privacy Policy</Link>.
         </P>
         <P>
-          Erasure means erasure — the row is deleted from the database and the object is deleted from storage. It is
-          not merely hidden from your view.
+          Removing account records and removing files from storage are separate operations. To ask us to review
+          a specific file, link or backup, see{" "}
+          <Link to="/legal/data-rights" className="font-medium text-primary-deep underline">Data Rights &amp; Grievance</Link>.
         </P>
       </>
     ),

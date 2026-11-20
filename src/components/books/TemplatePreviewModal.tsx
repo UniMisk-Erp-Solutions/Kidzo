@@ -2,6 +2,8 @@ import { BookOpen, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { BookTemplate } from "@/hooks/useBookTemplates";
+import { BookPageFrame } from "./BookPages";
+import { buildTemplateSamplePages } from "./TemplateCard";
 
 interface Props {
   template: BookTemplate | null;
@@ -74,21 +76,28 @@ export const TemplatePreviewModal = ({ template, locked = false, open, onOpenCha
           </DialogTitle>
         </DialogHeader>
 
-        {/* Hero cover */}
-        <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-gradient-hero">
-          <div
-            className="flex h-3/4 w-3/5 flex-col items-center justify-center rounded-xl border-2 px-6 text-center shadow-lift"
-            style={{ backgroundColor: c.primary, borderColor: c.gold, color: ink }}
-          >
-            <BookOpen className="mb-3 h-8 w-8" />
-            <div className="text-[18px] font-semibold leading-tight">{template.name}</div>
-            {template.suggested_age_range && (
-              <div className="mt-1 text-[11px] uppercase tracking-wide opacity-70">
-                {template.suggested_age_range}
-              </div>
-            )}
+        {template.slug.startsWith("studio-") ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {buildTemplateSamplePages(template).map((page, i) => (
+              <BookPageFrame key={i} page={page} colors={c} className="aspect-[3/4] w-full rounded-lg" />
+            ))}
           </div>
-        </div>
+        ) : (
+          <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-gradient-hero">
+            <div
+              className="flex h-3/4 w-3/5 flex-col items-center justify-center rounded-xl border-2 px-6 text-center shadow-lift"
+              style={{ backgroundColor: c.primary, borderColor: c.gold, color: ink }}
+            >
+              <BookOpen className="mb-3 h-8 w-8" />
+              <div className="text-[18px] font-semibold leading-tight">{template.name}</div>
+              {template.suggested_age_range && (
+                <div className="mt-1 text-[11px] uppercase tracking-wide opacity-70">
+                  {template.suggested_age_range}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <p className="text-[14px] leading-relaxed text-muted-foreground">{template.description}</p>
 

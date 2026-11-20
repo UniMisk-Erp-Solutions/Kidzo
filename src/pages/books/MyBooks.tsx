@@ -1,10 +1,11 @@
 import { useConfirm } from "@/components/ConfirmProvider";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Plus, Loader2 } from "lucide-react";
+import { BookOpen, LayoutTemplate, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TopBar } from "@/components/childbook/TopBar";
 import { PageHero } from "@/components/childbook/PageHero";
+import { ScrapbookMargins } from "@/components/childbook/ScrapbookMargins";
 import { BottomNav } from "@/components/childbook/BottomNav";
 import {
   BookCard, BookStats, EmptyState, FilterBar, computeBookStats, matchesFilter, type BookFilter,
@@ -39,7 +40,8 @@ const MyBooks = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="relative isolate min-h-screen bg-background pb-28">
+      <ScrapbookMargins section="books" />
       <TopBar childName={child?.name ?? ""} />
 
       <main className="mx-auto max-w-2xl px-6 py-6 md:max-w-6xl md:py-10">
@@ -49,9 +51,14 @@ const MyBooks = () => {
           title="My memory books"
           subtitle="Drafts, orders and printed keepsakes — all in one place."
           actions={
-            <Button variant="outline" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => navigate("/books/new")}>
-              <Plus className="h-4 w-4" /> Create book
-            </Button>
+            <>
+              <Button variant="outline" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => navigate("/books/templates")}>
+                <LayoutTemplate className="h-4 w-4" /> Templates
+              </Button>
+              <Button variant="outline" className="border-white/60 bg-white/85 text-plum hover:bg-white" onClick={() => navigate("/books/new")}>
+                <Plus className="h-4 w-4" /> Create book
+              </Button>
+            </>
           }
         />
 

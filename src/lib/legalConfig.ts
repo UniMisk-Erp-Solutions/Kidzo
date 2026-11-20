@@ -29,7 +29,13 @@ export const LEGAL = {
   jurisdiction: "the courts of India",
 
   /** Shown as "Last updated" on every document. */
-  lastUpdated: "14 July 2026",
+  lastUpdated: "18 November 2026",
+  termsVersion: "2026-11-18",
+  privacyVersion: "2026-11-18",
+  guardianNoticeVersion: "2026-11-18",
+  dpdpActUrl: "https://www.meity.gov.in/static/uploads/2024/06/2bf1f0e9f04e6fb4f8fef35e82c42aa5.pdf",
+  dpdpRulesUrl: "https://egazette.gov.in/WriteReadData/2025/267650.pdf",
+  dpdpCommencementUrl: "https://egazette.gov.in/WriteReadData/2025/267647.pdf",
   effectiveFrom: "14 July 2026",
 } as const;
 
@@ -43,13 +49,13 @@ export const SUBPROCESSORS: {
   {
     name: "Self-hosted Supabase (PostgreSQL, Auth, Storage)",
     purpose: "Core application database, sign-in, and file storage",
-    data: "Account details, child profiles, memories, milestones, documents",
+    data: "Account details, consent records, child profiles, memories, milestones, documents",
     location: "Our own servers in India",
   },
   {
     name: "Self-hosted MinIO (S3-compatible object storage)",
-    purpose: "Stores photos, documents and exported keepsake books",
-    data: "Photos, scanned records, PDFs you upload",
+    purpose: "Stores photos, videos, documents and exported keepsake books",
+    data: "Photos, videos, scanned records and PDFs you upload",
     location: "Our own servers in India",
   },
   {
